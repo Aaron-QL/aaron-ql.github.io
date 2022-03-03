@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="网络,linux内核,透明代理," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="前言这篇文章源自最近工作内容的一个总结——设计了一个透明代理，把其中跟流量劫持相关的知识点记录下来。 要想让一个代理程序代理网络流量，最直接的办法就是让客户端以代理程序为目的地址，直接把流量打给他。比如我们在操作系统中配置了代理地址的环境变量，浏览器（或其他原本就支持代理的程序）就会以该地址进行网络请求，使用的应用层协议通常是HTTP&#x2F;1.1、Socks5，这些协议中有字段声明了原始的目的地址。但">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解透明代理——概念篇">
+<meta property="og:url" content="https://akaqin.github.io/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E6%A6%82%E5%BF%B5%E7%AF%87/index.html">
+<meta property="og:site_name" content="Code Your Ambition">
+<meta property="og:description" content="前言这篇文章源自最近工作内容的一个总结——设计了一个透明代理，把其中跟流量劫持相关的知识点记录下来。 要想让一个代理程序代理网络流量，最直接的办法就是让客户端以代理程序为目的地址，直接把流量打给他。比如我们在操作系统中配置了代理地址的环境变量，浏览器（或其他原本就支持代理的程序）就会以该地址进行网络请求，使用的应用层协议通常是HTTP&#x2F;1.1、Socks5，这些协议中有字段声明了原始的目的地址。但">
+<meta property="og:locale">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/tXdTId.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/GVdXHg.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/ldpjCw.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/5r8yTw.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/j1YLdQ.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/n2dDfS.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/dWhDu5.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/33Bb7O.png">
+<meta property="article:published_time" content="2022-01-08T01:25:09.000Z">
+<meta property="article:modified_time" content="2022-03-01T11:45:12.200Z">
+<meta property="article:author" content="Aaron Qin">
+<meta property="article:tag" content="网络">
+<meta property="article:tag" content="linux内核">
+<meta property="article:tag" content="透明代理">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/tXdTId.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://akaqin.github.io/articles/深入理解透明代理——概念篇/"/>
+
+
+
+
+
+  <title>深入理解透明代理——概念篇 | Code Your Ambition</title>
+  
+
+
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZV2QP61MNB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-ZV2QP61MNB');
+</script>
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Code Your Ambition</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-commonweal">
+          <a href="/404/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            公益404
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://akaqin.github.io/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E6%A6%82%E5%BF%B5%E7%AF%87/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">深入理解透明代理——概念篇</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-01-08T09:25:09+08:00">
+                2022-01-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
+                    <span itemprop="name">知识点总结</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86/" itemprop="url" rel="index">
+                    <span itemprop="name">透明代理</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E6%A6%82%E5%BF%B5%E7%AF%87/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/深入理解透明代理——概念篇/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>这篇文章源自最近工作内容的一个总结——设计了一个透明代理，把其中跟流量劫持相关的知识点记录下来。</p>
+<p>要想让一个代理程序代理网络流量，最直接的办法就是让客户端以代理程序为目的地址，直接把流量打给他。比如我们在操作系统中配置了代理地址的环境变量，浏览器（或其他原本就支持代理的程序）就会以该地址进行网络请求，使用的应用层协议通常是<code>HTTP/1.1</code>、<code>Socks5</code>，这些协议中有字段声明了原始的目的地址。但这种方式有两个弊端：一是对业务逻辑有入侵；二是支持的协议有限，像<code>TCP</code>、<code>gRPC</code>、<code>HTTP/2</code>这些协议就没法被代理，因为代理程序没办法找到原始的目标地址。</p>
+<p>而我们需要的代理方式是<strong>透明代理</strong>——客户端根本不需要知道代理服务器的存在，它是一种匿名代理，不用手动的配置代理信息，它会自动的监听拦截并改写报文，传送真实IP进行NAT转发。常见的透明代理有三种实现方式：</p>
+<ul>
+<li><p><strong>iptables</strong>：通过配置iptables的nat规则实现数据包的转发，<code>Istio Service Mesh</code>的<code>Envoy</code>代理就是以这种方式实现</p>
+</li>
+<li><p><strong>TProxy</strong>：这是一个自Linux 2.2发布的特性，允许程序给socket绑定不属于自己的IP地址以达到IP伪装的效果，同时还需要配置iptables的mangle表规则对流量进行标记。<code>Envoy</code>也支持这种代理方式</p>
+</li>
+<li><p><strong>eBPF</strong>：<code>Extended Berkeley Packet Filter (eBPF)</code>是一项最近很火的革命性的技术，它是Linux内核新特性（4.X），可以在操作系统内核中运行沙盒程序。用于安全有效地扩展内核的功能，而无需更改内核源代码或加载内核模块。你可以将其视为 Linux 内核中的轻量级沙盒虚拟机 (VM)，程序员可以在其中运行利用特定内核资源的 BPF 字节码。</p>
+</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="Istio-中的-sidecar-注入"><a href="#Istio-中的-sidecar-注入" class="headerlink" title="Istio 中的 sidecar 注入"></a>Istio 中的 sidecar 注入</h2><p>以Istio为例，来看一下istio的<code>sidecar proxy</code>是如何做流量拦截和路由转发的。为了查看 iptables 配置，我们需要登陆到 sidecar 容器中使用 root 用户来查看，因为 <code>kubectl</code> 无法使用特权模式来远程操作 docker 容器，所以我们需要登陆到 <code>productpage</code> pod 所在的主机上使用 <code>docker</code> 命令登陆容器中查看。</p>
+<p>如果您使用 minikube 部署的 Kubernetes，可以直接登录到 minikube 的虚拟机中并切换为 root 用户。查看 iptables 配置，列出 NAT（网络地址转换）表的所有规则，因为在 Init 容器启动的时候选择给 <code>istio-iptables</code> 传递的参数中指定将入站流量重定向到 sidecar 的模式为 <code>REDIRECT</code>，因此在 iptables 中将只有 NAT 表的规格配置，如果选择 <code>TPROXY</code> 还会有 <code>mangle</code> 表配置。<code>iptables</code> 命令的详细用法请参考 <a target="_blank" rel="noopener" href="https://wangchujiang.com/linux-command/c/iptables.html">iptables</a> 命令。</p>
+<p>我们仅查看与 <code>productpage</code> 有关的 iptables 规则如下。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 进入 minikube 并切换为 root 用户，minikube 默认用户为 docker</span></span><br><span class="line">$ minikube ssh</span><br><span class="line">$ sudo -i</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 productpage pod 的 istio-proxy 容器中的进程</span></span><br><span class="line">$ docker top `docker ps|grep <span class="string">&quot;istio-proxy_productpage&quot;</span>|cut -d <span class="string">&quot; &quot;</span> -f1`</span><br><span class="line">UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD</span><br><span class="line">1337                10576               10517               0                   08:09               ?                   00:00:07            /usr/<span class="built_in">local</span>/bin/pilot-agent proxy sidecar --domain default.svc.cluster.local --configPath /etc/istio/proxy --binaryPath /usr/<span class="built_in">local</span>/bin/envoy --serviceCluster productpage.default --drainDuration 45s --parentShutdownDuration 1m0s --discoveryAddress istiod.istio-system.svc:15012 --zipkinAddress zipkin.istio-system:9411 --proxyLogLevel=warning --proxyComponentLogLevel=misc:error --connectTimeout 10s --proxyAdminPort 15000 --concurrency 2 --controlPlaneAuthPolicy NONE --dnsRefreshRate 300s --statusPort 15020 --trust-domain=cluster.local --controlPlaneBootstrap=<span class="literal">false</span></span><br><span class="line">1337                10660               10576               0                   08:09               ?                   00:00:33            /usr/<span class="built_in">local</span>/bin/envoy -c /etc/istio/proxy/envoy-rev0.json --restart-epoch 0 --drain-time-s 45 --parent-shutdown-time-s 60 --service-cluster productpage.default --service-node sidecar~172.17.0.16~productpage-v1-7f44c4d57c-ksf9b.default~default.svc.cluster.local --max-obj-name-len 189 --local-address-ip-version v4 --log-format [Envoy (Epoch 0)] [%Y-%m-%d %T.%e][%t][%l][%n] %v -l warning --component-log-level misc:error --concurrency 2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 进入 nsenter 进入 sidecar 容器的命名空间（以上任何一个都可以）</span></span><br><span class="line">$ nsenter -n --target 10660</span><br></pre></td></tr></table></figure>
+
+<p>在该进程的命名空间下查看其 iptables 规则链。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 NAT 表中规则配置的详细信息。</span></span><br><span class="line">$ iptables -t nat -L -v</span><br><span class="line"><span class="comment"># PREROUTING 链：用于目标地址转换（DNAT），将所有入站 TCP 流量跳转到 ISTIO_INBOUND 链上。</span></span><br><span class="line">Chain PREROUTING (policy ACCEPT 2701 packets, 162K bytes)</span><br><span class="line"> pkts bytes target     prot opt <span class="keyword">in</span>     out     <span class="built_in">source</span>               destination</span><br><span class="line"> 2701  162K ISTIO_INBOUND  tcp  --  any    any     anywhere             anywhere</span><br><span class="line"></span><br><span class="line"><span class="comment"># INPUT 链：处理输入数据包，非 TCP 流量将继续 OUTPUT 链。</span></span><br><span class="line">Chain INPUT (policy ACCEPT 2701 packets, 162K bytes)</span><br><span class="line"> pkts bytes target     prot opt <span class="keyword">in</span>     out     <span class="built_in">source</span>               destination</span><br><span class="line"></span><br><span class="line"><span class="comment"># OUTPUT 链：将所有出站数据包跳转到 ISTIO_OUTPUT 链上。</span></span><br><span class="line">Chain OUTPUT (policy ACCEPT 79 packets, 6761 bytes)</span><br><span class="line"> pkts bytes target     prot opt <span class="keyword">in</span>     out     <span class="built_in">source</span>               destination</span><br><span class="line">   15   900 ISTIO_OUTPUT  tcp  --  any    any     anywhere             anywhere</span><br><span class="line"></span><br><span class="line"><span class="comment"># POSTROUTING 链：所有数据包流出网卡时都要先进入POSTROUTING 链，内核根据数据包目的地判断是否需要转发出去，我们看到此处未做任何处理。</span></span><br><span class="line">Chain POSTROUTING (policy ACCEPT 79 packets, 6761 bytes)</span><br><span class="line"> pkts bytes target     prot opt <span class="keyword">in</span>     out     <span class="built_in">source</span>               destination</span><br><span class="line"></span><br><span class="line"><span class="comment"># ISTIO_INBOUND 链：将所有入站流量重定向到 ISTIO_IN_REDIRECT 链上，目的地为 15090（mixer 使用）和 15020（Ingress gateway 使用，用于 Pilot 健康检查）端口的流量除外，发送到以上两个端口的流量将返回 iptables 规则链的调用点，即 PREROUTING 链的后继 POSTROUTING。</span></span><br><span class="line">Chain ISTIO_INBOUND (1 references)</span><br><span class="line"> pkts bytes target     prot opt <span class="keyword">in</span>     out     <span class="built_in">source</span>               destination</span><br><span class="line">    0     0 RETURN     tcp  --  any    any     anywhere             anywhere             tcp dpt:ssh</span><br><span class="line">    2   120 RETURN     tcp  --  any    any     anywhere             anywhere             tcp dpt:15090</span><br><span class="line"> 2699  162K RETURN     tcp  --  any    any     anywhere             anywhere             tcp dpt:15020</span><br><span class="line">    0     0 ISTIO_IN_REDIRECT  tcp  --  any    any     anywhere             anywhere</span><br><span class="line"></span><br><span class="line"><span class="comment"># ISTIO_IN_REDIRECT 链：将所有的入站流量跳转到本地的 15006 端口，至此成功的拦截了流量到 sidecar 中。</span></span><br><span class="line">Chain ISTIO_IN_REDIRECT (3 references)</span><br><span class="line"> pkts bytes target     prot opt <span class="keyword">in</span>     out     <span class="built_in">source</span>               destination</span><br><span class="line">    0     0 REDIRECT   tcp  --  any    any     anywhere             anywhere             redir ports 15006</span><br><span class="line"></span><br><span class="line"><span class="comment"># ISTIO_OUTPUT 链：选择需要重定向到 Envoy（即本地） 的出站流量，所有非 localhost 的流量全部转发到 ISTIO_REDIRECT。为了避免流量在该 Pod 中无限循环，所有到 istio-proxy 用户空间的流量都返回到它的调用点中的下一条规则，本例中即 OUTPUT 链，因为跳出 ISTIO_OUTPUT 规则之后就进入下一条链 POSTROUTING。如果目的地非 localhost 就跳转到 ISTIO_REDIRECT；如果流量是来自 istio-proxy 用户空间的，那么就跳出该链，返回它的调用链继续执行下一条规则（OUTPUT 的下一条规则，无需对流量进行处理）；所有的非 istio-proxy 用户空间的目的地是 localhost 的流量就跳转到 ISTIO_REDIRECT。</span></span><br><span class="line">Chain ISTIO_OUTPUT (1 references)</span><br><span class="line"> pkts bytes target     prot opt <span class="keyword">in</span>     out     <span class="built_in">source</span>               destination</span><br><span class="line">    0     0 RETURN     all  --  any    lo      127.0.0.6            anywhere</span><br><span class="line">    0     0 ISTIO_IN_REDIRECT  all  --  any    lo      anywhere            !localhost            owner UID match 1337</span><br><span class="line">    0     0 RETURN     all  --  any    lo      anywhere             anywhere             ! owner UID match 1337</span><br><span class="line">   15   900 RETURN     all  --  any    any     anywhere             anywhere             owner UID match 1337</span><br><span class="line">    0     0 ISTIO_IN_REDIRECT  all  --  any    lo      anywhere            !localhost            owner GID match 1337</span><br><span class="line">    0     0 RETURN     all  --  any    lo      anywhere             anywhere             ! owner GID match 1337</span><br><span class="line">    0     0 RETURN     all  --  any    any     anywhere             anywhere             owner GID match 1337</span><br><span class="line">    0     0 RETURN     all  --  any    any     anywhere             localhost</span><br><span class="line">    0     0 ISTIO_REDIRECT  all  --  any    any     anywhere             anywhere</span><br><span class="line"></span><br><span class="line"><span class="comment"># ISTIO_REDIRECT 链：将所有流量重定向到 Sidecar（即本地） 的 15001 端口。</span></span><br><span class="line">Chain ISTIO_REDIRECT (1 references)</span><br><span class="line"> pkts bytes target     prot opt <span class="keyword">in</span>     out     <span class="built_in">source</span>               destination</span><br><span class="line">    0     0 REDIRECT   tcp  --  any    any     anywhere             anywhere             redir ports 15001</span><br></pre></td></tr></table></figure>
+
+<p>下图展示的是 <code>productpage</code> 服务请求访问 <code>http://reviews.default.svc.cluster.local:9080/</code>，当流量进入 <code>reviews</code> 服务内部时，<code>reviews</code> 服务内部的 sidecar proxy 是如何做流量拦截和路由转发的。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/tXdTId.png" alt="tXdTId"></p>
+<p>在这张图中我们可以观察当流量进入Reviews服务内部时，Reviews服务内部的Sidecar Proxy是如何做流量拦截和路由转发的。不过图中序号15，16标注应该是有些问题，在这里我们对应前面的规则，重新绘制了一个更通俗易懂的图并进行分析。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/GVdXHg.png" alt="GVdXHg"></p>
+<ol>
+<li>进入Pod的Inbound流量首先被PREROUTING链拦截并处理</li>
+<li>当TCP请求进入PREROUTING链时全部交给ISTIO_INBOUND处理 <code>-A PREROUTING -p tcp -j ISTIO_INBOUND</code></li>
+<li>请求目标端口非15008/22/15090/15021/15020的TCP请求全部交给ISTIO_IN_REDIRECT处理 <code>-A ISTIO_INBOUND -p tcp -j ISTIO_IN_REDIRECT</code></li>
+<li>将发送到此的TCP请求全部重定向至15006端口（Envoy入口流量端口）<code>-A ISTIO_IN_REDIRECT -p tcp -j REDIRECT --to-ports 15006</code></li>
+<li>在Envoy内部处理后，决定将数据包转发到应用，这一步对Envoy来说属于出口流量，会被netfilter拦截转发至出口流量OUTPUT链</li>
+<li>出站请求，当TCP请求进入OUTPUT链时全部交给ISTIO_OUTPUT处理 <code>-A OUTPUT -p tcp -j ISTIO_OUTPUT</code></li>
+<li>匹配出站请求对应规则，<strong>请求本地服务，出口为lo网卡同时来自istio-proxy用户空间</strong>，流量返回到它的调用点中的下一条链执行，即POSTROUTING链 <code>-A ISTIO_OUTPUT -m owner --uid-owner 1337 -j RETURN / -A ISTIO_OUTPUT -m owner --gid-owner 1337 -j RETURN</code></li>
+<li>Sidecar发出的请求到达目标应用</li>
+<li>目标应用处理完业务逻辑后响应Sidecar，这一步对应用来说属于出口流量，再次被netfilter拦截转发至出口流量OUTPUT链</li>
+<li>出站请求，当TCP请求进入OUTPUT链时全部交给ISTIO_OUTPUT处理 <code>-A OUTPUT -p tcp -j ISTIO_OUTPUT</code></li>
+<li>请求下一个服务/响应请求，即<strong>请求非本地服务同时不来自istio-proxy用户空间</strong>，流量被转发至ISTIO_REDIRECT链 <code>-A ISTIO_OUTPUT -j ISTIO_REDIRECT</code></li>
+<li>将重定向于此的TCP协议请求流量全部重定向至15001端口（Envoy出口流量端口）<code>-A ISTIO_REDIRECT -p tcp -j REDIRECT --to-ports 15001</code></li>
+<li>在Envoy内部处理后，决定将数据包对外转发，这一步对Envoy来说属于出口流量，会被netfilter拦截转发至出口流量OUTPUT链</li>
+<li>出站请求，当TCP请求进入OUTPUT链时全部交给ISTIO_OUTPUT处理 <code>-A OUTPUT -p tcp -j ISTIO_OUTPUT</code></li>
+<li><strong>请求非本地的服务，出口不为lo网卡同时来自istio-proxy用户空间</strong>则跳过了ISTIO_REDIREC处理，直接RETURN到下一个链，即POSTROUTING链 <code>-A ISTIO_OUTPUT -m owner --uid-owner 1337 -j RETURN / -A ISTIO_OUTPUT -m owner --gid-owner 1337 -j RETURN</code></li>
+<li>POSTROUTING链处理完成后，根据路由表选择合适的网卡发送Outbound流量</li>
+</ol>
+<p><strong>使用 iptables 做流量劫持时存在的问题</strong></p>
+<p>目前<code>Istio</code>使用 iptables 实现透明劫持，主要存在以下三个问题：</p>
+<ol>
+<li>需要借助于 conntrack 模块实现连接跟踪，在连接数较多的情况下，会造成较大的消耗，同时可能会造成 track 表满的情况，为了避免这个问题，业内有关闭 conntrack 的做法。</li>
+<li>iptables 属于常用模块，全局生效，不能显式的禁止相关联的修改，可管控性比较差。</li>
+<li>iptables 重定向流量本质上是通过 loopback 交换数据，outbond 流量将两次穿越协议栈，在大并发场景下会损失转发性能。</li>
+<li>被代理程序看到的源IP是127.0.0.1</li>
+</ol>
+<p>上述几个问题并非在所有场景中都存在，比方说某些场景下，连接数并不多，且 NAT 表未被使用到的情况下，iptables 是一个满足要求的简单方案。为了适配更加广泛的场景，透明劫持需要解决上述三个问题。</p>
+<h2 id="使用-TProxy-进行流量劫持"><a href="#使用-TProxy-进行流量劫持" class="headerlink" title="使用 TProxy 进行流量劫持"></a>使用 TProxy 进行流量劫持</h2><p><code>TProxy</code>提供了通过用户态程序透明代理流量的能力，且无需改变报文中的目的 IP/端口，不需要执行连接跟踪，不会出现 conntrack 模块创建大量连接的问题。受限于内核版本，tproxy 应用于 outbound 存在一定缺陷。目前 Istio 支持通过 tproxy 处理 inbound 流量。</p>
+<p><code>TProxy</code>的另一个特性是能够以原始客户端的身份与远程服务器建立连接。例如，如果连接<code>10.0.0.1:50073 -&gt; 8.8.8.8:80</code> 被代理拦截，则代理程序可以把自己的地址伪装成<code>10.0.0.1:50073</code>与<code>8.8.8.8:80</code>建立连接。</p>
+<p>linux 内核和 iptables 通过将传入的数据包与本地套接字匹配的方式识别那些回流的数据包，并转移回那些远程连接的代理。</p>
+<p>这个功能主要有三步实现：</p>
+<p><strong>Step 1 - 为socket绑定<code>IP_TRANSPARENT</code></strong></p>
+<p>代理程序在监听连接前为socket设置<code>IP_TRANSPARENT</code>参数，使代理服务服务能够绑定任何的非本地地址以伪装真实的远端服务器与客户端进行通信。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">syscall.SetsockoptInt(fileDescriptor, syscall.SOL_IP, syscall.IP_TRANSPARENT, <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><strong>IP_TRANSPARENT</strong> (since Linux 2.6.24)<br> Setting this boolean option enables transparent proxying<br> on this socket. This socket option allows the calling<br> application to bind to a nonlocal IP address and operate<br> both as a client and a server with the foreign address as<br> the local endpoint. NOTE: this requires that routing be<br> set up in a way that packets going to the foreign address<br> are routed through the TProxy box (i.e., the system<br> hosting the application that employs the <strong>IP_TRANSPARENT</strong> socket option). Enabling this socket option requires<br> superuser privileges (the <strong>CAP_NET_ADMIN</strong> capability).<br> TProxy redirection with the iptables TPROXY target also<br> requires that this option be set on the redirected socket.</p>
+</blockquote>
+<p><strong>Step 2 - 为转发连接设置<code>IP_TRANSPARENT</code></strong></p>
+<p>与远端服务建立连接时也是一样需要设置<code>IP_TRANSPARENT</code>参数，使代理服务服务能够绑定任何的非本地地址以伪装真实的客户端与服务器进行通信。</p>
+<p><strong>Step 3 - 为双向流量配置iptables与路由规则</strong></p>
+<p>首先建一条<code>DIVERT</code>链，把所有匹配本地socket的tcp流量转到<code>DIVERT</code>链上</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">iptables -t mangle -N DIVERT</span><br><span class="line">iptables -t mangle -A PREROUTING -p tcp -m socket -j DIVERT</span><br></pre></td></tr></table></figure>
+
+<p>在<code>DIVERT</code>链中为数据包添加标记，并接收这些数据包</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">iptables -t mangle -A DIVERT -j MARK --set-mark 1</span><br><span class="line">iptables -t mangle -A DIVERT -j ACCEPT</span><br></pre></td></tr></table></figure>
+
+<p>添加路由规则：将标记为1的流量定向到<code>lo</code>设备，以便Linux内核可以将流量通过管道传输到现有套接字中。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ip rule add fwmark 1 lookup 100</span><br><span class="line">ip route add <span class="built_in">local</span> 0.0.0.0/0 dev lo table 100</span><br></pre></td></tr></table></figure>
+
+<p>最后添加一条iptables规则使访问任何端口的新流量都发送到代理服务</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iptables -t mangle -A PREROUTING -p tcp --dport 80 -j TPROXY --tproxy-mark 0x1/0x1 --on-port 8080</span><br></pre></td></tr></table></figure>
+
+<h2 id="eBPF"><a href="#eBPF" class="headerlink" title="eBPF"></a>eBPF</h2><p>用iptables进行流量劫持是最经典、最通用的手段。不过，不管是nat还是mangle的方式，iptables重定向流量都必须通过回环设备（Loopback）交换数据，所以流量不得不多穿越一次协议栈。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/ldpjCw.png" alt="ldpjCw"></p>
+<p>这种方案在网络I/O不构成主要瓶颈的系统中并没有什么不妥，但在网络敏感的大并发场景下会因转发而损失一定的性能。目前，如何实现更优化的数据平面流量劫持，是服务网格发展的前沿研究课题之一，其中一种可行的优化方案是使用<a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Berkeley_Packet_Filter">eBPF</a>（Extended Berkeley Packet Filter）技术，在Socket层面直接完成数据转发，而不需要再往下经过更底层的TCP/IP协议栈的处理，从而减少它数据在通信链路的路径长度。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/5r8yTw.png" alt="5r8yTw"></p>
+<p>eBPF(extended Berkeley Packet Filter) 是一种可以在 Linux 内核中运行用户编写的程序，而不需要修改内核代码或加载内核模块的技术，目前被广泛用于网络、安全、监控等领域。在 Kubernetes 社区最早也是最有影响的基于 eBPF 项目是 Cilium[4]，Cilium 使用 eBPF 代替 iptables 优化 Service 性能。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/j1YLdQ.png" alt="j1YLdQ"></p>
+<p><strong>Inbound</strong></p>
+<p>首先来看一下对入流量的劫持，对入流量的劫持主要使用 eBPF 程序 hook bind 系统调用完成。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/n2dDfS.png" alt="n2dDfS"></p>
+<p>eBPF 程序会劫持 bind 系统调用并修改地址，例如应用程序 bind 0.0.0.0:80 会被修改为 127.0.0.1:80，应用程序还有可能 bind ipv6 的地址，所以这里有两个 eBPF 程序分别处理 ipv4 和 ipv6 的 bind。</p>
+<p>和 iptables 不同，iptables 可以针对每个 netns 单独设置规则，eBPF 程序 attach 到指定 hook 点后，会对整个系统都生效，例如 attach 到 bind 系统调用后，所有 Pod 内以及节点上进程调用 bind 都会触发 eBPF 程序，我们需要区分哪些调用是来自需要由 eBPF 完成流量劫持的 Pod。</p>
+<p>在 K8s 中，除了 hostnetwork 的情况，每个 Pod 都有独立的 netns，而每个 netns 都有唯一的 cookie，因此我们将需要使用 eBPF 完成流量劫持的 Pod 对应的 netns cookie 保存在 <code>cookie_map</code> 中，eBPF 程序通过判断当前 socket 的 netns cookie 是否在 <code>cookie_map</code> 中来决定是否修改 bind 地址。</p>
+<p>修改应用程序的 bind 地址后，还需要下发 pod_ip:80 listener 配置到 envoy，pod_ip:80 listener 会将请求转发到 127.0.0.1:80 也就是应用程序监听的地址，这样就实现了对入流量的劫持。但是这里有一个问题，由于 istio 使用 istio-proxy 用户启动 envoy，默认情况下非 root 用户不能 bind 1024 以下的特权端口，我们通过 istio-init 修改内核参数 <code>sysctl net.ipv4.ip_unprivileged_port_start=0</code> 解决了这个问题。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/dWhDu5.png" alt="dWhDu5"></p>
+<p>对比 iptables 和 eBPF 对入流量的劫持，iptables 方案每个包都需要 conntrack 处理，而 eBPF 方案只有在应用程序调用 bind 时执行一次，之后不会再执行，减少了性能开销。</p>
+<p><strong>Outbound</strong></p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/33Bb7O.png" alt="33Bb7O"></p>
+<p>对 TCP 的出流量劫持过程：</p>
+<ul>
+<li><code>_coonect4</code> 通过劫持 connect 系统调用将目的地址修改为127.0.0.1:15001，也就是 envoy 的 VirtualOutboundListerer，同时将连接的原始目的地址保存在 <code>sk_storage_map</code></li>
+<li>在 TCP 连接建立完成后，<code>sockops</code> 会读取 <code>sk_storage_map</code> 中的数据，并以四元组（源IP、目的IP、源端口、目的端口）为 key 将原始目的地址保存在 <code>origin_dst_map</code></li>
+<li><code>_getsockopt</code>通过劫持 getsockopt 系统调用，读取 <code>origin_dst_map</code> 中的数据将原始目的地址返回给 envoy</li>
+</ul>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a target="_blank" rel="noopener" href="https://www.servicemesher.com/blog/sidecar-injection-iptables-and-traffic-routing/">Istio 中的 Sidecar 注入及透明流量劫持过程详解 · Service Mesh|服务网格中文社区</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.kernel.org/doc/Documentation/networking/tproxy.txt">Transparent proxy support</a></p>
+<p><a target="_blank" rel="noopener" href="https://arthurchiao.art/blog/conntrack-design-and-implementation-zh/">连接跟踪（conntrack）：原理、应用及 Linux 内核实现</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/LiamHaworth/go-tproxy">Golang TProxy</a></p>
+<p><a target="_blank" rel="noopener" href="http://rui0.cn/archives/1619">Service Mesh中的iptables流量劫持 - Ruilin</a></p>
+<p><a target="_blank" rel="noopener" href="https://ebpf.io/">eBPF</a></p>
+<p><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000041125908">KubeCon 2021｜使用 eBPF 代替 iptables 优化服务网格数据面性能</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.png" alt=" 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E7%BD%91%E7%BB%9C/" rel="tag"># 网络</a>
+          
+            <a href="/tags/linux%E5%86%85%E6%A0%B8/" rel="tag"># linux内核</a>
+          
+            <a href="/tags/%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86/" rel="tag"># 透明代理</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1Golang%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E7%9A%84%E6%8E%92%E6%9F%A5/" rel="next" title="记一次Golang内存泄漏的排查">
+                <i class="fa fa-chevron-left"></i> 记一次Golang内存泄漏的排查
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E5%AE%9E%E6%88%98%E7%AF%87/" rel="prev" title="深入理解透明代理——实战篇">
+                深入理解透明代理——实战篇 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a target="_blank" rel="noopener" href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="">
+              
+                  <span class="site-state-item-count">78</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">35</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/akaQin" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:aka.qin@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://coolshell.cn/" title="coolshell" target="_blank">coolshell</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://draveness.me/" title="draveness" target="_blank">draveness</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://morven.life/" title="Morven" target="_blank">Morven</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://strikefreedom.top/" title="潘少" target="_blank">潘少</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://colobu.com/" title="鸟窝" target="_blank">鸟窝</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://ctimbai.github.io/" title="猿大白" target="_blank">猿大白</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://eddycjy.com/" title="煎鱼" target="_blank">煎鱼</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://lessisbetter.site/" title="大彬" target="_blank">大彬</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/" title="深入解析GO" target="_blank">深入解析GO</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Istio-%E4%B8%AD%E7%9A%84-sidecar-%E6%B3%A8%E5%85%A5"><span class="nav-number">2.</span> <span class="nav-text">Istio 中的 sidecar 注入</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-TProxy-%E8%BF%9B%E8%A1%8C%E6%B5%81%E9%87%8F%E5%8A%AB%E6%8C%81"><span class="nav-number">3.</span> <span class="nav-text">使用 TProxy 进行流量劫持</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#eBPF"><span class="nav-number">4.</span> <span class="nav-text">eBPF</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83"><span class="nav-number">5.</span> <span class="nav-text">参考</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Aaron Qin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'https://akaqin.github.io/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E6%A6%82%E5%BF%B5%E7%AF%87/';
+          this.page.identifier = 'articles/深入理解透明代理——概念篇/';
+          this.page.title = '深入理解透明代理——概念篇';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

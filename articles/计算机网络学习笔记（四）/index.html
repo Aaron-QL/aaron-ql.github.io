@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="network," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="网络层概述两个平面 数据平面  从输入链路向其输出链路转发数据报   控制平面  协调这些本地路由器的转发动作，使数据报沿着路径进行端到端传送    两个功能 转发  将分组从一个输入链路接口转移到适当的输出链路接口的路由器本地动作   路由选择  确定分组从源到目的地所采取的路径的网络范围处理过程">
+<meta property="og:type" content="article">
+<meta property="og:title" content="《计算机网络——自顶向下》学习笔记（四）">
+<meta property="og:url" content="https://akaqin.github.io/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E5%9B%9B%EF%BC%89/index.html">
+<meta property="og:site_name" content="Code Your Ambition">
+<meta property="og:description" content="网络层概述两个平面 数据平面  从输入链路向其输出链路转发数据报   控制平面  协调这些本地路由器的转发动作，使数据报沿着路径进行端到端传送    两个功能 转发  将分组从一个输入链路接口转移到适当的输出链路接口的路由器本地动作   路由选择  确定分组从源到目的地所采取的路径的网络范围处理过程">
+<meta property="og:locale">
+<meta property="article:published_time" content="2020-09-12T15:14:48.000Z">
+<meta property="article:modified_time" content="2022-03-01T11:45:12.230Z">
+<meta property="article:author" content="Aaron Qin">
+<meta property="article:tag" content="network">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://akaqin.github.io/articles/计算机网络学习笔记（四）/"/>
+
+
+
+
+
+  <title>《计算机网络——自顶向下》学习笔记（四） | Code Your Ambition</title>
+  
+
+
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZV2QP61MNB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-ZV2QP61MNB');
+</script>
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Code Your Ambition</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-commonweal">
+          <a href="/404/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            公益404
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://akaqin.github.io/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E5%9B%9B%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">《计算机网络——自顶向下》学习笔记（四）</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-12T23:14:48+08:00">
+                2020-09-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index">
+                    <span itemprop="name">读书笔记</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/%E3%80%8A%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E2%80%94%E2%80%94%E8%87%AA%E9%A1%B6%E5%90%91%E4%B8%8B%E3%80%8B/" itemprop="url" rel="index">
+                    <span itemprop="name">《计算机网络——自顶向下》</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E5%9B%9B%EF%BC%89/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/计算机网络学习笔记（四）/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="网络层"><a href="#网络层" class="headerlink" title="网络层"></a><strong>网络层</strong></h1><h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><h3 id="两个平面"><a href="#两个平面" class="headerlink" title="两个平面"></a>两个平面</h3><ul>
+<li><p>数据平面</p>
+<ul>
+<li>从输入链路向其输出链路转发数据报</li>
+</ul>
+</li>
+<li><p>控制平面</p>
+<ul>
+<li>协调这些本地路由器的转发动作，使数据报沿着路径进行端到端传送</li>
+</ul>
+</li>
+</ul>
+<h3 id="两个功能"><a href="#两个功能" class="headerlink" title="两个功能"></a>两个功能</h3><ul>
+<li><p>转发</p>
+<ul>
+<li>将分组从一个输入链路接口转移到适当的输出链路接口的路由器本地动作</li>
+</ul>
+</li>
+<li><p>路由选择</p>
+<ul>
+<li>确定分组从源到目的地所采取的路径的网络范围处理过程</li>
+</ul>
+</li>
+</ul>
+<span id="more"></span>
+
+<h3 id="两种交换机"><a href="#两种交换机" class="headerlink" title="两种交换机"></a>两种交换机</h3><ul>
+<li><p>分组交换机</p>
+<ul>
+<li>一台通用分组交换设备，根据分组首部的值，从输入链路接口转移分组到输出链路接口</li>
+</ul>
+</li>
+<li><p>链路层交换机</p>
+<ul>
+<li>基于链路层帧中的字段值作出转发决定。</li>
+</ul>
+</li>
+</ul>
+<h2 id="路由器工作原理"><a href="#路由器工作原理" class="headerlink" title="路由器工作原理"></a>路由器工作原理</h2><h3 id="路由器体系结构"><a href="#路由器体系结构" class="headerlink" title="路由器体系结构"></a>路由器体系结构</h3><ul>
+<li><p>输入端口</p>
+</li>
+<li><p>交换结构</p>
+</li>
+<li><p>输出端口</p>
+</li>
+<li><p>路由选择处理器</p>
+</li>
+</ul>
+<h3 id="转发表的配置"><a href="#转发表的配置" class="headerlink" title="转发表的配置"></a>转发表的配置</h3><ul>
+<li><p>传统方法</p>
+<ul>
+<li>路由选择算法运行在每台路由器中</li>
+</ul>
+</li>
+<li><p>SDN方法</p>
+<ul>
+<li>通过远程控制器计算转发表并与路由器交互</li>
+</ul>
+</li>
+</ul>
+<h3 id="转发方式（输入端中）"><a href="#转发方式（输入端中）" class="headerlink" title="转发方式（输入端中）"></a>转发方式（输入端中）</h3><ul>
+<li><p>基于目的地转发</p>
+<ul>
+<li>按最长前缀匹配规则在转发表中查找输出端口</li>
+</ul>
+</li>
+</ul>
+<h3 id="交换方式"><a href="#交换方式" class="headerlink" title="交换方式"></a>交换方式</h3><ul>
+<li><p>经内存交换</p>
+<ul>
+<li>像操作系统中的I/O设备一样，通过中断方式发信号，将分组从输入端口复制到内存中，再复制到输出端口的缓存</li>
+</ul>
+</li>
+<li><p>经总线交换</p>
+<ul>
+<li>经一根共享总线将分组直接传送到输出端口</li>
+</ul>
+</li>
+<li><p>经互联网络交换</p>
+</li>
+</ul>
+<h3 id="排队与调度"><a href="#排队与调度" class="headerlink" title="排队与调度"></a>排队与调度</h3><ul>
+<li><p>何处出现排队</p>
+<ul>
+<li><p>输入排队</p>
+</li>
+<li><p>输出排队</p>
+</li>
+</ul>
+</li>
+<li><p>分组调度</p>
+<ul>
+<li><p>先进先出</p>
+</li>
+<li><p>优先权排队</p>
+</li>
+<li><p>循环和加权公平排队</p>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="网际协议"><a href="#网际协议" class="headerlink" title="网际协议"></a>网际协议</h2><h3 id="IPv4"><a href="#IPv4" class="headerlink" title="IPv4"></a>IPv4</h3><ul>
+<li><p>数据报格式</p>
+<ul>
+<li><p>版本</p>
+</li>
+<li><p>首部长度</p>
+<ul>
+<li>一般都是20字节</li>
+</ul>
+</li>
+<li><p>服务类型（TOS）</p>
+</li>
+<li><p>数据报长度</p>
+<ul>
+<li><p>指加上首部的总长度</p>
+</li>
+<li><p>最大65535字节</p>
+</li>
+<li><p>但一般不超过1500字节的以太网帧的载荷</p>
+</li>
+</ul>
+</li>
+<li><p>标识、标志、片偏移</p>
+</li>
+<li><p>寿命</p>
+</li>
+<li><p>协议</p>
+</li>
+<li><p>首部检验和</p>
+</li>
+<li><p>源和目的IP地址</p>
+</li>
+<li><p>选项</p>
+</li>
+<li><p>数据</p>
+</li>
+</ul>
+</li>
+<li><p>数据报分片</p>
+<ul>
+<li><p>将过大的数据报（IP分组）挤进链路层帧的有效载荷字段时，路由器会对它进行分片</p>
+</li>
+<li><p>组装工作由端系统处理，路由器不负责组装</p>
+</li>
+</ul>
+</li>
+<li><p>IPv4编址</p>
+<ul>
+<li><p>接口</p>
+<ul>
+<li><p>主机与物理链路之间的边界叫做接口</p>
+</li>
+<li><p>一个IP地址与一个接口相关联，而不是与包括该接口的主机或路由器相关联</p>
+</li>
+</ul>
+</li>
+<li><p>子网与</p>
+<ul>
+<li><p>子网</p>
+<ul>
+<li>a.b.c.d/x</li>
+</ul>
+</li>
+<li><p>子网掩码</p>
+</li>
+</ul>
+</li>
+<li><p>因特网地址分配策略</p>
+<ul>
+<li><p>无类别域间路由选择</p>
+</li>
+<li><p>地址聚合/路由聚合/路由摘要</p>
+<ul>
+<li>使用单个网络前缀通告多个网络的能力</li>
+</ul>
+</li>
+<li><p>分类编织</p>
+<ul>
+<li><p>A类网络</p>
+<ul>
+<li>a.b.c.d/8</li>
+</ul>
+</li>
+<li><p>B类网络</p>
+<ul>
+<li>a.b.c.d/16</li>
+</ul>
+</li>
+<li><p>C类网络</p>
+<ul>
+<li>a.b.c.d/24</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>广播地址</p>
+<ul>
+<li>255.255.255.255</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>获取IP的方式</p>
+<ul>
+<li><p>因特网名字和编号分配机构（ICANN）</p>
+</li>
+<li><p>向ISP申请</p>
+</li>
+<li><p>动态主机配置协议DHCP</p>
+<ul>
+<li><p>DHCP服务发现</p>
+</li>
+<li><p>DHCP服务器提供</p>
+</li>
+<li><p>DHCP请求</p>
+</li>
+<li><p>DHCP ACK</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>网络地址转换NAT</p>
+<ul>
+<li><p>专用网络</p>
+<ul>
+<li><p>24-bit block</p>
+<ul>
+<li>10.0.0.0 – 10.255.255.255</li>
+</ul>
+</li>
+<li><p>20-bit block</p>
+<ul>
+<li>172.16.0.0 – 172.31.255.255</li>
+</ul>
+</li>
+<li><p>16-bit block</p>
+<ul>
+<li>192.168.0.0 – 192.168.255.255</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>NAT转换表</p>
+</li>
+<li><p>弊端</p>
+<ul>
+<li><p>端口号是用于进程寻址的，而不是用于主机寻址的</p>
+</li>
+<li><p>路由器是网络层设备，应当处理只能达到网络层的分组。</p>
+</li>
+<li><p>NAT违反主机应当直接彼此对话这个原则，没有干涉节点修改IP地址</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="IPv6"><a href="#IPv6" class="headerlink" title="IPv6"></a>IPv6</h3><ul>
+<li><p>数据报格式</p>
+<ul>
+<li><p>扩大的地址容量128bit</p>
+</li>
+<li><p>简化高效的40字节首部</p>
+</li>
+<li><p>流标签</p>
+</li>
+<li><p>版本</p>
+</li>
+<li><p>流量类型</p>
+</li>
+<li><p>流标签</p>
+</li>
+<li><p>有效载荷长度</p>
+</li>
+<li><p>下一个首部</p>
+</li>
+<li><p>跳限制</p>
+</li>
+<li><p>源地址和目的地址</p>
+</li>
+<li><p>数据</p>
+</li>
+</ul>
+</li>
+<li><p>v6中不存在的内容</p>
+<ul>
+<li><p>数据报分片</p>
+</li>
+<li><p>首部校验和</p>
+</li>
+<li><p>选项</p>
+</li>
+</ul>
+</li>
+<li><p>v4迁移v6的方法</p>
+<ul>
+<li>建隧道</li>
+</ul>
+</li>
+</ul>
+<h2 id="通用转发"><a href="#通用转发" class="headerlink" title="通用转发"></a>通用转发</h2><h3 id="匹配"><a href="#匹配" class="headerlink" title="匹配"></a>匹配</h3><ul>
+<li><p>能够对协议栈的多个首部字段进行“匹配”，这些首部字段是与不同层次的不同协议相关联</p>
+<ul>
+<li><p>入端口</p>
+</li>
+<li><p>链路层</p>
+<ul>
+<li><p>源MAC</p>
+</li>
+<li><p>目的MAC</p>
+</li>
+<li><p>以太网类型</p>
+</li>
+<li><p>VLAN ID</p>
+</li>
+<li><p>VLAN 优先权</p>
+</li>
+</ul>
+</li>
+<li><p>网络层</p>
+<ul>
+<li><p>IP源</p>
+</li>
+<li><p>IP目的</p>
+</li>
+<li><p>IP协议</p>
+</li>
+<li><p>IP TOS</p>
+</li>
+</ul>
+</li>
+<li><p>运输层</p>
+<ul>
+<li><p>TCP/UDP源端口</p>
+</li>
+<li><p>TCP/UDP目的端口</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="动作"><a href="#动作" class="headerlink" title="动作"></a>动作</h3><ul>
+<li><p>将分组转发到一个或多个输出端口</p>
+</li>
+<li><p>跨越多个通向服务的离开接口进行负载均衡分组</p>
+</li>
+<li><p>重写首部值</p>
+</li>
+<li><p>有意识地阻挡/丢弃某个分组</p>
+</li>
+<li><p>为进一步处理和动作而向某个特定的服务器发送一个分组</p>
+</li>
+</ul>
+<h3 id="使用分组交换机"><a href="#使用分组交换机" class="headerlink" title="使用分组交换机"></a>使用分组交换机</h3><ul>
+<li>而不是第三层“路由器”或第二层“交换机”</li>
+</ul>
+<h3 id="匹配加动作转发表——流表"><a href="#匹配加动作转发表——流表" class="headerlink" title="匹配加动作转发表——流表"></a>匹配加动作转发表——流表</h3><ul>
+<li><p>首部字段值的结合</p>
+</li>
+<li><p>计数器集合</p>
+</li>
+<li><p>当分组匹配流表项时所采取的动作集合</p>
+</li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.png" alt=" 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/network/" rel="tag"># network</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89/" rel="next" title="《计算机网络——自顶向下》学习笔记（三）">
+                <i class="fa fa-chevron-left"></i> 《计算机网络——自顶向下》学习笔记（三）
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/articles/%E5%AD%98%E5%82%A8%E7%AC%94%E8%AE%B0/" rel="prev" title="存储笔记">
+                存储笔记 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a target="_blank" rel="noopener" href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="">
+              
+                  <span class="site-state-item-count">78</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">35</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/akaQin" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:aka.qin@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://coolshell.cn/" title="coolshell" target="_blank">coolshell</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://draveness.me/" title="draveness" target="_blank">draveness</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://morven.life/" title="Morven" target="_blank">Morven</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://strikefreedom.top/" title="潘少" target="_blank">潘少</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://colobu.com/" title="鸟窝" target="_blank">鸟窝</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://ctimbai.github.io/" title="猿大白" target="_blank">猿大白</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://eddycjy.com/" title="煎鱼" target="_blank">煎鱼</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://lessisbetter.site/" title="大彬" target="_blank">大彬</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/" title="深入解析GO" target="_blank">深入解析GO</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E5%B1%82"><span class="nav-number">1.</span> <span class="nav-text">网络层</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A6%82%E8%BF%B0"><span class="nav-number">1.1.</span> <span class="nav-text">概述</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%A4%E4%B8%AA%E5%B9%B3%E9%9D%A2"><span class="nav-number">1.1.1.</span> <span class="nav-text">两个平面</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%A4%E4%B8%AA%E5%8A%9F%E8%83%BD"><span class="nav-number">1.1.2.</span> <span class="nav-text">两个功能</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%A4%E7%A7%8D%E4%BA%A4%E6%8D%A2%E6%9C%BA"><span class="nav-number">1.1.3.</span> <span class="nav-text">两种交换机</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B7%AF%E7%94%B1%E5%99%A8%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="nav-number">1.2.</span> <span class="nav-text">路由器工作原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B7%AF%E7%94%B1%E5%99%A8%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84"><span class="nav-number">1.2.1.</span> <span class="nav-text">路由器体系结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BD%AC%E5%8F%91%E8%A1%A8%E7%9A%84%E9%85%8D%E7%BD%AE"><span class="nav-number">1.2.2.</span> <span class="nav-text">转发表的配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BD%AC%E5%8F%91%E6%96%B9%E5%BC%8F%EF%BC%88%E8%BE%93%E5%85%A5%E7%AB%AF%E4%B8%AD%EF%BC%89"><span class="nav-number">1.2.3.</span> <span class="nav-text">转发方式（输入端中）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%A4%E6%8D%A2%E6%96%B9%E5%BC%8F"><span class="nav-number">1.2.4.</span> <span class="nav-text">交换方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%92%E9%98%9F%E4%B8%8E%E8%B0%83%E5%BA%A6"><span class="nav-number">1.2.5.</span> <span class="nav-text">排队与调度</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BD%91%E9%99%85%E5%8D%8F%E8%AE%AE"><span class="nav-number">1.3.</span> <span class="nav-text">网际协议</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#IPv4"><span class="nav-number">1.3.1.</span> <span class="nav-text">IPv4</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IPv6"><span class="nav-number">1.3.2.</span> <span class="nav-text">IPv6</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E8%BD%AC%E5%8F%91"><span class="nav-number">1.4.</span> <span class="nav-text">通用转发</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8C%B9%E9%85%8D"><span class="nav-number">1.4.1.</span> <span class="nav-text">匹配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%A8%E4%BD%9C"><span class="nav-number">1.4.2.</span> <span class="nav-text">动作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E5%88%86%E7%BB%84%E4%BA%A4%E6%8D%A2%E6%9C%BA"><span class="nav-number">1.4.3.</span> <span class="nav-text">使用分组交换机</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8C%B9%E9%85%8D%E5%8A%A0%E5%8A%A8%E4%BD%9C%E8%BD%AC%E5%8F%91%E8%A1%A8%E2%80%94%E2%80%94%E6%B5%81%E8%A1%A8"><span class="nav-number">1.4.4.</span> <span class="nav-text">匹配加动作转发表——流表</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Aaron Qin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'https://akaqin.github.io/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E5%9B%9B%EF%BC%89/';
+          this.page.identifier = 'articles/计算机网络学习笔记（四）/';
+          this.page.title = '《计算机网络——自顶向下》学习笔记（四）';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

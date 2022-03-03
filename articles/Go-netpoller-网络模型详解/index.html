@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="I/O,Golang," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="本文节选自潘少的文章，写的非常好，理解golang的网络模型非常有意义，建议Gopher都花时间仔细研究下 潘建锋&#96;Go netpoller&#96; 原生网络模型之源码全面揭秘  导言Go 基于 I&#x2F;O multiplexing 和 goroutine scheduler 构建了一个简洁而高性能的原生网络模型(基于 Go 的 I&#x2F;O 多路复用 netpoller )，提供了 goroutine-per-">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go netpoller 网络模型详解">
+<meta property="og:url" content="https://akaqin.github.io/articles/Go-netpoller-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E8%AF%A6%E8%A7%A3/index.html">
+<meta property="og:site_name" content="Code Your Ambition">
+<meta property="og:description" content="本文节选自潘少的文章，写的非常好，理解golang的网络模型非常有意义，建议Gopher都花时间仔细研究下 潘建锋&#96;Go netpoller&#96; 原生网络模型之源码全面揭秘  导言Go 基于 I&#x2F;O multiplexing 和 goroutine scheduler 构建了一个简洁而高性能的原生网络模型(基于 Go 的 I&#x2F;O 多路复用 netpoller )，提供了 goroutine-per-">
+<meta property="og:locale">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/7X8PDd.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/bgTq0J.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/4aBmVn.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/drotur.png">
+<meta property="article:published_time" content="2021-09-25T12:41:09.000Z">
+<meta property="article:modified_time" content="2022-03-01T11:45:12.226Z">
+<meta property="article:author" content="Aaron Qin">
+<meta property="article:tag" content="I&#x2F;O">
+<meta property="article:tag" content="Golang">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/7X8PDd.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://akaqin.github.io/articles/Go-netpoller-网络模型详解/"/>
+
+
+
+
+
+  <title>Go netpoller 网络模型详解 | Code Your Ambition</title>
+  
+
+
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZV2QP61MNB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-ZV2QP61MNB');
+</script>
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Code Your Ambition</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-commonweal">
+          <a href="/404/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            公益404
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://akaqin.github.io/articles/Go-netpoller-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Go netpoller 网络模型详解</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-09-25T20:41:09+08:00">
+                2021-09-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
+                    <span itemprop="name">知识点总结</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/I-O/" itemprop="url" rel="index">
+                    <span itemprop="name">I/O</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/Go-netpoller-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E8%AF%A6%E8%A7%A3/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/Go-netpoller-网络模型详解/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote><p>本文节选自<code>潘少</code>的文章，写的非常好，理解golang的网络模型非常有意义，建议Gopher都花时间仔细研究下</p>
+<footer><strong>潘建锋</strong><cite><a target="_blank" rel="noopener" href="https://strikefreedom.top/go-netpoll-io-multiplexing-reactor">`Go netpoller` 原生网络模型之源码全面揭秘</a></cite></footer></blockquote>
+
+<h2 id="导言"><a href="#导言" class="headerlink" title="导言"></a>导言</h2><p>Go 基于 I/O multiplexing 和 goroutine scheduler 构建了一个简洁而高性能的原生网络模型(基于 Go 的 <code>I/O</code> 多路复用 <code>netpoller</code> )，提供了 <code>goroutine-per-connection</code> 这样简单的网络编程模式。在这种模式下，开发者<strong>使用的是同步的模式去编写异步</strong>的逻辑，极大地降低了开发者编写网络应用时的心智负担，且借助于 Go runtime scheduler 对 goroutines 的高效调度，这个原生网络模型不论从适用性还是性能上都足以满足绝大部分的应用场景。</p>
+<p>然而，在工程性上能做到如此高的普适性和兼容性，最终暴露给开发者提供接口/模式如此简洁，其底层必然是基于非常复杂的封装，做了很多取舍，也有可能放弃了一些追求极致性能的设计和理念。事实上 <code>Go netpoller</code> 底层就是基于 epoll/kqueue/iocp 这些 <code>I/O</code> 多路复用技术来做封装的，最终暴露出 <code>goroutine-per-connection</code> 这样的极简的开发模式给使用者。</p>
+<p><code>Go netpoller</code> 在不同的操作系统，其底层使用的 <code>I/O</code> 多路复用技术也不一样，可以从 Go 源码目录结构和对应代码文件了解 Go 在不同平台下的网络 <code>I/O</code> 模式的实现。比如，在 Linux 系统下基于 epoll，freeBSD 系统下基于 kqueue，以及 Windows 系统下基于 iocp。</p>
+<p>本文将基于 Linux 平台来解析 <code>Go netpoller</code> 之 <code>I/O</code> 多路复用的底层是如何基于 epoll 封装实现的，从源码层层推进，全面而深度地解析 <code>Go netpoller</code> 的设计理念和实现原理，以及 Go 是如何利用 <code>netpoller</code> 来构建它的原生网络模型的。主要涉及到的一些概念：I/O 模型、用户/内核空间、epoll、Linux 源码、goroutine scheduler 等等，我会尽量简单地讲解，如果有对相关概念不熟悉的同学，还是希望能提前熟悉一下。</p>
+<h2 id="Go-netpoller-核心"><a href="#Go-netpoller-核心" class="headerlink" title="Go netpoller 核心"></a><code>Go netpoller</code> 核心</h2><p><strong><code>Go netpoller</code> 基本原理</strong></p>
+<p><strong><code>Go netpoller</code> 通过在底层对 epoll/kqueue/iocp 的封装，从而实现了使用同步编程模式达到异步执行的效果。总结来说，所有的网络操作都以网络描述符 <code>netFD</code> 为中心实现。<code>netFD</code> 与底层 <code>PollDesc</code> 结构绑定，当在一个 <code>netFD</code> 上读写遇到 EAGAIN 错误时，就将当前 goroutine 存储到这个 <code>netFD</code> 对应的 <code>PollDesc</code> 中，同时调用 gopark 把当前 goroutine 给 park 住，直到这个 <code>netFD</code> 上再次发生读写事件，才将此 goroutine 给 ready 激活重新运行。显然，在底层通知 goroutine 再次发生读写等事件的方式就是 epoll/kqueue/iocp 等事件驱动机制。</strong></p>
+<span id="more"></span>
+
+<p>总所周知，Go 是一门跨平台的编程语言，而不同平台针对特定的功能有不用的实现，这当然也包括了 <code>I/O</code> 多路复用技术，比如 Linux 里的 <code>I/O</code> 多路复用有 <code>select</code>、poll 和 epoll，而 freeBSD 或者 MacOS 里则是 kqueue，而 Windows 里则是基于异步 <code>I/O</code> 实现的 iocp，等等；因此，Go 为了实现底层 <code>I/O</code> 多路复用的跨平台，分别基于上述的这些不同平台的系统调用实现了多版本的 netpollers，具体的源码路径如下：</p>
+<ul>
+<li>src/runtime/netpoll_epoll.go</li>
+<li>src/runtime/netpoll_kqueue.go</li>
+<li>src/runtime/netpoll_solaris.go</li>
+<li>src/runtime/netpoll_windows.go</li>
+<li>src/runtime/netpoll_aix.go</li>
+<li>src/runtime/netpoll_fake.go</li>
+</ul>
+<p>本文的解析基于 epoll 版本，如果读者对其他平台的 <code>netpoller</code> 底层实现感兴趣，可以在阅读完本文后自行翻阅其他 <code>netpoller</code> 源码，所有实现版本的机制和原理基本类似，所以了解了 epoll 版本的实现后再去学习其他版本实现应该没什么障碍。</p>
+<p>接下来让我们通过分析最新的 Go 源码（v1.15.3），全面剖析一下整个 <code>Go netpoller</code> 的运行机制和流程。</p>
+<h2 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h2><h3 id="netFD"><a href="#netFD" class="headerlink" title="netFD"></a>netFD</h3><p><code>net.Listen(&quot;tcp&quot;, &quot;:8888&quot;)</code> 方法返回了一个 <code>*TCPListener</code>，它是一个实现了 <code>net.Listener</code> 接口的 struct，而通过 <code>listener.Accept()</code> 接收的新连接 <code>*TCPConn</code> 则是一个实现了 <code>net.Conn</code> 接口的 <code>struct</code>，它内嵌了 <code>net.conn struct</code>。仔细阅读上面的源码可以发现，不管是 <code>Listener</code> 的 <code>Accept</code> 还是 <code>Conn</code> 的 Read/Write 方法，都是基于一个 <code>netFD</code> 的数据结构的操作， <code>netFD</code> 是一个网络描述符，类似于 Linux 的文件描述符的概念，<code>netFD</code> 中包含一个 <code>poll.FD</code> 数据结构，而 <code>poll.FD</code> 中包含两个重要的数据结构 <code>Sysfd</code> 和 <code>pollDesc</code>，前者是真正的系统文件描述符，后者对是底层事件驱动的封装，所有的读写超时等操作都是通过调用后者的对应方法实现的。</p>
+<p><code>netFD</code> 和 <code>poll.FD</code> 的源码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Network file descriptor.</span></span><br><span class="line"><span class="keyword">type</span> netFD <span class="keyword">struct</span> &#123;</span><br><span class="line">	pfd poll.FD</span><br><span class="line"></span><br><span class="line">	<span class="comment">// immutable until Close</span></span><br><span class="line">	family      <span class="keyword">int</span></span><br><span class="line">	sotype      <span class="keyword">int</span></span><br><span class="line">	isConnected <span class="keyword">bool</span> <span class="comment">// handshake completed or use of association with peer</span></span><br><span class="line">	net         <span class="keyword">string</span></span><br><span class="line">	laddr       Addr</span><br><span class="line">	raddr       Addr</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// FD is a file descriptor. The net and os packages use this type as a</span></span><br><span class="line"><span class="comment">// field of a larger type representing a network connection or OS file.</span></span><br><span class="line"><span class="keyword">type</span> FD <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// Lock sysfd and serialize access to Read and Write methods.</span></span><br><span class="line">	fdmu fdMutex</span><br><span class="line"></span><br><span class="line">	<span class="comment">// System file descriptor. Immutable until Close.</span></span><br><span class="line">	Sysfd <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// `I/O` poller.</span></span><br><span class="line">	pd pollDesc</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Writev cache.</span></span><br><span class="line">	iovecs *[]syscall.Iovec</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Semaphore signaled when file is closed.</span></span><br><span class="line">	csema <span class="keyword">uint32</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Non-zero if this file has been set to blocking mode.</span></span><br><span class="line">	isBlocking <span class="keyword">uint32</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Whether this is a streaming descriptor, as opposed to a</span></span><br><span class="line">	<span class="comment">// packet-based descriptor like a UDP socket. Immutable.</span></span><br><span class="line">	IsStream <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Whether a zero byte read indicates EOF. This is false for a</span></span><br><span class="line">	<span class="comment">// message based socket connection.</span></span><br><span class="line">	ZeroReadIsEOF <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Whether this is a file rather than a network socket.</span></span><br><span class="line">	isFile <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="pollDesc"><a href="#pollDesc" class="headerlink" title="pollDesc"></a>pollDesc</h3><p>前面提到了 <code>pollDesc</code> 是底层事件驱动的封装，<code>netFD</code> 通过它来完成各种 <code>I/O</code> 相关的操作，它的定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> pollDesc <span class="keyword">struct</span> &#123;</span><br><span class="line">	runtimeCtx <span class="keyword">uintptr</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里的 <code>struct</code> 只包含了一个指针，而通过 <code>pollDesc</code> 的 <code>init</code> 方法，我们可以找到它具体的定义是在 <code>runtime.pollDesc</code> 这里：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pd *pollDesc)</span> <span class="title">init</span><span class="params">(fd *FD)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	serverInit.Do(runtime_pollServerInit)</span><br><span class="line">	ctx, errno := runtime_pollOpen(<span class="keyword">uintptr</span>(fd.Sysfd))</span><br><span class="line">	<span class="keyword">if</span> errno != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> ctx != <span class="number">0</span> &#123;</span><br><span class="line">			runtime_pollUnblock(ctx)</span><br><span class="line">			runtime_pollClose(ctx)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> syscall.Errno(errno)</span><br><span class="line">	&#125;</span><br><span class="line">	pd.runtimeCtx = ctx</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Network poller descriptor.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// No heap pointers.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//go:notinheap</span></span><br><span class="line"><span class="keyword">type</span> pollDesc <span class="keyword">struct</span> &#123;</span><br><span class="line">	link *pollDesc <span class="comment">// in pollcache, protected by pollcache.lock</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// The lock protects pollOpen, pollSetDeadline, pollUnblock and deadlineimpl operations.</span></span><br><span class="line">	<span class="comment">// This fully covers seq, rt and wt variables. fd is constant throughout the PollDesc lifetime.</span></span><br><span class="line">	<span class="comment">// pollReset, pollWait, pollWaitCanceled and runtime·netpollready (IO readiness notification)</span></span><br><span class="line">	<span class="comment">// proceed w/o taking the lock. So closing, everr, rg, rd, wg and wd are manipulated</span></span><br><span class="line">	<span class="comment">// in a lock-free way by all operations.</span></span><br><span class="line">	<span class="comment">// NOTE(dvyukov): the following code uses uintptr to store *g (rg/wg),</span></span><br><span class="line">	<span class="comment">// that will blow up when GC starts moving objects.</span></span><br><span class="line">	lock    mutex <span class="comment">// protects the following fields</span></span><br><span class="line">	fd      <span class="keyword">uintptr</span></span><br><span class="line">	closing <span class="keyword">bool</span></span><br><span class="line">	everr   <span class="keyword">bool</span>    <span class="comment">// marks event scanning error happened</span></span><br><span class="line">	user    <span class="keyword">uint32</span>  <span class="comment">// user settable cookie</span></span><br><span class="line">	rseq    <span class="keyword">uintptr</span> <span class="comment">// protects from stale read timers</span></span><br><span class="line">	rg      <span class="keyword">uintptr</span> <span class="comment">// pdReady, pdWait, G waiting for read or nil</span></span><br><span class="line">	rt      timer   <span class="comment">// read deadline timer (set if rt.f != nil)</span></span><br><span class="line">	rd      <span class="keyword">int64</span>   <span class="comment">// read deadline</span></span><br><span class="line">	wseq    <span class="keyword">uintptr</span> <span class="comment">// protects from stale write timers</span></span><br><span class="line">	wg      <span class="keyword">uintptr</span> <span class="comment">// pdReady, pdWait, G waiting for write or nil</span></span><br><span class="line">	wt      timer   <span class="comment">// write deadline timer</span></span><br><span class="line">	wd      <span class="keyword">int64</span>   <span class="comment">// write deadline</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里重点关注里面的 <code>rg</code> 和 <code>wg</code>，这里两个 <code>uintptr</code> “万能指针”类型，取值分别可能是 <code>pdReady</code>、<code>pdWait</code>、等待 <code>file descriptor</code> 就绪的 <code>goroutine</code> 也就是 <code>g</code> 数据结构以及 nil，它们是实现唤醒 <code>goroutine</code> 的关键。</p>
+<p><code>runtime.pollDesc</code> 包含自身类型的一个指针，用来保存下一个 <code>runtime.pollDesc</code> 的地址，以此来实现链表，可以减少数据结构的大小，所有的 <code>runtime.pollDesc</code> 保存在 <code>runtime.pollCache</code> 结构中，定义如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> pollCache <span class="keyword">struct</span> &#123;</span><br><span class="line">	lock  mutex</span><br><span class="line">	first *pollDesc</span><br><span class="line">	<span class="comment">// PollDesc objects must be type-stable,</span></span><br><span class="line">	<span class="comment">// because we can get ready notification from epoll/kqueue</span></span><br><span class="line">	<span class="comment">// after the descriptor is closed/reused.</span></span><br><span class="line">	<span class="comment">// Stale notifications are detected using seq variable,</span></span><br><span class="line">	<span class="comment">// seq is incremented when deadlines are changed or descriptor is reused.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为 <code>runtime.pollCache</code> 是一个在 <code>runtime</code> 包里的全局变量，因此需要用一个互斥锁来避免 <code>data race</code> 问题，从它的名字也能看出这是一个用于缓存的数据结构，也就是用来提高性能的，具体如何实现呢？</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> pollBlockSize = <span class="number">4</span> * <span class="number">1024</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *pollCache)</span> <span class="title">alloc</span><span class="params">()</span> *<span class="title">pollDesc</span></span> &#123;</span><br><span class="line">	lock(&amp;c.lock)</span><br><span class="line">	<span class="keyword">if</span> c.first == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">const</span> pdSize = unsafe.Sizeof(pollDesc&#123;&#125;)</span><br><span class="line">		n := pollBlockSize / pdSize</span><br><span class="line">		<span class="keyword">if</span> n == <span class="number">0</span> &#123;</span><br><span class="line">			n = <span class="number">1</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// Must be in non-GC memory because can be referenced</span></span><br><span class="line">		<span class="comment">// only from epoll/kqueue internals.</span></span><br><span class="line">		mem := persistentalloc(n*pdSize, <span class="number">0</span>, &amp;memstats.other_sys)</span><br><span class="line">		<span class="keyword">for</span> i := <span class="keyword">uintptr</span>(<span class="number">0</span>); i &lt; n; i++ &#123;</span><br><span class="line">			pd := (*pollDesc)(add(mem, i*pdSize))</span><br><span class="line">			pd.link = c.first</span><br><span class="line">			c.first = pd</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	pd := c.first</span><br><span class="line">	c.first = pd.link</span><br><span class="line">	lockInit(&amp;pd.lock, lockRankPollDesc)</span><br><span class="line">	unlock(&amp;c.lock)</span><br><span class="line">	<span class="keyword">return</span> pd</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Go runtime 会在调用 poll_runtime_pollOpen 往 epoll 实例注册 fd 之时首次调用 runtime.pollCache.alloc方法时批量初始化大小 4KB 的 runtime.pollDesc 结构体的链表，初始化过程中会调用 runtime.persistentalloc 来为这些数据结构分配不会被 GC 回收的内存，确保这些数据结构只能被 epoll和kqueue 在内核空间去引用。</p>
+<p>再往后每次调用这个方法则会先判断链表头是否已经分配过值了，若是，则直接返回表头这个 pollDesc，这种批量初始化数据进行缓存而后每次都直接从缓存取数据的方式是一种很常见的性能优化手段，在这里这种方式可以有效地提升 <code>netpoller</code> 的吞吐量。</p>
+<p>Go runtime 会在关闭 pollDesc 之时调用 runtime.pollCache.free 释放内存：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *pollCache)</span> <span class="title">free</span><span class="params">(pd *pollDesc)</span></span> &#123;</span><br><span class="line">	lock(&amp;c.lock)</span><br><span class="line">	pd.link = c.first</span><br><span class="line">	c.first = pd</span><br><span class="line">	unlock(&amp;c.lock)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="实现原理"><a href="#实现原理" class="headerlink" title="实现原理"></a>实现原理</h2><p>使用 Go 编写一个典型的 TCP echo server:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;log&quot;</span></span><br><span class="line">	<span class="string">&quot;net&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	listen, err := net.Listen(<span class="string">&quot;tcp&quot;</span>, <span class="string">&quot;:8888&quot;</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Println(<span class="string">&quot;listen error: &quot;</span>, err)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		conn, err := listen.Accept()</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(<span class="string">&quot;accept error: &quot;</span>, err)</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// start a new goroutine to handle the new connection.</span></span><br><span class="line">		<span class="keyword">go</span> HandleConn(conn)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">HandleConn</span><span class="params">(conn net.Conn)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> conn.Close()</span><br><span class="line">	packet := <span class="built_in">make</span>([]<span class="keyword">byte</span>, <span class="number">1024</span>)</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="comment">// block here if socket is not available for reading data.</span></span><br><span class="line">		n, err := conn.Read(packet)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Println(<span class="string">&quot;read socket error: &quot;</span>, err)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// same as above, block here if socket is not available for writing.</span></span><br><span class="line">		_, _ = conn.Write(packet[:n])</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>上面是一个基于 Go 原生网络模型（基于 netpoller）编写的一个 TCP server，模式是 <code>goroutine-per-connection</code> ，在这种模式下，开发者使用的是同步的模式去编写异步的逻辑而且对于开发者来说 <code>I/O</code> 是否阻塞是无感知的，也就是说开发者无需考虑 goroutines 甚至更底层的线程、进程的调度和上下文切换。而 <code>Go netpoller</code> 最底层的事件驱动技术肯定是基于 epoll/kqueue/iocp 这一类的 <code>I/O</code> 事件驱动技术，只不过是把这些调度和上下文切换的工作转移到了 runtime 的 Go scheduler，让它来负责调度 goroutines，从而极大地降低了程序员的心智负担！</strong></p>
+<p>Go 的这种同步模式的网络服务器的基本架构通常如下：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/7X8PDd.png" alt="7X8PDd"></p>
+<p>上面的示例代码中相关的在源码里的几个数据结构和方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// TCPListener is a TCP network listener. Clients should typically</span></span><br><span class="line"><span class="comment">// use variables of type Listener instead of assuming TCP.</span></span><br><span class="line"><span class="keyword">type</span> TCPListener <span class="keyword">struct</span> &#123;</span><br><span class="line">	fd *netFD</span><br><span class="line">	lc ListenConfig</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Accept implements the Accept method in the Listener interface; it</span></span><br><span class="line"><span class="comment">// waits for the next call and returns a generic Conn.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *TCPListener)</span> <span class="title">Accept</span><span class="params">()</span> <span class="params">(Conn, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> !l.ok() &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, syscall.EINVAL</span><br><span class="line">	&#125;</span><br><span class="line">	c, err := l.accept()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, &amp;OpError&#123;Op: <span class="string">&quot;accept&quot;</span>, Net: l.fd.net, Source: <span class="literal">nil</span>, Addr: l.fd.laddr, Err: err&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> c, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ln *TCPListener)</span> <span class="title">accept</span><span class="params">()</span> <span class="params">(*TCPConn, error)</span></span> &#123;</span><br><span class="line">	fd, err := ln.fd.accept()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	tc := newTCPConn(fd)</span><br><span class="line">	<span class="keyword">if</span> ln.lc.KeepAlive &gt;= <span class="number">0</span> &#123;</span><br><span class="line">		setKeepAlive(fd, <span class="literal">true</span>)</span><br><span class="line">		ka := ln.lc.KeepAlive</span><br><span class="line">		<span class="keyword">if</span> ln.lc.KeepAlive == <span class="number">0</span> &#123;</span><br><span class="line">			ka = defaultTCPKeepAlive</span><br><span class="line">		&#125;</span><br><span class="line">		setKeepAlivePeriod(fd, ka)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> tc, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// TCPConn is an implementation of the Conn interface for TCP network</span></span><br><span class="line"><span class="comment">// connections.</span></span><br><span class="line"><span class="keyword">type</span> TCPConn <span class="keyword">struct</span> &#123;</span><br><span class="line">	conn</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Conn</span></span><br><span class="line"><span class="keyword">type</span> conn <span class="keyword">struct</span> &#123;</span><br><span class="line">	fd *netFD</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> conn <span class="keyword">struct</span> &#123;</span><br><span class="line">	fd *netFD</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *conn)</span> <span class="title">ok</span><span class="params">()</span> <span class="title">bool</span></span> &#123; <span class="keyword">return</span> c != <span class="literal">nil</span> &amp;&amp; c.fd != <span class="literal">nil</span> &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Implementation of the Conn interface.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Read implements the Conn Read method.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *conn)</span> <span class="title">Read</span><span class="params">(b []<span class="keyword">byte</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> !c.ok() &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, syscall.EINVAL</span><br><span class="line">	&#125;</span><br><span class="line">	n, err := c.fd.Read(b)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &amp;&amp; err != io.EOF &#123;</span><br><span class="line">		err = &amp;OpError&#123;Op: <span class="string">&quot;read&quot;</span>, Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> n, err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Write implements the Conn Write method.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *conn)</span> <span class="title">Write</span><span class="params">(b []<span class="keyword">byte</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> !c.ok() &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, syscall.EINVAL</span><br><span class="line">	&#125;</span><br><span class="line">	n, err := c.fd.Write(b)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		err = &amp;OpError&#123;Op: <span class="string">&quot;write&quot;</span>, Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> n, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="net-Listen"><a href="#net-Listen" class="headerlink" title="net.Listen"></a>net.Listen</h3><p>调用 <code>net.Listen</code> 之后，底层会通过 Linux 的系统调用 socket 方法创建一个 fd 分配给 listener，并用以来初始化 listener 的 <code>netFD</code> ，接着调用 <code>netFD</code> 的 listenStream 方法完成对 socket 的 bind&amp;listen 操作以及对 <code>netFD</code> 的初始化（主要是对 <code>netFD</code> 里的 pollDesc 的初始化），调用链是 <code>runtime.runtime_pollServerInit</code> –&gt; <code>runtime.poll_runtime_pollServerInit</code> –&gt; <code>runtime.netpollGenericInit</code>，主要做的事情是：</p>
+<ol>
+<li>调用 <code>epollcreate1</code> 创建一个 <code>epoll</code> 实例 <code>epfd</code>，作为整个 <code>runtime</code> 的唯一 <code>event-loop</code> 使用；</li>
+<li>调用 <code>runtime.nonblockingPipe</code> 创建一个用于和 <code>epoll</code> 实例通信的管道，这里为什么不用更新且更轻量的 <code>eventfd</code> 呢？我个人猜测是为了兼容更多以及更老的系统版本；</li>
+<li>将 netpollBreakRd 通知信号量封装成 <code>epollevent</code> 事件结构体注册进 <code>epoll</code> 实例。</li>
+</ol>
+<p>相关源码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 调用 linux 系统调用 socket 创建 listener fd 并设置为为阻塞 I/O</span></span><br><span class="line">s, err := socketFunc(family, sotype|syscall.SOCK_NONBLOCK|syscall.SOCK_CLOEXEC, proto)</span><br><span class="line"><span class="comment">// On Linux the SOCK_NONBLOCK and SOCK_CLOEXEC flags were</span></span><br><span class="line"><span class="comment">// introduced in 2.6.27 kernel and on FreeBSD both flags were</span></span><br><span class="line"><span class="comment">// introduced in 10 kernel. If we get an EINVAL error on Linux</span></span><br><span class="line"><span class="comment">// or EPROTONOSUPPORT error on FreeBSD, fall back to using</span></span><br><span class="line"><span class="comment">// socket without them.</span></span><br><span class="line"></span><br><span class="line">socketFunc        <span class="function"><span class="keyword">func</span><span class="params">(<span class="keyword">int</span>, <span class="keyword">int</span>, <span class="keyword">int</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span>  = <span class="title">syscall</span>.<span class="title">Socket</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 用上面创建的 listener fd 初始化 listener netFD</span></span><br><span class="line"><span class="keyword">if</span> fd, err = newFD(s, family, sotype, net); err != <span class="literal">nil</span> &#123;</span><br><span class="line">	poll.CloseFunc(s)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 对 listener fd 进行 bind&amp;listen 操作，并且调用 init 方法完成初始化</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(fd *netFD)</span> <span class="title">listenStream</span><span class="params">(laddr sockaddr, backlog <span class="keyword">int</span>, ctrlFn <span class="keyword">func</span>(<span class="keyword">string</span>, <span class="keyword">string</span>, syscall.RawConn)</span> <span class="title">error</span>) <span class="title">error</span></span> &#123;</span><br><span class="line">	...</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 完成绑定操作</span></span><br><span class="line">	<span class="keyword">if</span> err = syscall.Bind(fd.pfd.Sysfd, lsa); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> os.NewSyscallError(<span class="string">&quot;bind&quot;</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 完成监听操作</span></span><br><span class="line">	<span class="keyword">if</span> err = listenFunc(fd.pfd.Sysfd, backlog); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> os.NewSyscallError(<span class="string">&quot;listen&quot;</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 调用 init，内部会调用 poll.FD.Init，最后调用 pollDesc.init</span></span><br><span class="line">	<span class="keyword">if</span> err = fd.init(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	lsa, _ = syscall.Getsockname(fd.pfd.Sysfd)</span><br><span class="line">	fd.setAddr(fd.addrFunc()(lsa), <span class="literal">nil</span>)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用 sync.Once 来确保一个 listener 只持有一个 epoll 实例</span></span><br><span class="line"><span class="keyword">var</span> serverInit sync.Once</span><br><span class="line"></span><br><span class="line"><span class="comment">// netFD.init 会调用 poll.FD.Init 并最终调用到 pollDesc.init，</span></span><br><span class="line"><span class="comment">// 它会创建 epoll 实例并把 listener fd 加入监听队列</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pd *pollDesc)</span> <span class="title">init</span><span class="params">(fd *FD)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// runtime_pollServerInit 通过 `go:linkname` 链接到具体的实现函数 poll_runtime_pollServerInit，</span></span><br><span class="line">	<span class="comment">// 接着再调用 netpollGenericInit，然后会根据不同的系统平台去调用特定的 netpollinit 来创建 epoll 实例</span></span><br><span class="line">	serverInit.Do(runtime_pollServerInit)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// runtime_pollOpen 内部调用了 netpollopen 来将 listener fd 注册到</span></span><br><span class="line">	<span class="comment">// epoll 实例中，另外，它会初始化一个 pollDesc 并返回</span></span><br><span class="line">	ctx, errno := runtime_pollOpen(<span class="keyword">uintptr</span>(fd.Sysfd))</span><br><span class="line">	<span class="keyword">if</span> errno != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> ctx != <span class="number">0</span> &#123;</span><br><span class="line">			runtime_pollUnblock(ctx)</span><br><span class="line">			runtime_pollClose(ctx)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> syscall.Errno(errno)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 把真正初始化完成的 pollDesc 实例赋值给当前的 pollDesc 代表自身的指针，</span></span><br><span class="line">	<span class="comment">// 后续使用直接通过该指针操作</span></span><br><span class="line">	pd.runtimeCtx = ctx</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	<span class="comment">// 全局唯一的 epoll fd，只在 listener fd 初始化之时被指定一次</span></span><br><span class="line">	epfd <span class="keyword">int32</span> = <span class="number">-1</span> <span class="comment">// epoll descriptor</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// netpollinit 会创建一个 epoll 实例，然后把 epoll fd 赋值给 epfd，</span></span><br><span class="line"><span class="comment">// 后续 listener 以及它 accept 的所有 sockets 有关 epoll 的操作都是基于这个全局的 epfd</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollinit</span><span class="params">()</span></span> &#123;</span><br><span class="line">	epfd = epollcreate1(_EPOLL_CLOEXEC)</span><br><span class="line">	<span class="keyword">if</span> epfd &lt; <span class="number">0</span> &#123;</span><br><span class="line">		epfd = epollcreate(<span class="number">1024</span>)</span><br><span class="line">		<span class="keyword">if</span> epfd &lt; <span class="number">0</span> &#123;</span><br><span class="line">			<span class="built_in">println</span>(<span class="string">&quot;runtime: epollcreate failed with&quot;</span>, -epfd)</span><br><span class="line">			throw(<span class="string">&quot;runtime: netpollinit failed&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		closeonexec(epfd)</span><br><span class="line">	&#125;</span><br><span class="line">	r, w, errno := nonblockingPipe()</span><br><span class="line">	<span class="keyword">if</span> errno != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="built_in">println</span>(<span class="string">&quot;runtime: pipe failed with&quot;</span>, -errno)</span><br><span class="line">		throw(<span class="string">&quot;runtime: pipe failed&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	ev := epollevent&#123;</span><br><span class="line">		events: _EPOLLIN,</span><br><span class="line">	&#125;</span><br><span class="line">	*(**<span class="keyword">uintptr</span>)(unsafe.Pointer(&amp;ev.data)) = &amp;netpollBreakRd</span><br><span class="line">	errno = epollctl(epfd, _EPOLL_CTL_ADD, r, &amp;ev)</span><br><span class="line">	<span class="keyword">if</span> errno != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="built_in">println</span>(<span class="string">&quot;runtime: epollctl failed with&quot;</span>, -errno)</span><br><span class="line">		throw(<span class="string">&quot;runtime: epollctl failed&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	netpollBreakRd = <span class="keyword">uintptr</span>(r)</span><br><span class="line">	netpollBreakWr = <span class="keyword">uintptr</span>(w)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// netpollopen 会被 runtime_pollOpen 调用，注册 fd 到 epoll 实例，</span></span><br><span class="line"><span class="comment">// 注意这里使用的是 epoll 的 ET 模式，同时会利用万能指针把 pollDesc 保存到 `epollevent` 的一个 8 位的字节数组 data 里</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollopen</span><span class="params">(fd <span class="keyword">uintptr</span>, pd *pollDesc)</span> <span class="title">int32</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> ev epollevent</span><br><span class="line">	ev.events = _EPOLLIN | _EPOLLOUT | _EPOLLRDHUP | _EPOLLET</span><br><span class="line">	*(**pollDesc)(unsafe.Pointer(&amp;ev.data)) = pd</span><br><span class="line">	<span class="keyword">return</span> -epollctl(epfd, _EPOLL_CTL_ADD, <span class="keyword">int32</span>(fd), &amp;ev)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们前面提到的 epoll 的三个基本调用，Go 在源码里实现了对那三个调用的封装：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">#include &lt;sys/epoll.h&gt;  </span><br><span class="line"><span class="keyword">int</span> epoll_create(<span class="keyword">int</span> size);  </span><br><span class="line"><span class="keyword">int</span> epoll_ctl(<span class="keyword">int</span> epfd, <span class="keyword">int</span> op, <span class="keyword">int</span> fd, <span class="keyword">struct</span> epoll_event *event);  </span><br><span class="line"><span class="keyword">int</span> epoll_wait(<span class="keyword">int</span> epfd, <span class="keyword">struct</span> epoll_event * events, <span class="keyword">int</span> maxevents, <span class="keyword">int</span> timeout);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Go 对上面三个调用的封装</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollinit</span><span class="params">()</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollopen</span><span class="params">(fd <span class="keyword">uintptr</span>, pd *pollDesc)</span> <span class="title">int32</span></span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpoll</span><span class="params">(block <span class="keyword">bool</span>)</span> <span class="title">gList</span></span></span><br></pre></td></tr></table></figure>
+
+<p><code>netFD</code> 就是通过这三个封装来对 epoll 进行创建实例、注册 fd 和等待事件操作的。</p>
+<h3 id="Listener-Accept"><a href="#Listener-Accept" class="headerlink" title="Listener.Accept()"></a>Listener.Accept()</h3><p>netpoll accept socket 的工作流程如下：</p>
+<ol>
+<li>服务端的 <code>netFD</code> 在 listen 时会创建 epoll 的实例，并将 listenerFD 加入 epoll 的事件队列</li>
+<li><code>netFD</code> 在 accept 时将返回的 connFD 也加入 epoll 的事件队列</li>
+<li><code>netFD</code> 在读写时出现 syscall.EAGAIN 错误，通过 pollDesc 的 waitRead 方法将当前的 goroutine park 住，直到 ready，从 pollDesc 的 waitRead 中返回</li>
+</ol>
+<p>Listener.Accept() 接收来自客户端的新连接，具体还是调用 netFD.accept 方法来完成这个功能：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Accept implements the Accept method in the Listener interface; it</span></span><br><span class="line"><span class="comment">// waits for the next call and returns a generic Conn.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *TCPListener)</span> <span class="title">Accept</span><span class="params">()</span> <span class="params">(Conn, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> !l.ok() &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, syscall.EINVAL</span><br><span class="line">	&#125;</span><br><span class="line">	c, err := l.accept()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, &amp;OpError&#123;Op: <span class="string">&quot;accept&quot;</span>, Net: l.fd.net, Source: <span class="literal">nil</span>, Addr: l.fd.laddr, Err: err&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> c, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ln *TCPListener)</span> <span class="title">accept</span><span class="params">()</span> <span class="params">(*TCPConn, error)</span></span> &#123;</span><br><span class="line">	fd, err := ln.fd.accept()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	tc := newTCPConn(fd)</span><br><span class="line">	<span class="keyword">if</span> ln.lc.KeepAlive &gt;= <span class="number">0</span> &#123;</span><br><span class="line">		setKeepAlive(fd, <span class="literal">true</span>)</span><br><span class="line">		ka := ln.lc.KeepAlive</span><br><span class="line">		<span class="keyword">if</span> ln.lc.KeepAlive == <span class="number">0</span> &#123;</span><br><span class="line">			ka = defaultTCPKeepAlive</span><br><span class="line">		&#125;</span><br><span class="line">		setKeepAlivePeriod(fd, ka)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> tc, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(fd *netFD)</span> <span class="title">accept</span><span class="params">()</span> <span class="params">(netfd *netFD, err error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 调用 `poll.FD` 的 Accept 方法接受新的 socket 连接，返回 socket 的 fd</span></span><br><span class="line">	d, rsa, errcall, err := fd.pfd.Accept()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> errcall != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">			err = wrapSyscallError(errcall, err)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 以 socket fd 构造一个新的 netFD，代表这个新的 socket</span></span><br><span class="line">	<span class="keyword">if</span> netfd, err = newFD(d, fd.family, fd.sotype, fd.net); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		poll.CloseFunc(d)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 调用 `netFD` 的 init 方法完成初始化</span></span><br><span class="line">	<span class="keyword">if</span> err = netfd.init(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fd.Close()</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	lsa, _ := syscall.Getsockname(netfd.pfd.Sysfd)</span><br><span class="line">	netfd.setAddr(netfd.addrFunc()(lsa), netfd.addrFunc()(rsa))</span><br><span class="line">	<span class="keyword">return</span> netfd, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>netFD.accept 方法里会再调用 poll.FD.Accept ，最后会使用 Linux 的系统调用 accept 来完成新连接的接收，并且会把 accept 的 socket 设置成非阻塞 <code>I/O</code> 模式：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Accept wraps the accept network call.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(fd *FD)</span> <span class="title">Accept</span><span class="params">()</span> <span class="params">(<span class="keyword">int</span>, syscall.Sockaddr, <span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err := fd.readLock(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>, <span class="literal">nil</span>, <span class="string">&quot;&quot;</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> fd.readUnlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := fd.pd.prepareRead(fd.isFile); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>, <span class="literal">nil</span>, <span class="string">&quot;&quot;</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="comment">// 使用 linux 系统调用 accept 接收新连接，创建对应的 socket</span></span><br><span class="line">		s, rsa, errcall, err := accept(fd.Sysfd)</span><br><span class="line">		<span class="comment">// 因为 listener fd 在创建的时候已经设置成非阻塞的了，</span></span><br><span class="line">		<span class="comment">// 所以 accept 方法会直接返回，不管有没有新连接到来；如果 err == nil 则表示正常建立新连接，直接返回</span></span><br><span class="line">		<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> s, rsa, <span class="string">&quot;&quot;</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 如果 err != nil，则判断 err == syscall.EAGAIN，符合条件则进入 pollDesc.waitRead 方法</span></span><br><span class="line">		<span class="keyword">switch</span> err &#123;</span><br><span class="line">		<span class="keyword">case</span> syscall.EAGAIN:</span><br><span class="line">			<span class="keyword">if</span> fd.pd.pollable() &#123;</span><br><span class="line">				<span class="comment">// 如果当前没有发生期待的 `I/O` 事件，那么 waitRead 会通过 park goroutine 让逻辑 block 在这里</span></span><br><span class="line">				<span class="keyword">if</span> err = fd.pd.waitRead(fd.isFile); err == <span class="literal">nil</span> &#123;</span><br><span class="line">					<span class="keyword">continue</span></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">case</span> syscall.ECONNABORTED:</span><br><span class="line">			<span class="comment">// This means that a socket on the listen</span></span><br><span class="line">			<span class="comment">// queue was closed before we Accept()ed it;</span></span><br><span class="line">			<span class="comment">// it&#x27;s a silly error, so try again.</span></span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">-1</span>, <span class="literal">nil</span>, errcall, err</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用 linux 的 accept 系统调用接收新连接并把这个 socket fd 设置成非阻塞 I/O</span></span><br><span class="line">ns, sa, err := Accept4Func(s, syscall.SOCK_NONBLOCK|syscall.SOCK_CLOEXEC)</span><br><span class="line"><span class="comment">// On Linux the accept4 system call was introduced in 2.6.28</span></span><br><span class="line"><span class="comment">// kernel and on FreeBSD it was introduced in 10 kernel. If we</span></span><br><span class="line"><span class="comment">// get an ENOSYS error on both Linux and FreeBSD, or EINVAL</span></span><br><span class="line"><span class="comment">// error on Linux, fall back to using accept.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Accept4Func is used to hook the accept4 call.</span></span><br><span class="line"><span class="keyword">var</span> Accept4Func <span class="function"><span class="keyword">func</span><span class="params">(<span class="keyword">int</span>, <span class="keyword">int</span>)</span> <span class="params">(<span class="keyword">int</span>, syscall.Sockaddr, error)</span> = <span class="title">syscall</span>.<span class="title">Accept4</span></span></span><br></pre></td></tr></table></figure>
+<p>pollDesc.waitRead 方法主要负责检测当前这个 pollDesc 的上层 <code>netFD</code> 对应的 fd 是否有『期待的』I/O 事件发生，如果有就直接返回，否则就 park 住当前的 goroutine 并持续等待直至对应的 fd 上发生可读/可写或者其他『期待的』I/O 事件为止，然后它就会返回到外层的 for 循环，让 goroutine 继续执行逻辑。</p>
+<p>poll.FD.Accept() 返回之后，会构造一个对应这个新 socket 的 netFD，然后调用 init() 方法完成初始化，这个 init 过程和前面 net.Listen() 是一样的，调用链：netFD.init() –&gt; poll.FD.Init() –&gt; poll.pollDesc.init()，最终又会走到这里：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> serverInit sync.Once</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pd *pollDesc)</span> <span class="title">init</span><span class="params">(fd *FD)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	serverInit.Do(runtime_pollServerInit)</span><br><span class="line">	ctx, errno := runtime_pollOpen(<span class="keyword">uintptr</span>(fd.Sysfd))</span><br><span class="line">	<span class="keyword">if</span> errno != <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> ctx != <span class="number">0</span> &#123;</span><br><span class="line">			runtime_pollUnblock(ctx)</span><br><span class="line">			runtime_pollClose(ctx)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> syscall.Errno(errno)</span><br><span class="line">	&#125;</span><br><span class="line">	pd.runtimeCtx = ctx</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>然后把这个 socket fd 注册到 listener 的 epoll 实例的事件队列中去，等待 <code>I/O</code> 事件。</p>
+<h3 id="Conn-Read-Conn-Write"><a href="#Conn-Read-Conn-Write" class="headerlink" title="Conn.Read/Conn.Write"></a>Conn.Read/Conn.Write</h3><p>我们先来看看 <code>Conn.Read</code> 方法是如何实现的，原理其实和 <code>Listener.Accept</code> 是一样的，具体调用链还是首先调用 conn 的 <code>netFD.Read</code> ，然后内部再调用 <code>poll.FD.Read</code> ，最后使用 Linux 的系统调用 <code>read: syscall.Read</code> 完成数据读取：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Implementation of the Conn interface.</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Read implements the Conn Read method.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *conn)</span> <span class="title">Read</span><span class="params">(b []<span class="keyword">byte</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> !c.ok() &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, syscall.EINVAL</span><br><span class="line">	&#125;</span><br><span class="line">	n, err := c.fd.Read(b)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &amp;&amp; err != io.EOF &#123;</span><br><span class="line">		err = &amp;OpError&#123;Op: <span class="string">&quot;read&quot;</span>, Net: c.fd.net, Source: c.fd.laddr, Addr: c.fd.raddr, Err: err&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> n, err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(fd *netFD)</span> <span class="title">Read</span><span class="params">(p []<span class="keyword">byte</span>)</span> <span class="params">(n <span class="keyword">int</span>, err error)</span></span> &#123;</span><br><span class="line">	n, err = fd.pfd.Read(p)</span><br><span class="line">	runtime.KeepAlive(fd)</span><br><span class="line">	<span class="keyword">return</span> n, wrapSyscallError(<span class="string">&quot;read&quot;</span>, err)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Read implements io.Reader.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(fd *FD)</span> <span class="title">Read</span><span class="params">(p []<span class="keyword">byte</span>)</span> <span class="params">(<span class="keyword">int</span>, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err := fd.readLock(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> fd.readUnlock()</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(p) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// If the caller wanted a zero byte read, return immediately</span></span><br><span class="line">		<span class="comment">// without trying (but after acquiring the readLock).</span></span><br><span class="line">		<span class="comment">// Otherwise syscall.Read returns 0, nil which looks like</span></span><br><span class="line">		<span class="comment">// io.EOF.</span></span><br><span class="line">		<span class="comment">// TODO(bradfitz): make it wait for readability? (Issue 15735)</span></span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err := fd.pd.prepareRead(fd.isFile); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> fd.IsStream &amp;&amp; <span class="built_in">len</span>(p) &gt; maxRW &#123;</span><br><span class="line">		p = p[:maxRW]</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="comment">// 尝试从该 socket 读取数据，因为 socket 在被 listener accept 的时候设置成</span></span><br><span class="line">		<span class="comment">// 了非阻塞 I/O，所以这里同样也是直接返回，不管有没有可读的数据</span></span><br><span class="line">		n, err := syscall.Read(fd.Sysfd, p)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			n = <span class="number">0</span></span><br><span class="line">			<span class="comment">// err == syscall.EAGAIN 表示当前没有期待的 `I/O` 事件发生，也就是 socket 不可读</span></span><br><span class="line">			<span class="keyword">if</span> err == syscall.EAGAIN &amp;&amp; fd.pd.pollable() &#123;</span><br><span class="line">				<span class="comment">// 如果当前没有发生期待的 `I/O` 事件，那么 waitRead</span></span><br><span class="line">				<span class="comment">// 会通过 park goroutine 让逻辑 block 在这里</span></span><br><span class="line">				<span class="keyword">if</span> err = fd.pd.waitRead(fd.isFile); err == <span class="literal">nil</span> &#123;</span><br><span class="line">					<span class="keyword">continue</span></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="comment">// On MacOS we can see EINTR here if the user</span></span><br><span class="line">			<span class="comment">// pressed ^Z.  See issue #22838.</span></span><br><span class="line">			<span class="keyword">if</span> runtime.GOOS == <span class="string">&quot;darwin&quot;</span> &amp;&amp; err == syscall.EINTR &#123;</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		err = fd.eofError(n, err)</span><br><span class="line">		<span class="keyword">return</span> n, err</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>conn.Write 和 conn.Read 的原理是一致的，它也是通过类似 pollDesc.waitRead 的 pollDesc.waitWrite 来 park 住 goroutine 直至期待的 <code>I/O</code> 事件发生才返回恢复执行。</p>
+<h3 id="pollDesc-waitRead-pollDesc-waitWrite"><a href="#pollDesc-waitRead-pollDesc-waitWrite" class="headerlink" title="pollDesc.waitRead/pollDesc.waitWrite"></a>pollDesc.waitRead/pollDesc.waitWrite</h3><p>pollDesc.waitRead 内部调用了 poll.runtime_pollWait –&gt; runtime.poll_runtime_pollWait 来达成无 <code>I/O</code> 事件时 park 住 goroutine 的目的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//go:linkname poll_runtime_pollWait internal/poll.runtime_pollWait</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">poll_runtime_pollWait</span><span class="params">(pd *pollDesc, mode <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	err := netpollcheckerr(pd, <span class="keyword">int32</span>(mode))</span><br><span class="line">	<span class="keyword">if</span> err != pollNoError &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// As for now only Solaris, illumos, and AIX use level-triggered IO.</span></span><br><span class="line">	<span class="keyword">if</span> GOOS == <span class="string">&quot;solaris&quot;</span> || GOOS == <span class="string">&quot;illumos&quot;</span> || GOOS == <span class="string">&quot;aix&quot;</span> &#123;</span><br><span class="line">		netpollarm(pd, mode)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 进入 netpollblock 并且判断是否有期待的 `I/O` 事件发生，</span></span><br><span class="line">	<span class="comment">// 这里的 for 循环是为了一直等到 io ready</span></span><br><span class="line">	<span class="keyword">for</span> !netpollblock(pd, <span class="keyword">int32</span>(mode), <span class="literal">false</span>) &#123;</span><br><span class="line">		err = netpollcheckerr(pd, <span class="keyword">int32</span>(mode))</span><br><span class="line">		<span class="keyword">if</span> err != <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// Can happen if timeout has fired and unblocked us,</span></span><br><span class="line">		<span class="comment">// but before we had a chance to run, timeout has been reset.</span></span><br><span class="line">		<span class="comment">// Pretend it has not happened and retry.</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// returns true if IO is ready, or false if timedout or closed</span></span><br><span class="line"><span class="comment">// waitio - wait only for completed IO, ignore errors</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollblock</span><span class="params">(pd *pollDesc, mode <span class="keyword">int32</span>, waitio <span class="keyword">bool</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="comment">// gpp 保存的是 goroutine 的数据结构 g，这里会根据 mode 的值决定是 rg 还是 wg，</span></span><br><span class="line">	<span class="comment">// 前面提到过，rg 和 wg 是用来保存等待 `I/O` 就绪的 gorouine 的，后面调用 gopark 之后，</span></span><br><span class="line">	<span class="comment">// 会把当前的 goroutine 的抽象数据结构 g 存入 gpp 这个指针，也就是 rg 或者 wg</span></span><br><span class="line">	gpp := &amp;pd.rg</span><br><span class="line">	<span class="keyword">if</span> mode == <span class="string">&#x27;w&#x27;</span> &#123;</span><br><span class="line">		gpp = &amp;pd.wg</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// set the gpp semaphore to WAIT</span></span><br><span class="line">	<span class="comment">// 这个 for 循环是为了等待 io ready 或者 io wait</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		old := *gpp</span><br><span class="line">		<span class="comment">// gpp == pdReady 表示此时已有期待的 `I/O` 事件发生，</span></span><br><span class="line">		<span class="comment">// 可以直接返回 unblock 当前 goroutine 并执行响应的 `I/O` 操作</span></span><br><span class="line">		<span class="keyword">if</span> old == pdReady &#123;</span><br><span class="line">			*gpp = <span class="number">0</span></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> old != <span class="number">0</span> &#123;</span><br><span class="line">			throw(<span class="string">&quot;runtime: double wait&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 如果没有期待的 `I/O` 事件发生，则通过原子操作把 gpp 的值置为 pdWait 并退出 for 循环</span></span><br><span class="line">		<span class="keyword">if</span> atomic.Casuintptr(gpp, <span class="number">0</span>, pdWait) &#123;</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// need to recheck error states after setting gpp to WAIT</span></span><br><span class="line">	<span class="comment">// this is necessary because runtime_pollUnblock/runtime_pollSetDeadline/deadlineimpl</span></span><br><span class="line">	<span class="comment">// do the opposite: store to closing/rd/wd, membarrier, load of rg/wg</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// waitio 此时是 false，netpollcheckerr 方法会检查当前 pollDesc 对应的 fd 是否是正常的，</span></span><br><span class="line">	<span class="comment">// 通常来说  netpollcheckerr(pd, mode) == 0 是成立的，所以这里会执行 gopark</span></span><br><span class="line">	<span class="comment">// 把当前 goroutine 给 park 住，直至对应的 fd 上发生可读/可写或者其他『期待的』I/O 事件为止，</span></span><br><span class="line">	<span class="comment">// 然后 unpark 返回，在 gopark 内部会把当前 goroutine 的抽象数据结构 g 存入</span></span><br><span class="line">	<span class="comment">// gpp(pollDesc.rg/pollDesc.wg) 指针里，以便在后面的 netpoll 函数取出 pollDesc 之后，</span></span><br><span class="line">	<span class="comment">// 把 g 添加到链表里返回，接着重新调度 goroutine</span></span><br><span class="line">	<span class="keyword">if</span> waitio || netpollcheckerr(pd, mode) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// 注册 netpollblockcommit 回调给 gopark，在 gopark 内部会执行它，保存当前 goroutine 到 gpp</span></span><br><span class="line">		gopark(netpollblockcommit, unsafe.Pointer(gpp), waitReasonIOWait, traceEvGoBlockNet, <span class="number">5</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// be careful to not lose concurrent READY notification</span></span><br><span class="line">	old := atomic.Xchguintptr(gpp, <span class="number">0</span>)</span><br><span class="line">	<span class="keyword">if</span> old &gt; pdWait &#123;</span><br><span class="line">		throw(<span class="string">&quot;runtime: corrupted polldesc&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> old == pdReady</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// gopark 会停住当前的 goroutine 并且调用传递进来的回调函数 unlockf，从上面的源码我们可以知道这个函数是</span></span><br><span class="line"><span class="comment">// netpollblockcommit</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">gopark</span><span class="params">(unlockf <span class="keyword">func</span>(*g, unsafe.Pointer)</span> <span class="title">bool</span>, <span class="title">lock</span> <span class="title">unsafe</span>.<span class="title">Pointer</span>, <span class="title">reason</span> <span class="title">waitReason</span>, <span class="title">traceEv</span> <span class="title">byte</span>, <span class="title">traceskip</span> <span class="title">int</span>)</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> reason != waitReasonSleep &#123;</span><br><span class="line">		checkTimeouts() <span class="comment">// timeouts may expire while two goroutines keep the scheduler busy</span></span><br><span class="line">	&#125;</span><br><span class="line">	mp := acquirem()</span><br><span class="line">	gp := mp.curg</span><br><span class="line">	status := readgstatus(gp)</span><br><span class="line">	<span class="keyword">if</span> status != _Grunning &amp;&amp; status != _Gscanrunning &#123;</span><br><span class="line">		throw(<span class="string">&quot;gopark: bad g status&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	mp.waitlock = lock</span><br><span class="line">	mp.waitunlockf = unlockf</span><br><span class="line">	gp.waitreason = reason</span><br><span class="line">	mp.waittraceev = traceEv</span><br><span class="line">	mp.waittraceskip = traceskip</span><br><span class="line">	releasem(mp)</span><br><span class="line">	<span class="comment">// can&#x27;t do anything that might move the G between Ms here.</span></span><br><span class="line">	<span class="comment">// gopark 最终会调用 park_m，在这个函数内部会调用 unlockf，也就是 netpollblockcommit，</span></span><br><span class="line">	<span class="comment">// 然后会把当前的 goroutine，也就是 g 数据结构保存到 pollDesc 的 rg 或者 wg 指针里</span></span><br><span class="line">	mcall(park_m)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// park continuation on g0.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">park_m</span><span class="params">(gp *g)</span></span> &#123;</span><br><span class="line">	_g_ := getg()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> trace.enabled &#123;</span><br><span class="line">		traceGoPark(_g_.m.waittraceev, _g_.m.waittraceskip)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	casgstatus(gp, _Grunning, _Gwaiting)</span><br><span class="line">	dropg()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> fn := _g_.m.waitunlockf; fn != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// 调用 netpollblockcommit，把当前的 goroutine，</span></span><br><span class="line">		<span class="comment">// 也就是 g 数据结构保存到 pollDesc 的 rg 或者 wg 指针里</span></span><br><span class="line">		ok := fn(gp, _g_.m.waitlock)</span><br><span class="line">		_g_.m.waitunlockf = <span class="literal">nil</span></span><br><span class="line">		_g_.m.waitlock = <span class="literal">nil</span></span><br><span class="line">		<span class="keyword">if</span> !ok &#123;</span><br><span class="line">			<span class="keyword">if</span> trace.enabled &#123;</span><br><span class="line">				traceGoUnpark(gp, <span class="number">2</span>)</span><br><span class="line">			&#125;</span><br><span class="line">			casgstatus(gp, _Gwaiting, _Grunnable)</span><br><span class="line">			execute(gp, <span class="literal">true</span>) <span class="comment">// Schedule it back, never returns.</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	schedule()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// netpollblockcommit 在 gopark 函数里被调用</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollblockcommit</span><span class="params">(gp *g, gpp unsafe.Pointer)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="comment">// 通过原子操作把当前 goroutine 抽象的数据结构 g，也就是这里的参数 gp 存入 gpp 指针，</span></span><br><span class="line">	<span class="comment">// 此时 gpp 的值是 pollDesc 的 rg 或者 wg 指针</span></span><br><span class="line">	r := atomic.Casuintptr((*<span class="keyword">uintptr</span>)(gpp), pdWait, <span class="keyword">uintptr</span>(unsafe.Pointer(gp)))</span><br><span class="line">	<span class="keyword">if</span> r &#123;</span><br><span class="line">		<span class="comment">// Bump the count of goroutines waiting for the poller.</span></span><br><span class="line">		<span class="comment">// The scheduler uses this to decide whether to block</span></span><br><span class="line">		<span class="comment">// waiting for the poller if there is nothing else to do.</span></span><br><span class="line">		atomic.Xadd(&amp;netpollWaiters, <span class="number">1</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> r</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>pollDesc.waitWrite 的内部实现原理和 pollDesc.waitRead 是一样的，都是基于 poll.runtime_pollWait –&gt; runtime.poll_runtime_pollWait，这里就不再赘述。</p>
+<h3 id="netpoll"><a href="#netpoll" class="headerlink" title="netpoll"></a>netpoll</h3><p>前面已经从源码的层面分析完了 netpoll 是如何通过 park goroutine 从而达到阻塞 Accept/Read/Write 的效果，而通过调用 gopark，goroutine 会被放置在某个等待队列中，这里是放到了 epoll 的 “interest list” 里，底层数据结构是由红黑树实现的 eventpoll.rbr，此时 G 的状态由 _Grunning为_Gwaitting ，因此 G 必须被手动唤醒(通过 goready )，否则会丢失任务，应用层阻塞通常使用这种方式。</p>
+<p>所以我们现在可以来从整体的层面来概括 Go 的网络业务 goroutine 是如何被规划调度的了：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/bgTq0J.png" alt="bgTq0J"></p>
+<p><strong>首先，client 连接 server 的时候，listener 通过 accept 调用接收新 connection，每一个新 connection 都启动一个 goroutine 处理，accept 调用会把该 connection 的 fd 连带所在的 goroutine 上下文信息封装注册到 epoll 的监听列表里去，当 goroutine 调用 conn.Read 或者 conn.Write 等需要阻塞等待的函数时，会被 gopark 给封存起来并使之休眠，让 P 去执行本地调度队列里的下一个可执行的 goroutine，往后 Go scheduler 会在循环调度的 runtime.schedule() 函数以及 sysmon 监控线程中调用 runtime.netpoll 以获取可运行的 goroutine 列表并通过调用 injectglist 把剩下的 g 放入全局调度队列或者当前 P 本地调度队列去重新执行。</strong></p>
+<p><strong>那么当 <code>I/O</code> 事件发生之后，netpoller 是通过什么方式唤醒那些在 <code>I/O</code> wait 的 goroutine 的？答案是通过 <code>runtime.netpoll</code>。</strong></p>
+<p>runtime.netpoll 的核心逻辑是：</p>
+<ol>
+<li>根据调用方的入参 delay，设置对应的调用 epollwait 的 timeout 值；</li>
+<li>调用 epollwait 等待发生了可读/可写事件的 fd；</li>
+<li>循环 epollwait 返回的事件列表，处理对应的事件类型， 组装可运行的 goroutine 链表并返回。</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// netpoll checks for ready network connections.</span></span><br><span class="line"><span class="comment">// Returns list of goroutines that become runnable.</span></span><br><span class="line"><span class="comment">// delay &lt; 0: blocks indefinitely</span></span><br><span class="line"><span class="comment">// delay == 0: does not block, just polls</span></span><br><span class="line"><span class="comment">// delay &gt; 0: block for up to that many nanoseconds</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpoll</span><span class="params">(delay <span class="keyword">int64</span>)</span> <span class="title">gList</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> epfd == <span class="number">-1</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> gList&#123;&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 根据特定的规则把 delay 值转换为 epollwait 的 timeout 值</span></span><br><span class="line">	<span class="keyword">var</span> waitms <span class="keyword">int32</span></span><br><span class="line">	<span class="keyword">if</span> delay &lt; <span class="number">0</span> &#123;</span><br><span class="line">		waitms = <span class="number">-1</span></span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> delay == <span class="number">0</span> &#123;</span><br><span class="line">		waitms = <span class="number">0</span></span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> delay &lt; <span class="number">1e6</span> &#123;</span><br><span class="line">		waitms = <span class="number">1</span></span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> delay &lt; <span class="number">1e15</span> &#123;</span><br><span class="line">		waitms = <span class="keyword">int32</span>(delay / <span class="number">1e6</span>)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// An arbitrary cap on how long to wait for a timer.</span></span><br><span class="line">		<span class="comment">// 1e9 ms == ~11.5 days.</span></span><br><span class="line">		waitms = <span class="number">1e9</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">var</span> events [<span class="number">128</span>]epollevent</span><br><span class="line">retry:</span><br><span class="line">	<span class="comment">// 超时等待就绪的 fd 读写事件</span></span><br><span class="line">	n := epollwait(epfd, &amp;events[<span class="number">0</span>], <span class="keyword">int32</span>(<span class="built_in">len</span>(events)), waitms)</span><br><span class="line">	<span class="keyword">if</span> n &lt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> n != -_EINTR &#123;</span><br><span class="line">			<span class="built_in">println</span>(<span class="string">&quot;runtime: epollwait on fd&quot;</span>, epfd, <span class="string">&quot;failed with&quot;</span>, -n)</span><br><span class="line">			throw(<span class="string">&quot;runtime: netpoll failed&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// If a timed sleep was interrupted, just return to</span></span><br><span class="line">		<span class="comment">// recalculate how long we should sleep now.</span></span><br><span class="line">		<span class="keyword">if</span> waitms &gt; <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> gList&#123;&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">goto</span> retry</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// toRun 是一个 g 的链表，存储要恢复的 goroutines，最后返回给调用方</span></span><br><span class="line">	<span class="keyword">var</span> toRun gList</span><br><span class="line">	<span class="keyword">for</span> i := <span class="keyword">int32</span>(<span class="number">0</span>); i &lt; n; i++ &#123;</span><br><span class="line">		ev := &amp;events[i]</span><br><span class="line">		<span class="keyword">if</span> ev.events == <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Go scheduler 在调用 findrunnable() 寻找 goroutine 去执行的时候，</span></span><br><span class="line">		<span class="comment">// 在调用 netpoll 之时会检查当前是否有其他线程同步阻塞在 netpoll，</span></span><br><span class="line">		<span class="comment">// 若是，则调用 netpollBreak 来唤醒那个线程，避免它长时间阻塞</span></span><br><span class="line">		<span class="keyword">if</span> *(**<span class="keyword">uintptr</span>)(unsafe.Pointer(&amp;ev.data)) == &amp;netpollBreakRd &#123;</span><br><span class="line">			<span class="keyword">if</span> ev.events != _EPOLLIN &#123;</span><br><span class="line">				<span class="built_in">println</span>(<span class="string">&quot;runtime: netpoll: break fd ready for&quot;</span>, ev.events)</span><br><span class="line">				throw(<span class="string">&quot;runtime: netpoll: break fd ready for something unexpected&quot;</span>)</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> delay != <span class="number">0</span> &#123;</span><br><span class="line">				<span class="comment">// netpollBreak could be picked up by a</span></span><br><span class="line">				<span class="comment">// nonblocking poll. Only read the byte</span></span><br><span class="line">				<span class="comment">// if blocking.</span></span><br><span class="line">				<span class="keyword">var</span> tmp [<span class="number">16</span>]<span class="keyword">byte</span></span><br><span class="line">				read(<span class="keyword">int32</span>(netpollBreakRd), noescape(unsafe.Pointer(&amp;tmp[<span class="number">0</span>])), <span class="keyword">int32</span>(<span class="built_in">len</span>(tmp)))</span><br><span class="line">				atomic.Store(&amp;netpollWakeSig, <span class="number">0</span>)</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 判断发生的事件类型，读类型或者写类型等，然后给 mode 复制相应的值，</span></span><br><span class="line">		<span class="comment">// mode 用来决定从 pollDesc 里的 rg 还是 wg 里取出 goroutine</span></span><br><span class="line">		<span class="keyword">var</span> mode <span class="keyword">int32</span></span><br><span class="line">		<span class="keyword">if</span> ev.events&amp;(_EPOLLIN|_EPOLLRDHUP|_EPOLLHUP|_EPOLLERR) != <span class="number">0</span> &#123;</span><br><span class="line">			mode += <span class="string">&#x27;r&#x27;</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> ev.events&amp;(_EPOLLOUT|_EPOLLHUP|_EPOLLERR) != <span class="number">0</span> &#123;</span><br><span class="line">			mode += <span class="string">&#x27;w&#x27;</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> mode != <span class="number">0</span> &#123;</span><br><span class="line">			<span class="comment">// 取出保存在 `epollevent` 里的 pollDesc</span></span><br><span class="line">			pd := *(**pollDesc)(unsafe.Pointer(&amp;ev.data))</span><br><span class="line">			pd.everr = <span class="literal">false</span></span><br><span class="line">			<span class="keyword">if</span> ev.events == _EPOLLERR &#123;</span><br><span class="line">				pd.everr = <span class="literal">true</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 调用 netpollready，传入就绪 fd 的 pollDesc，</span></span><br><span class="line">			<span class="comment">// 把 fd 对应的 goroutine 添加到链表 toRun 中</span></span><br><span class="line">			netpollready(&amp;toRun, pd, mode)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> toRun</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// netpollready 调用 netpollunblock 返回就绪 fd 对应的 goroutine 的抽象数据结构 g</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollready</span><span class="params">(toRun *gList, pd *pollDesc, mode <span class="keyword">int32</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> rg, wg *g</span><br><span class="line">	<span class="keyword">if</span> mode == <span class="string">&#x27;r&#x27;</span> || mode == <span class="string">&#x27;r&#x27;</span>+<span class="string">&#x27;w&#x27;</span> &#123;</span><br><span class="line">		rg = netpollunblock(pd, <span class="string">&#x27;r&#x27;</span>, <span class="literal">true</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> mode == <span class="string">&#x27;w&#x27;</span> || mode == <span class="string">&#x27;r&#x27;</span>+<span class="string">&#x27;w&#x27;</span> &#123;</span><br><span class="line">		wg = netpollunblock(pd, <span class="string">&#x27;w&#x27;</span>, <span class="literal">true</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> rg != <span class="literal">nil</span> &#123;</span><br><span class="line">		toRun.push(rg)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> wg != <span class="literal">nil</span> &#123;</span><br><span class="line">		toRun.push(wg)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// netpollunblock 会依据传入的 mode 决定从 pollDesc 的 rg 或者 wg 取出当时 gopark 之时存入的</span></span><br><span class="line"><span class="comment">// goroutine 抽象数据结构 g 并返回</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollunblock</span><span class="params">(pd *pollDesc, mode <span class="keyword">int32</span>, ioready <span class="keyword">bool</span>)</span> *<span class="title">g</span></span> &#123;</span><br><span class="line">	<span class="comment">// mode == &#x27;r&#x27; 代表当时 gopark 是为了等待读事件，而 mode == &#x27;w&#x27; 则代表是等待写事件</span></span><br><span class="line">	gpp := &amp;pd.rg</span><br><span class="line">	<span class="keyword">if</span> mode == <span class="string">&#x27;w&#x27;</span> &#123;</span><br><span class="line">		gpp = &amp;pd.wg</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="comment">// 取出 gpp 存储的 g</span></span><br><span class="line">		old := *gpp</span><br><span class="line">		<span class="keyword">if</span> old == pdReady &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> old == <span class="number">0</span> &amp;&amp; !ioready &#123;</span><br><span class="line">			<span class="comment">// Only set READY for ioready. runtime_pollWait</span></span><br><span class="line">			<span class="comment">// will check for timeout/cancel before waiting.</span></span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">var</span> <span class="built_in">new</span> <span class="keyword">uintptr</span></span><br><span class="line">		<span class="keyword">if</span> ioready &#123;</span><br><span class="line">			<span class="built_in">new</span> = pdReady</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 重置 pollDesc 的 rg 或者 wg</span></span><br><span class="line">		<span class="keyword">if</span> atomic.Casuintptr(gpp, old, <span class="built_in">new</span>) &#123;</span><br><span class="line">			<span class="comment">// 如果该 goroutine 还是必须等待，则返回 nil</span></span><br><span class="line">			<span class="keyword">if</span> old == pdWait &#123;</span><br><span class="line">				old = <span class="number">0</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 通过万能指针还原成 g 并返回</span></span><br><span class="line">			<span class="keyword">return</span> (*g)(unsafe.Pointer(old))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// netpollBreak 往通信管道里写入信号去唤醒 epollwait</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">netpollBreak</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 通过 CAS 避免重复的唤醒信号被写入管道，</span></span><br><span class="line">	<span class="comment">// 从而减少系统调用并节省一些系统资源</span></span><br><span class="line">	<span class="keyword">if</span> atomic.Cas(&amp;netpollWakeSig, <span class="number">0</span>, <span class="number">1</span>) &#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			<span class="keyword">var</span> b <span class="keyword">byte</span></span><br><span class="line">			n := write(netpollBreakWr, unsafe.Pointer(&amp;b), <span class="number">1</span>)</span><br><span class="line">			<span class="keyword">if</span> n == <span class="number">1</span> &#123;</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> n == -_EINTR &#123;</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> n == -_EAGAIN &#123;</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="built_in">println</span>(<span class="string">&quot;runtime: netpollBreak write failed with&quot;</span>, -n)</span><br><span class="line">			throw(<span class="string">&quot;runtime: netpollBreak write failed&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>Go 在多种场景下都可能会调用 netpoll 检查文件描述符状态，netpoll 里会调用 epoll_wait 从 epoll 的 eventpoll.rdllist 就绪双向链表返回，从而得到 <code>I/O</code> 就绪的 socket fd 列表，并根据取出最初调用 epoll_ctl 时保存的上下文信息，恢复 g。所以执行完netpoll 之后，会返回一个就绪 fd 列表对应的 goroutine 链表，接下来将就绪的 goroutine 通过调用 injectglist 加入到全局调度队列或者 P 的本地调度队列中，启动 M 绑定 P 去执行。</strong></p>
+<p>具体调用 netpoll 的地方，首先在 Go runtime scheduler 循环调度 goroutines 之时就有可能会调用 netpoll 获取到已就绪的 fd 对应的 goroutine 来调度执行。</p>
+<p>首先 Go scheduler 的核心方法 runtime.schedule() 里会调用一个叫 runtime.findrunable() 的方法获取可运行的 goroutine 来执行，而在 runtime.findrunable() 方法里就调用了 runtime.netpoll 获取已就绪的 fd 列表对应的 goroutine 列表：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// One round of scheduler: find a runnable goroutine and execute it.</span></span><br><span class="line"><span class="comment">// Never returns.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">schedule</span><span class="params">()</span></span> &#123;</span><br><span class="line">	...</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> gp == <span class="literal">nil</span> &#123;</span><br><span class="line">		gp, inheritTime = findrunnable() <span class="comment">// blocks until work is available</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Finds a runnable goroutine to execute.</span></span><br><span class="line"><span class="comment">// Tries to steal from other P&#x27;s, get g from global queue, poll network.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">findrunnable</span><span class="params">()</span> <span class="params">(gp *g, inheritTime <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">  ...</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Poll network.</span></span><br><span class="line">	<span class="keyword">if</span> netpollinited() &amp;&amp; (atomic.Load(&amp;netpollWaiters) &gt; <span class="number">0</span> || pollUntil != <span class="number">0</span>) &amp;&amp; atomic.Xchg64(&amp;sched.lastpoll, <span class="number">0</span>) != <span class="number">0</span> &#123;</span><br><span class="line">		atomic.Store64(&amp;sched.pollUntil, <span class="keyword">uint64</span>(pollUntil))</span><br><span class="line">		<span class="keyword">if</span> _g_.m.p != <span class="number">0</span> &#123;</span><br><span class="line">			throw(<span class="string">&quot;findrunnable: netpoll with p&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> _g_.m.spinning &#123;</span><br><span class="line">			throw(<span class="string">&quot;findrunnable: netpoll with spinning&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> faketime != <span class="number">0</span> &#123;</span><br><span class="line">			<span class="comment">// When using fake time, just poll.</span></span><br><span class="line">			delta = <span class="number">0</span></span><br><span class="line">		&#125;</span><br><span class="line">		list := netpoll(delta) <span class="comment">// 同步阻塞调用 netpoll，直至有可用的 goroutine</span></span><br><span class="line">		atomic.Store64(&amp;sched.pollUntil, <span class="number">0</span>)</span><br><span class="line">		atomic.Store64(&amp;sched.lastpoll, <span class="keyword">uint64</span>(nanotime()))</span><br><span class="line">		<span class="keyword">if</span> faketime != <span class="number">0</span> &amp;&amp; list.empty() &#123;</span><br><span class="line">			<span class="comment">// Using fake time and nothing is ready; stop M.</span></span><br><span class="line">			<span class="comment">// When all M&#x27;s stop, checkdead will call timejump.</span></span><br><span class="line">			stopm()</span><br><span class="line">			<span class="keyword">goto</span> top</span><br><span class="line">		&#125;</span><br><span class="line">		lock(&amp;sched.lock)</span><br><span class="line">		_p_ = pidleget() <span class="comment">// 查找是否有空闲的 P 可以来就绪的 goroutine</span></span><br><span class="line">		unlock(&amp;sched.lock)</span><br><span class="line">		<span class="keyword">if</span> _p_ == <span class="literal">nil</span> &#123;</span><br><span class="line">			injectglist(&amp;list) <span class="comment">// 如果当前没有空闲的 P，则把就绪的 goroutine 放入全局调度队列等待被执行</span></span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="comment">// 如果当前有空闲的 P，则 pop 出一个 g，返回给调度器去执行，</span></span><br><span class="line">			<span class="comment">// 并通过调用 injectglist 把剩下的 g 放入全局调度队列或者当前 P 本地调度队列</span></span><br><span class="line">			acquirep(_p_)</span><br><span class="line">			<span class="keyword">if</span> !list.empty() &#123;</span><br><span class="line">				gp := list.pop()</span><br><span class="line">				injectglist(&amp;list)</span><br><span class="line">				casgstatus(gp, _Gwaiting, _Grunnable)</span><br><span class="line">				<span class="keyword">if</span> trace.enabled &#123;</span><br><span class="line">					traceGoUnpark(gp, <span class="number">0</span>)</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">return</span> gp, <span class="literal">false</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> wasSpinning &#123;</span><br><span class="line">				_g_.m.spinning = <span class="literal">true</span></span><br><span class="line">				atomic.Xadd(&amp;sched.nmspinning, <span class="number">1</span>)</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">goto</span> top</span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> pollUntil != <span class="number">0</span> &amp;&amp; netpollinited() &#123;</span><br><span class="line">		pollerPollUntil := <span class="keyword">int64</span>(atomic.Load64(&amp;sched.pollUntil))</span><br><span class="line">		<span class="keyword">if</span> pollerPollUntil == <span class="number">0</span> || pollerPollUntil &gt; pollUntil &#123;</span><br><span class="line">			netpollBreak()</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	stopm()</span><br><span class="line">	<span class="keyword">goto</span> top</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>另外， sysmon 监控线程会在循环过程中检查距离上一次 runtime.netpoll 被调用是否超过了 10ms，若是则会去调用它拿到可运行的 goroutine 列表并通过调用 injectglist 把 g 列表放入全局调度队列或者当前 P 本地调度队列等待被执行：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Always runs without a P, so write barriers are not allowed.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//go:nowritebarrierrec</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sysmon</span><span class="params">()</span></span> &#123;</span><br><span class="line">		...</span><br><span class="line"></span><br><span class="line">		<span class="comment">// poll network if not polled for more than 10ms</span></span><br><span class="line">		lastpoll := <span class="keyword">int64</span>(atomic.Load64(&amp;sched.lastpoll))</span><br><span class="line">		<span class="keyword">if</span> netpollinited() &amp;&amp; lastpoll != <span class="number">0</span> &amp;&amp; lastpoll+<span class="number">10</span>*<span class="number">1000</span>*<span class="number">1000</span> &lt; now &#123;</span><br><span class="line">			atomic.Cas64(&amp;sched.lastpoll, <span class="keyword">uint64</span>(lastpoll), <span class="keyword">uint64</span>(now))</span><br><span class="line">			list := netpoll(<span class="number">0</span>) <span class="comment">// non-blocking - returns list of goroutines</span></span><br><span class="line">			<span class="keyword">if</span> !list.empty() &#123;</span><br><span class="line">				<span class="comment">// Need to decrement number of idle locked M&#x27;s</span></span><br><span class="line">				<span class="comment">// (pretending that one more is running) before injectglist.</span></span><br><span class="line">				<span class="comment">// Otherwise it can lead to the following situation:</span></span><br><span class="line">				<span class="comment">// injectglist grabs all P&#x27;s but before it starts M&#x27;s to run the P&#x27;s,</span></span><br><span class="line">				<span class="comment">// another M returns from syscall, finishes running its G,</span></span><br><span class="line">				<span class="comment">// observes that there is no work to do and no other running M&#x27;s</span></span><br><span class="line">				<span class="comment">// and reports deadlock.</span></span><br><span class="line">				incidlelocked(<span class="number">-1</span>)</span><br><span class="line">				injectglist(&amp;list)</span><br><span class="line">				incidlelocked(<span class="number">1</span>)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Go runtime 在程序启动的时候会创建一个独立的 M 作为监控线程，叫 sysmon ，这个线程为系统级的 daemon 线程，无需 P 即可运行， sysmon 每 20us~10ms 运行一次。 sysmon 中以轮询的方式执行以下操作（如上面的代码所示）：</p>
+<ol>
+<li>以非阻塞的方式调用 runtime.netpoll ，从中找出能从网络 <code>I/O</code> 中唤醒的 g 列表，并通过调用 injectglist 把 g 列表放入全局调度队列或者当前 P 本地调度队列等待被执行，调度触发时，有可能从这个全局 runnable 调度队列获取 g。然后再循环调用 startm ，直到所有 P 都不处于 _Pidle 状态。</li>
+<li>调用 retake ，抢占长时间处于 _Psyscall 状态的 P。</li>
+</ol>
+<p>综上，Go 借助于 epoll/kqueue/iocp 和 runtime scheduler 等的帮助，设计出了自己的 <code>I/O</code> 多路复用 netpoller，成功地让 <code>Listener.Accept</code> / conn.Read / conn.Write 等方法从开发者的角度看来是同步模式。</p>
+<h2 id="Go-netpoller-的价值"><a href="#Go-netpoller-的价值" class="headerlink" title="Go netpoller 的价值"></a><code>Go netpoller</code> 的价值</h2><p><strong>通过前面对源码的分析，我们现在知道 <code>Go netpoller</code> 依托于 runtime scheduler，为开发者提供了一种强大的同步网络编程模式；然而，<code>Go netpoller</code> 存在的意义却远不止于此，<code>Go netpoller</code> <code>I/O</code> 多路复用搭配 Non-blocking <code>I/O</code> 而打造出来的这个原生网络模型，它最大的价值是把网络 <code>I/O</code> 的控制权牢牢掌握在 Go 自己的 runtime 里，关于这一点我们需要从 Go 的 runtime scheduler 说起，Go 的 G-P-M 调度模型如下：</strong></p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/4aBmVn.png" alt="4aBmVn"></p>
+<p>G 在运行过程中如果被阻塞在某个 system call 操作上，那么不光 G 会阻塞，执行该 G 的 M 也会解绑 P(实质是被 sysmon 抢走了)，与 G 一起进入 sleep 状态。如果此时有 idle 的 M，则 P 与其绑定继续执行其他 G；如果没有 idle M，但仍然有其他 G 要去执行，那么就会创建一个新的 M。当阻塞在 system call 上的 G 完成 syscall 调用后，G 会去尝试获取一个可用的 P，如果没有可用的 P，那么 G 会被标记为 _Grunnable 并把它放入全局的 runqueue 中等待调度，之前的那个 sleep 的 M 将再次进入 sleep。</p>
+<p>现在清楚为什么 netpoll 为什么一定要使用非阻塞 <code>I/O</code> 了吧？<strong>就是为了避免让操作网络 <code>I/O</code> 的 goroutine 陷入到系统调用从而进入内核态，因为一旦进入内核态，整个程序的控制权就会发生转移(到内核)，不再属于用户进程了，那么也就无法借助于 Go 强大的 runtime scheduler 来调度业务程序的并发了；而有了 netpoll 之后，借助于非阻塞 <code>I/O</code> ，G 就再也不会因为系统调用的读写而 (长时间) 陷入内核态，当 G 被阻塞在某个 network <code>I/O</code> 操作上时，实际上它不是因为陷入内核态被阻塞住了，而是被 Go runtime 调用 gopark 给 park 住了，此时 G 会被放置到某个 wait queue 中，而 M 会尝试运行下一个 _Grunnable 的 G，如果此时没有 _Grunnable 的 G 供 M 运行，那么 M 将解绑 P，并进入 sleep 状态。当 <code>I/O</code> available，在 epoll 的 eventpoll.rdr 中等待的 G 会被放到 eventpoll.rdllist 链表里并通过 netpoll 中的 epoll_wait 系统调用返回放置到全局调度队列或者 P 的本地调度队列，标记为 _Grunnable ，等待 P 绑定 M 恢复执行。</strong></p>
+<h2 id="Go-netpoller-的问题"><a href="#Go-netpoller-的问题" class="headerlink" title="Go netpoller 的问题"></a><code>Go netpoller</code> 的问题</h2><p><code>Go netpoller</code> 的设计不可谓不精巧、性能也不可谓不高，配合 goroutine 开发网络应用的时候就一个字：爽。因此 Go 的网络编程模式是及其简洁高效的，然而，没有任何一种设计和架构是完美的， <code>goroutine-per-connection</code> 这种模式虽然简单高效，但是在某些极端的场景下也会暴露出问题：goroutine 虽然非常轻量，它的自定义栈内存初始值仅为 2KB，后面按需扩容；海量连接的业务场景下， <code>goroutine-per-connection</code> ，此时 goroutine 数量以及消耗的资源就会呈线性趋势暴涨，虽然 Go scheduler 内部做了 g 的缓存链表，可以一定程度上缓解高频创建销毁 goroutine 的压力，但是对于瞬时性暴涨的长连接场景就无能为力了，大量的 goroutines 会被不断创建出来，从而对 Go runtime scheduler 造成极大的调度压力和侵占系统资源，然后资源被侵占又反过来影响 Go scheduler 的调度，进而导致性能下降。</p>
+<h2 id="Reactor-网络模型"><a href="#Reactor-网络模型" class="headerlink" title="Reactor 网络模型"></a>Reactor 网络模型</h2><p>目前 Linux 平台上主流的高性能网络库/框架中，大都采用 Reactor 模式，比如 netty、libevent、libev、ACE，POE(Perl)、Twisted(Python)等。</p>
+<p>Reactor 模式本质上指的是使用 <code>I/O 多路复用(I/O multiplexing) + 非阻塞 I/O(non-blocking I/O)</code> 的模式。</p>
+<p><strong>通常设置一个主线程负责做 event-loop 事件循环和 <code>I/O</code> 读写，通过 <code>select</code>/<code>poll</code>/<code>epoll_wait</code> 等系统调用监听 <code>I/O</code> 事件，业务逻辑提交给其他工作线程去做。而所谓『非阻塞 I/O』的核心思想是指避免阻塞在 read() 或者 write() 或者其他的 <code>I/O</code> 系统调用上，这样可以最大限度的复用 event-loop 线程，让一个线程能服务于多个 sockets。在 Reactor 模式中，I/O 线程只能阻塞在 <code>I/O</code> multiplexing 函数上（<code>select</code>/<code>poll</code>/<code>epoll_wait</code>）。</strong></p>
+<p>Reactor 模式的基本工作流程如下：</p>
+<ul>
+<li>Server 端完成在 bind&amp;listen 之后，将 <code>listenfd</code> 注册到 <code>epollfd</code> 中，最后进入 event-loop 事件循环。循环过程中会调用 <code>select</code>/<code>poll</code>/<code>epoll_wait</code> 阻塞等待，若有在 <code>listenfd</code> 上的新连接事件则解除阻塞返回，并调用 <code>socket.accept</code> 接收新连接 <code>connfd</code>，并将 <code>connfd</code> 加入到 <code>epollfd</code> 的 <code>I/O</code> 复用（监听）队列。</li>
+<li>当 <code>connfd</code> 上发生可读/可写事件也会解除 <code>select</code>/<code>poll</code>/<code>epoll_wait</code> 的阻塞等待，然后进行 <code>I/O</code> 读写操作，这里读写 <code>I/O</code> 都是非阻塞 I/O，这样才不会阻塞 event-loop 的下一个循环。然而，这样容易割裂业务逻辑，不易理解和维护。</li>
+<li>调用 read 读取数据之后进行解码并放入队列中，等待工作线程处理。</li>
+<li>工作线程处理完数据之后，返回到 event-loop 线程，由这个线程负责调用 write 把数据写回 client。</li>
+</ul>
+<p>accept 连接以及 conn 上的读写操作若是在主线程完成，则要求是非阻塞 I/O，因为 Reactor 模式一条最重要的原则就是：I/O 操作不能阻塞 event-loop 事件循环。实际上 event loop 可能也可以是多线程的，只是一个线程里只有一个 <code>select</code>/<code>poll</code>/<code>epoll_wait</code>。</p>
+<p>上面提到了 <code>Go netpoller</code> 在某些场景下可能因为创建太多的 goroutine 而过多地消耗系统资源，而在现实世界的网络业务中，服务器持有的海量连接中在极短的时间窗口内只有极少数是 active 而大多数则是 idle，就像这样（非真实数据，仅仅是为了比喻）：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/drotur.png" alt="drotur"></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.png" alt=" 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/I-O/" rel="tag"># I/O</a>
+          
+            <a href="/tags/Golang/" rel="tag"># Golang</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/articles/%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%9Aselect%E3%80%81poll%E4%B8%8Eepoll%E7%9A%84%E6%AF%94%E8%BE%83/" rel="next" title="多路复用：select、poll与epoll的比较">
+                <i class="fa fa-chevron-left"></i> 多路复用：select、poll与epoll的比较
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Kubernetes/" rel="prev" title="深入理解Kubernetes">
+                深入理解Kubernetes <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a target="_blank" rel="noopener" href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="">
+              
+                  <span class="site-state-item-count">78</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">35</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/akaQin" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:aka.qin@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://coolshell.cn/" title="coolshell" target="_blank">coolshell</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://draveness.me/" title="draveness" target="_blank">draveness</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://morven.life/" title="Morven" target="_blank">Morven</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://strikefreedom.top/" title="潘少" target="_blank">潘少</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://colobu.com/" title="鸟窝" target="_blank">鸟窝</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://ctimbai.github.io/" title="猿大白" target="_blank">猿大白</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://eddycjy.com/" title="煎鱼" target="_blank">煎鱼</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://lessisbetter.site/" title="大彬" target="_blank">大彬</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/" title="深入解析GO" target="_blank">深入解析GO</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%BC%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">导言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go-netpoller-%E6%A0%B8%E5%BF%83"><span class="nav-number">2.</span> <span class="nav-text">Go netpoller 核心</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-number">3.</span> <span class="nav-text">数据结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#netFD"><span class="nav-number">3.1.</span> <span class="nav-text">netFD</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#pollDesc"><span class="nav-number">3.2.</span> <span class="nav-text">pollDesc</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="nav-number">4.</span> <span class="nav-text">实现原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#net-Listen"><span class="nav-number">4.1.</span> <span class="nav-text">net.Listen</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Listener-Accept"><span class="nav-number">4.2.</span> <span class="nav-text">Listener.Accept()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Conn-Read-Conn-Write"><span class="nav-number">4.3.</span> <span class="nav-text">Conn.Read&#x2F;Conn.Write</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#pollDesc-waitRead-pollDesc-waitWrite"><span class="nav-number">4.4.</span> <span class="nav-text">pollDesc.waitRead&#x2F;pollDesc.waitWrite</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#netpoll"><span class="nav-number">4.5.</span> <span class="nav-text">netpoll</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go-netpoller-%E7%9A%84%E4%BB%B7%E5%80%BC"><span class="nav-number">5.</span> <span class="nav-text">Go netpoller 的价值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Go-netpoller-%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">6.</span> <span class="nav-text">Go netpoller 的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Reactor-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B"><span class="nav-number">7.</span> <span class="nav-text">Reactor 网络模型</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Aaron Qin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'https://akaqin.github.io/articles/Go-netpoller-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E8%AF%A6%E8%A7%A3/';
+          this.page.identifier = 'articles/Go-netpoller-网络模型详解/';
+          this.page.title = 'Go netpoller 网络模型详解';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

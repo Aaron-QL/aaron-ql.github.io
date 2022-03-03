@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Go,Kubernetes," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="背景最近发现项目中某个组件在执行任务时内存占用达到了17G，cpu占用也达到了1000+m，简直离谱。通过kubectl top po看到的效果如下：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="记一次Golang内存泄漏的排查">
+<meta property="og:url" content="https://akaqin.github.io/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1Golang%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E7%9A%84%E6%8E%92%E6%9F%A5/index.html">
+<meta property="og:site_name" content="Code Your Ambition">
+<meta property="og:description" content="背景最近发现项目中某个组件在执行任务时内存占用达到了17G，cpu占用也达到了1000+m，简直离谱。通过kubectl top po看到的效果如下：">
+<meta property="og:locale">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/EzVW0M.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/4F9PwY.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/MRE65C.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/D1IFXl.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/K7Vdma.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/65pHe8.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/ToIR7l.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/Rb3oos.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/67HR9Q.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/DV2Vf2.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/vWgVBi.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/OhLZ1y.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/pTJMEy.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/c7yJRz.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/mZrfjE.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/FSmsk7.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/0zNQ5S.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/4Jaq51.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/cTz8CV.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/lU0ZCK.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/L09QuF.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/wikYax.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/nMO4EO.png">
+<meta property="article:published_time" content="2021-12-18T01:22:44.000Z">
+<meta property="article:modified_time" content="2022-03-01T11:45:12.225Z">
+<meta property="article:author" content="Aaron Qin">
+<meta property="article:tag" content="Go">
+<meta property="article:tag" content="Kubernetes">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/EzVW0M.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://akaqin.github.io/articles/记一次Golang内存泄漏的排查/"/>
+
+
+
+
+
+  <title>记一次Golang内存泄漏的排查 | Code Your Ambition</title>
+  
+
+
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZV2QP61MNB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-ZV2QP61MNB');
+</script>
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Code Your Ambition</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-commonweal">
+          <a href="/404/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            公益404
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://akaqin.github.io/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1Golang%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E7%9A%84%E6%8E%92%E6%9F%A5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">记一次Golang内存泄漏的排查</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-12-18T09:22:44+08:00">
+                2021-12-18
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index">
+                    <span itemprop="name">踩坑记录</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1Golang%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E7%9A%84%E6%8E%92%E6%9F%A5/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/记一次Golang内存泄漏的排查/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>最近发现项目中某个组件在执行任务时内存占用达到了17G，cpu占用也达到了1000+m，简直离谱。通过<code>kubectl top po</code>看到的效果如下：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/EzVW0M.png" alt="EzVW0M"></p>
+<span id="more"></span>
+
+<h2 id="排查过程"><a href="#排查过程" class="headerlink" title="排查过程"></a>排查过程</h2><h3 id="复现与初步定位"><a href="#复现与初步定位" class="headerlink" title="复现与初步定位"></a>复现与初步定位</h3><p>初步怀疑是内存泄漏，于是先装上pprof观察下程序的详细情况，重启pod后什么也不做观察一段时间，发现内存占用基本稳定在60M以下，而一旦执行特定任务内存就会极速飙升到数个G，于是可以确定程序在不执行特定任务时内存占用是正常的，初步限定了有问题的代码范围。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/4F9PwY.png" alt="4F9PwY"></p>
+<p>再看pprof，根据我以往的经验，十次内存泄漏有9次是gorouinte泄漏，所以先观察执行任务前后的goroutine数量变化，发现也稳定在50～60左右，所以又排除了一个错误答案。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/MRE65C.png" alt="MRE65C"></p>
+<h3 id="尝试使用pprof-heap分析"><a href="#尝试使用pprof-heap分析" class="headerlink" title="尝试使用pprof heap分析"></a>尝试使用pprof heap分析</h3><p>接下来看heap，下面是alloc_space与inuse_space的情况：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/D1IFXl.png" alt="D1IFXl"></p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/K7Vdma.png" alt="K7Vdma"></p>
+<p>说实话我这块看不太懂，但至少能看出来pprof提供的内存占用与kubectl top的情况明显不一致。然后我学习了下大彬的<a target="_blank" rel="noopener" href="https://lessisbetter.site/2019/05/18/go-goroutine-leak/">实战Go内存泄露 | Go语言充电站</a>：</p>
+<p>如果你Google或者百度，Go程序内存泄露的文章，它总会告诉你使用<strong>pprof heap</strong>，能够生成漂亮的调用路径图，火焰图等等，然后你根据调用路径就能定位内存泄露问题，我最初也是对此深信不疑，尝试了若干天后，只是发现内存泄露跟某种场景有关，根本找不到内存泄露的根源，<strong>如果哪位朋友用heap就能定位内存泄露的线上问题，麻烦介绍下</strong>。</p>
+<p>后来读了Dave的《High Performance Go Workshop》，刷新了对heap的认识，内存pprof的简要内容如下：</p>
+<p>Dave讲了以下几点：</p>
+<ol>
+<li><p><strong>内存profiling记录的是堆内存分配的情况，以及调用栈信息</strong>，并不是进程完整的内存情况，猜测这也是在go pprof中称为heap而不是memory的原因。</p>
+</li>
+<li><p><strong>栈内存的分配是在调用栈结束后会被释放的内存，所以并不在内存profile中</strong>。</p>
+</li>
+<li><p>内存profiling是基于抽样的，默认是每1000次堆内存分配，执行1次profile记录。</p>
+</li>
+<li><p>因为内存profiling是基于抽样和它跟踪的是已分配的内存，而不是使用中的内存，（比如有些内存已经分配，看似使用，但实际以及不使用的内存，比如内存泄露的那部分），所以<strong>不能使用内存profiling衡量程序总体的内存使用情况</strong>。</p>
+</li>
+<li><p><strong>Dave个人观点：使用内存profiling不能够发现内存泄露</strong>。</p>
+</li>
+</ol>
+<p>基于目前对heap的认知，我有2个观点：</p>
+<ol>
+<li><p><strong>heap能帮助我们发现内存问题，但不一定能发现内存泄露问题</strong>，这个看法与Dave是类似的。heap记录了内存分配的情况，我们能通过heap观察内存的变化，增长与减少，内存主要被哪些代码占用了，程序存在内存问题，这只能说明内存有使用不合理的地方，但并不能说明这是内存泄露。</p>
+</li>
+<li><p><strong>heap在帮助定位内存泄露原因上贡献的力量微乎其微</strong>。如第一条所言，能通过heap找到占用内存多的位置，但这个位置通常不一定是内存泄露，就算是内存泄露，也只是内存泄露的结果，并不是真正导致内存泄露的根源。</p>
+</li>
+</ol>
+<h3 id="进一步观察内存占用"><a href="#进一步观察内存占用" class="headerlink" title="进一步观察内存占用"></a>进一步观察内存占用</h3><p>既然heap这条路走不通，就只能换个思路了。我尝试注逐步的释掉相关代码，以进一步定位内存泄漏的准确位置，如果你有更好的办法，请留言告诉我。最终定位到内存占用的飙升是在程序调用了一个python脚本之后，难道实际泄漏内存的程序是这个python脚本？那脚本执行完这些内存就会被释放呀，这与top命令看到的持续占用情况并不符合。所以我进入pod内寻找答案：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/65pHe8.png" alt="65pHe8"></p>
+<p><code>ps</code>命令显示只有golang的主程序在运行，python脚本已执行完毕。<code>free</code>命令显示内存用了6.5个G，这与<code>kubectl top</code>命令看到的又不一致，难道free命令不受命名空间限制看到的是整个操作系统的？答案没找到又发现一堆新问题。于是再看看<code>top</code>命令：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/ToIR7l.png" alt="ToIR7l"></p>
+<blockquote>
+<p>小TIPS:</p>
+<p><code>free</code>命令读的是/proc/下的系统指标。</p>
+<p><code>RSS</code>、<code>VSZ</code>指标相关的参数含义：</p>
+<ul>
+<li><p>RSS是<code>Resident Set Size</code>（常驻内存大小）的缩写，用于表示进程使用了多少内存（RAM中的物理内存），RSS不包含已经被换出的内存。RSS包含了它所链接的动态库并且被加载到物理内存中的内存。RSS还包含栈内存和堆内存。</p>
+</li>
+<li><p>VSZ是<code>Virtual Memory Size</code>（虚拟内存大小）的缩写。它包含了进程所能访问的所有内存，包含了被换出的内存，被分配但是还没有被使用的内存，以及动态库中的内存。</p>
+</li>
+</ul>
+</blockquote>
+<p>使用top 需注意：</p>
+<ul>
+<li><p>虚拟内存通常并不会全部分配给物理内存；</p>
+</li>
+<li><p>共享内存 SHR 并不一定是共享，例如程序的代码段、非共享的动态链接库，也都算在 SHR 里。其中，SHR 也包括了进程间真正共享的内存。</p>
+<p>因此，计算多个进程的内存使用时，不建议把所有进程的 SHR 直接相加得出结果。</p>
+</li>
+</ul>
+<p>所以只从 top 看是不准确的，<code>/proc/pid/status</code>会更精准显示进程内存占用：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/Rb3oos.png" alt="Rb3oos"></p>
+<p>查看当前 pid 的状态，其中有一个字段VmRSS 表示当前进程所使用的内存，然而我们发现当前进程所占用的内存才40M 左右。这就破案了，但是 <code>kubectl top pod</code> 看到的内存占用为什么有那么高呢？ 推断并不是容器内进程内存泄露导致的问题，那这就奇怪了，是什么原因导致占用这么多内存呢？</p>
+<h2 id="Buffer-amp-cache原理"><a href="#Buffer-amp-cache原理" class="headerlink" title="Buffer &amp; cache原理"></a>Buffer &amp; cache原理</h2><p>要继续排查这个问题，我们就需要先看看容器的内存统计是如何计算的了。</p>
+<p>众所周知，操作系统系统的内存设计，有二级，三级物理缓存。为加快运算速度，缓存被大量应用，常用数据会被<code>buffer</code>、<code>cache</code>之类占用，在 <code>Linux</code> 操作系统中会把这部分内存算到已使用。</p>
+<p>对于容器来讲，也会把某容器引发的<code>cache</code>占用算到容器占用的内存上，要验证这个问题，我们可以启动一个容器， <code>dd</code> 创建一个大文件观察下内存变化。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/67HR9Q.png" alt="67HR9Q"></p>
+<p>你会发现，系统的 buff/cache 这一列会不断的增大。<img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/DV2Vf2.png" alt="DV2Vf2"></p>
+<h2 id="验证测试"><a href="#验证测试" class="headerlink" title="验证测试"></a>验证测试</h2><p>回到上述问题，会不会是python程序不停的往磁盘写文件，导致cache不断的增大呢？我们尝试把 cache 清掉下看看内存是否会下降，通过配置 <code>drop_caches</code>强行清楚系统缓存。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sync; <span class="built_in">echo</span> 1 &gt; /proc/sys/vm/drop_caches</span><br><span class="line">sync; <span class="built_in">echo</span> 2 &gt; /proc/sys/vm/drop_caches</span><br><span class="line">sync; <span class="built_in">echo</span> 3 &gt; /proc/sys/vm/drop_caches</span><br></pre></td></tr></table></figure>
+
+<p>当执行完如上命令中的任意一个后，该 pod 的内存瞬间变小，同时磁盘 I/O 持续飙升，印证是 cache 问题导致的。</p>
+<blockquote>
+<p> TIPS</p>
+<p><code>/proc/sys</code>是虚拟文件系统，是与kernel实体间进行通信的桥梁。通过修改/proc中的文件，来对当前kernel的行为做出调整。通过调整<code>/proc/sys/vm/drop_caches</code>来释放内存。其默认数值为0。</p>
+<ul>
+<li><p>1表示仅清除页面缓存（PageCache）：</p>
+</li>
+<li><p>2表示清除目录项和inode</p>
+</li>
+<li><p>3表示清空所有缓存（pagecache、dentries 和 inodes</p>
+</li>
+</ul>
+</blockquote>
+<h2 id="K8S监控原理"><a href="#K8S监控原理" class="headerlink" title="K8S监控原理"></a>K8S监控原理</h2><h3 id="kubectl-top的指标含义"><a href="#kubectl-top的指标含义" class="headerlink" title="kubectl top的指标含义"></a>kubectl top的指标含义</h3><p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/vWgVBi.png" alt="vWgVBi"></p>
+<ul>
+<li><p>和k8s中的request、limit一致，CPU单位100m=0.1 内存单位1Mi=1024Ki</p>
+</li>
+<li><p>pod的内存值是其实际使用量，也是做limit限制时判断oom的依据。pod的使用量等于其所有业务容器的总和，不包括 pause 容器，值等于cadvisr中的container_memory_working_set_bytes指标</p>
+</li>
+<li><p>node的值并不等于该node 上所有 pod 值的总和，也不等于直接在机器上运行 top 或 free 看到的值</p>
+</li>
+</ul>
+<h3 id="数据链路"><a href="#数据链路" class="headerlink" title="数据链路"></a>数据链路</h3><p>kubectl top 、 k8s dashboard 以及 HPA 等调度组件使用的数据是一样的，数据链路如下：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/OhLZ1y.png" alt="OhLZ1y"></p>
+<p>官方从 1.8 版本开始逐步废弃 heapster，并提出了<a target="_blank" rel="noopener" href="https://github.com/kubernetes/metrics">Metric api</a> 的概念，而metrics-server 就是这种概念下官方的一种实现，用于从 kubelet获取指标，替换掉之前的 heapster使用 metrics-server 时：apiserver是通过/apis/metrics.k8s.io/的地址访问metric</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/pTJMEy.png" alt="pTJMEy"></p>
+<h3 id="metric-api"><a href="#metric-api" class="headerlink" title="metric api"></a>metric api</h3><p>有了metrics-server组件，采集到了需要的数据，也暴露了接口，但走到这一步和 heapster 其实没有区别，最关键的一步就是如何将打到apiserver的<code>/apis/metrics.k8s.io</code>请求转发给metrics-server组件？解决方案就是：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kube-aggregator">kube-aggregator</a>。</p>
+<p>kube-aggregator是对 apiserver 的有力扩展，它允许k8s的开发人员编写一个自己的服务，并把这个服务注册到k8s的api里面，即扩展 API，metric-server其实在 1.7版本就已经完成了，只是在等kube-aggregator的出现。</p>
+<p>kube-aggregator是 apiserver 中的实现，有些 k8s 版本默认没开启，你可以加上这些<a target="_blank" rel="noopener" href="https://k8smeetup.github.io/docs/tasks/access-kubernetes-api/configure-aggregation-layer/#%E5%90%AF%E7%94%A8-apiserver-%E7%9A%84%E6%A0%87%E8%AE%B0">配置</a><br>来开启。他的核心功能是动态注册、发现汇总、安全代理。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/c7yJRz.png" alt="c7yJRz"></p>
+<h3 id="监控体系"><a href="#监控体系" class="headerlink" title="监控体系"></a>监控体系</h3><p>在提出 metric api 的概念时，官方页提出了新的监控体系，监控资源被分为了2种：</p>
+<ul>
+<li><p>Core metrics(核心指标)：从 Kubelet、cAdvisor 等获取度量数据，再由metrics-server提供给 Dashboard、HPA 控制器等使用。</p>
+</li>
+<li><p>Custom Metrics(自定义指标)：由Prometheus Adapter提供API custom.metrics.k8s.io，由此可支持任意Prometheus采集到的指标。</p>
+</li>
+</ul>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/mZrfjE.png" alt="mZrfjE"></p>
+<p>核心指标只包含node和pod的cpu、内存等，一般来说，核心指标作HPA已经足够，但如果想根据自定义指标:如请求qps/5xx错误数来实现HPA，就需要使用自定义指标了。</p>
+<p>目前Kubernetes中自定义指标一般由Prometheus来提供，再利用k8s-prometheus-adpater聚合到apiserver，实现和核心指标（metric-server)同样的效果。</p>
+<h3 id="kubelet"><a href="#kubelet" class="headerlink" title="kubelet"></a>kubelet</h3><p>前面提到，无论是 heapster还是 metric-server，都只是数据的中转和聚合，两者都是调用的 kubelet 的 api 接口获取的数据，而 kubelet 代码中实际采集指标的是 cadvisor 模块，你可以在 node 节点访问 10255 端口 （read-only-port)获取监控数据：</p>
+<ul>
+<li>Kubelet Summary metrics: 127.0.0.1:10255/metrics，暴露 node、pod 汇总数据</li>
+<li>Cadvisor metrics: 127.0.0.1:10255/metrics/cadvisor，暴露 container 维度数据</li>
+</ul>
+<p>示例，容器的内存使用量：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/FSmsk7.png" alt="FSmsk7"></p>
+<p>kubelet虽然提供了 metric 接口，但实际监控逻辑由内置的cAdvisor模块负责，演变过程如下：</p>
+<ul>
+<li>从k8s 1.6开始，kubernetes将cAdvisor开始集成在kubelet中，不需要单独配置</li>
+<li>从k8s 1.7开始，Kubelet metrics API 不再包含 cadvisor metrics，而是提供了一个独立的 API 接口来做汇总</li>
+<li>从k8s 1.12开始，cadvisor 监听的端口在k8s中被删除，所有监控数据统一由Kubelet的API提供</li>
+</ul>
+<h3 id="cadvisor"><a href="#cadvisor" class="headerlink" title="cadvisor"></a>cadvisor</h3><p>cadvisor由谷歌开源，使用Go开发，项目地址也是google/cadvisor，cadvisor不仅可以搜集一台机器上所有运行的容器信息，包括CPU使用情况、内存使用情况、网络吞吐量及文件系统使用情况，还提供基础查询界面和http接口，方便其他组件进行数据抓取。在K8S中集成在Kubelet里作为默认启动项，k8s官方标配。</p>
+<h3 id="cgroup"><a href="#cgroup" class="headerlink" title="cgroup"></a>cgroup</h3><p>cgroup文件中的值是监控数据的最终来源，如</p>
+<ul>
+<li><p>mem usage的值，来自于<br><code>/sys/fs/cgroup/memory/docker/[containerId]/memory.usage_in_bytes</code></p>
+</li>
+<li><p>如果没限制内存，Limit = machine_mem，否则来自于<br><code>/sys/fs/cgroup/memory/docker/[id]/memory.limit_in_bytes</code></p>
+</li>
+<li><p>内存使用率 = memory.usage_in_bytes/memory.limit_in_bytes</p>
+</li>
+</ul>
+<p>一般情况下，cgroup文件夹下的内容包括CPU、内存、磁盘、网络等信息：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/0zNQ5S.png" alt="0zNQ5S"></p>
+<p>如memory下的几个常用的指标含义：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/4Jaq51.png" alt="4Jaq51"></p>
+<p>memory.stat中的信息是最全的：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/cTz8CV.png" alt="cTz8CV"></p>
+<h2 id="举一反三"><a href="#举一反三" class="headerlink" title="举一反三"></a>举一反三</h2><p>排查过程中还遇有一些其他没弄明白的问题，特地调研了一下。</p>
+<h3 id="kubectl-top-为什么会报错？"><a href="#kubectl-top-为什么会报错？" class="headerlink" title="kubectl top 为什么会报错？"></a>kubectl top 为什么会报错？</h3><p>一般情况下 top 报错有以下几种，可以 kubectl top pod -v=10看到具体的调用日志:</p>
+<ol>
+<li>没有部署 heapster 或者 metric-server，或者pod运行异常，可以排查对应 pod日志</li>
+<li>要看的pod 刚刚建出来，还没来得及采集指标，报 not found 错误，默认1 分钟</li>
+<li>以上两种都不是，可以检查下kubelet 的 10255 端口是否开放，默认情况下会使用这个只读端口获取指标，也可以在heapster或metric-server的配置中增加证书，换成 10250 认证端口</li>
+</ol>
+<h3 id="kubectl-top-pod-内存怎么计算，包含-pause容器吗？"><a href="#kubectl-top-pod-内存怎么计算，包含-pause容器吗？" class="headerlink" title="kubectl top pod 内存怎么计算，包含 pause容器吗？"></a>kubectl top pod 内存怎么计算，包含 pause容器吗？</h3><p>每次启动 pod，都会有一个 pause 容器，既然是容器就一定有资源消耗（一般在 2-3M 的内存），cgroup 文件中，业务容器和 pause 容器都在同一个 pod的文件夹下。</p>
+<p>但 cadvisor 在查询 pod 的内存使用量时，是先获取了 pod 下的container列表，再逐个获取container的内存占用，不过这里的 container 列表并没有包含 pause，因此最终 top pod 的结果也不包含 pause 容器。</p>
+<p><strong>pod 的内存使用量计算</strong></p>
+<p><code>kubectl top pod</code>得到的内存使用量，并不是cadvisor 中的container_memory_usage_bytes，而是container_memory_working_set_bytes，计算方式为：</p>
+<ul>
+<li><p>container_memory_usage_bytes == container_memory_rss + container_memory_cache + kernel memory</p>
+</li>
+<li><p>container_memory_working_set_bytes = container_memory_usage_bytes – total_inactive_file（未激活的匿名缓存页）</p>
+</li>
+</ul>
+<p><strong>container_memory_working_set_bytes是容器真实使用的内存量，也是limit限制时的 oom 判断依据</strong></p>
+<p>cadvisor 中的 container_memory_usage_bytes对应 cgroup 中的 memory.usage_in_bytes文件，但container_memory_working_set_bytes并没有具体的文件，他的计算逻辑在 cadvisor 的代码中，如下：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/lU0ZCK.png" alt="lU0ZCK"></p>
+<p>同理，node 的内存使用量也是container_memory_working_set_bytes</p>
+<h3 id="kubectl-top-node-怎么计算，和节点上直接-top-有什么区别"><a href="#kubectl-top-node-怎么计算，和节点上直接-top-有什么区别" class="headerlink" title="kubectl top node 怎么计算，和节点上直接 top 有什么区别"></a>kubectl top node 怎么计算，和节点上直接 top 有什么区别</h3><p>kubectl top node得到的 cpu 和内存值，并不是节点上所有 pod 的总和，不要直接相加。top node是机器上cgroup根目录下的汇总统计</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/L09QuF.png" alt="L09QuF"></p>
+<p>在机器上直接 top命令看到的值和 kubectl top node 不能直接对比，因为计算逻辑不同，如内存，大致的对应关系是(前者是机器上 top，后者是kubectl top):</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rss + cache = (in)active_anon + (in)active_file</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/wikYax.png" alt="wikYax"></p>
+<h3 id="kubectl-top-pod-和exec-进入-pod-后看到的-top-不一样"><a href="#kubectl-top-pod-和exec-进入-pod-后看到的-top-不一样" class="headerlink" title="kubectl top pod 和exec 进入 pod 后看到的 top 不一样"></a>kubectl top pod 和exec 进入 pod 后看到的 top 不一样</h3><p>top命令的差异和上边 一致，无法直接对比，同时，就算你对 pod 做了limit 限制，pod 内的 top 看到的内存和 cpu总量仍然是机器总量，并不是pod 可分配量</p>
+<ul>
+<li>进程的RSS为进程使用的所有物理内存（file_rss＋anon_rss），即Anonymous pages＋Mapped apges（包含共享内存）</li>
+<li>cgroup RSS为（anonymous and swap cache memory），不包含共享内存。两者都不包含file cache</li>
+</ul>
+<h3 id="kubectl-top-pod-和-docker-stats得到的值为什么不同？"><a href="#kubectl-top-pod-和-docker-stats得到的值为什么不同？" class="headerlink" title="kubectl top pod 和 docker stats得到的值为什么不同？"></a>kubectl top pod 和 docker stats得到的值为什么不同？</h3><p>docker stats dockerID 可以看到容器当前的使用量：<img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/nMO4EO.png" alt="nMO4EO"></p>
+<p>如果你的 pod中只有一个 container，你会发现docker stats 值不等于kubectl top 的值，既不等于 container_memory_usage_bytes，也不等于container_memory_working_set_bytes。</p>
+<p>因为docker stats 和 cadvisor 的计算方式不同，总体值会小于 kubectl top：计算逻辑是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker stats = container_memory_usage_bytes - container_memory_cache</span><br></pre></td></tr></table></figure>
+
+<h2 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h2><p>一般情况下，我们并不需要时刻关心node 或 pod 的使用量，因为有集群自动扩缩容(cluster-autoscaler)和pod 水平扩缩容（HPA）来应对这两种资源变化，资源指标的意义更适合使用prometheus来持久化 cadvisor 的数据，用于回溯历史或者发送报警。</p>
+<p>关于prometheus的内容可以看<a target="_blank" rel="noopener" href="https://yasongxu.gitbook.io/container-monitor/">容器监控系列</a></p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><p><a target="_blank" rel="noopener" href="https://lessisbetter.site/2019/05/18/go-goroutine-leak/">实战Go内存泄露 | Go语言充电站</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://z.itpub.net/article/detail/670763215C45F9AB974AD7C60955B2C4">一次关于k8s kubectl top 和 contained ps 不一致的问题探究</a></p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="http://www.xuyasong.com/?p=1781#32_metric_api">从kubectl top看K8S监控原理 | Vermouth | 博客 | docker | k8s | python | go | 开发</a></p>
+</li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.png" alt=" 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Go/" rel="tag"># Go</a>
+          
+            <a href="/tags/Kubernetes/" rel="tag"># Kubernetes</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Kubernetes/" rel="next" title="深入理解Kubernetes">
+                <i class="fa fa-chevron-left"></i> 深入理解Kubernetes
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E6%A6%82%E5%BF%B5%E7%AF%87/" rel="prev" title="深入理解透明代理——概念篇">
+                深入理解透明代理——概念篇 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a target="_blank" rel="noopener" href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="">
+              
+                  <span class="site-state-item-count">78</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">35</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/akaQin" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:aka.qin@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://coolshell.cn/" title="coolshell" target="_blank">coolshell</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://draveness.me/" title="draveness" target="_blank">draveness</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://morven.life/" title="Morven" target="_blank">Morven</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://strikefreedom.top/" title="潘少" target="_blank">潘少</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://colobu.com/" title="鸟窝" target="_blank">鸟窝</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://ctimbai.github.io/" title="猿大白" target="_blank">猿大白</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://eddycjy.com/" title="煎鱼" target="_blank">煎鱼</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://lessisbetter.site/" title="大彬" target="_blank">大彬</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/" title="深入解析GO" target="_blank">深入解析GO</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8E%92%E6%9F%A5%E8%BF%87%E7%A8%8B"><span class="nav-number">2.</span> <span class="nav-text">排查过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%9D%E6%AD%A5%E5%AE%9A%E4%BD%8D"><span class="nav-number">2.1.</span> <span class="nav-text">复现与初步定位</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B0%9D%E8%AF%95%E4%BD%BF%E7%94%A8pprof-heap%E5%88%86%E6%9E%90"><span class="nav-number">2.2.</span> <span class="nav-text">尝试使用pprof heap分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%9B%E4%B8%80%E6%AD%A5%E8%A7%82%E5%AF%9F%E5%86%85%E5%AD%98%E5%8D%A0%E7%94%A8"><span class="nav-number">2.3.</span> <span class="nav-text">进一步观察内存占用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Buffer-amp-cache%E5%8E%9F%E7%90%86"><span class="nav-number">3.</span> <span class="nav-text">Buffer &amp; cache原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%AA%8C%E8%AF%81%E6%B5%8B%E8%AF%95"><span class="nav-number">4.</span> <span class="nav-text">验证测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#K8S%E7%9B%91%E6%8E%A7%E5%8E%9F%E7%90%86"><span class="nav-number">5.</span> <span class="nav-text">K8S监控原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#kubectl-top%E7%9A%84%E6%8C%87%E6%A0%87%E5%90%AB%E4%B9%89"><span class="nav-number">5.1.</span> <span class="nav-text">kubectl top的指标含义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E9%93%BE%E8%B7%AF"><span class="nav-number">5.2.</span> <span class="nav-text">数据链路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#metric-api"><span class="nav-number">5.3.</span> <span class="nav-text">metric api</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9B%91%E6%8E%A7%E4%BD%93%E7%B3%BB"><span class="nav-number">5.4.</span> <span class="nav-text">监控体系</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#kubelet"><span class="nav-number">5.5.</span> <span class="nav-text">kubelet</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cadvisor"><span class="nav-number">5.6.</span> <span class="nav-text">cadvisor</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cgroup"><span class="nav-number">5.7.</span> <span class="nav-text">cgroup</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BE%E4%B8%80%E5%8F%8D%E4%B8%89"><span class="nav-number">6.</span> <span class="nav-text">举一反三</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#kubectl-top-%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E6%8A%A5%E9%94%99%EF%BC%9F"><span class="nav-number">6.1.</span> <span class="nav-text">kubectl top 为什么会报错？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#kubectl-top-pod-%E5%86%85%E5%AD%98%E6%80%8E%E4%B9%88%E8%AE%A1%E7%AE%97%EF%BC%8C%E5%8C%85%E5%90%AB-pause%E5%AE%B9%E5%99%A8%E5%90%97%EF%BC%9F"><span class="nav-number">6.2.</span> <span class="nav-text">kubectl top pod 内存怎么计算，包含 pause容器吗？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#kubectl-top-node-%E6%80%8E%E4%B9%88%E8%AE%A1%E7%AE%97%EF%BC%8C%E5%92%8C%E8%8A%82%E7%82%B9%E4%B8%8A%E7%9B%B4%E6%8E%A5-top-%E6%9C%89%E4%BB%80%E4%B9%88%E5%8C%BA%E5%88%AB"><span class="nav-number">6.3.</span> <span class="nav-text">kubectl top node 怎么计算，和节点上直接 top 有什么区别</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#kubectl-top-pod-%E5%92%8Cexec-%E8%BF%9B%E5%85%A5-pod-%E5%90%8E%E7%9C%8B%E5%88%B0%E7%9A%84-top-%E4%B8%8D%E4%B8%80%E6%A0%B7"><span class="nav-number">6.4.</span> <span class="nav-text">kubectl top pod 和exec 进入 pod 后看到的 top 不一样</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#kubectl-top-pod-%E5%92%8C-docker-stats%E5%BE%97%E5%88%B0%E7%9A%84%E5%80%BC%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E5%90%8C%EF%BC%9F"><span class="nav-number">6.5.</span> <span class="nav-text">kubectl top pod 和 docker stats得到的值为什么不同？</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8E%E8%AE%B0"><span class="nav-number">7.</span> <span class="nav-text">后记</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">8.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Aaron Qin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'https://akaqin.github.io/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1Golang%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E7%9A%84%E6%8E%92%E6%9F%A5/';
+          this.page.identifier = 'articles/记一次Golang内存泄漏的排查/';
+          this.page.title = '记一次Golang内存泄漏的排查';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

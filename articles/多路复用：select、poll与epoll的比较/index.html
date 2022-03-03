@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Linux,I/O," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="综述 I&#x2F;O 多路复用、信号驱动 I&#x2F;O 以及 epoll 都是用来实现同一个目标的技术— 同 时检查多个文件描述符，看它们是否准备好了执行 I&#x2F;O 操作(准确地说，是看 I&#x2F;O 系统调 用是否可以非阻塞地执行)。文件描述符就绪状态的转化是通过一些 I&#x2F;O 事件来触发的，比 如输入数据到达，套接字连接建立完成，或者是之前满载的套接字发送缓冲区在 TCP 将队 列中的数据传送到对端之后有了剩余空间。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多路复用：select、poll与epoll的比较">
+<meta property="og:url" content="https://akaqin.github.io/articles/%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%9Aselect%E3%80%81poll%E4%B8%8Eepoll%E7%9A%84%E6%AF%94%E8%BE%83/index.html">
+<meta property="og:site_name" content="Code Your Ambition">
+<meta property="og:description" content="综述 I&#x2F;O 多路复用、信号驱动 I&#x2F;O 以及 epoll 都是用来实现同一个目标的技术— 同 时检查多个文件描述符，看它们是否准备好了执行 I&#x2F;O 操作(准确地说，是看 I&#x2F;O 系统调 用是否可以非阻塞地执行)。文件描述符就绪状态的转化是通过一些 I&#x2F;O 事件来触发的，比 如输入数据到达，套接字连接建立完成，或者是之前满载的套接字发送缓冲区在 TCP 将队 列中的数据传送到对端之后有了剩余空间。">
+<meta property="og:locale">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/e8tMom.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/y2mUv2.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/QzIOqj.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/6H1lQ5.png">
+<meta property="article:published_time" content="2021-09-21T08:40:38.000Z">
+<meta property="article:modified_time" content="2022-03-01T11:45:12.239Z">
+<meta property="article:author" content="Aaron Qin">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="I&#x2F;O">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/e8tMom.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://akaqin.github.io/articles/多路复用：select、poll与epoll的比较/"/>
+
+
+
+
+
+  <title>多路复用：select、poll与epoll的比较 | Code Your Ambition</title>
+  
+
+
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZV2QP61MNB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-ZV2QP61MNB');
+</script>
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Code Your Ambition</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-commonweal">
+          <a href="/404/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            公益404
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://akaqin.github.io/articles/%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%9Aselect%E3%80%81poll%E4%B8%8Eepoll%E7%9A%84%E6%AF%94%E8%BE%83/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">多路复用：select、poll与epoll的比较</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-09-21T16:40:38+08:00">
+                2021-09-21
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
+                    <span itemprop="name">知识点总结</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/I-O/" itemprop="url" rel="index">
+                    <span itemprop="name">I/O</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%9Aselect%E3%80%81poll%E4%B8%8Eepoll%E7%9A%84%E6%AF%94%E8%BE%83/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/多路复用：select、poll与epoll的比较/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h2><p> I/O 多路复用、信号驱动 I/O 以及 epoll 都是用来实现同一个目标的技术— 同 时检查多个文件描述符，看它们是否准备好了执行 I/O 操作(准确地说，是看 I/O 系统调 用是否可以非阻塞地执行)。文件描述符就绪状态的转化是通过一些 I/O 事件来触发的，比 如输入数据到达，套接字连接建立完成，或者是之前满载的套接字发送缓冲区在 TCP 将队 列中的数据传送到对端之后有了剩余空间。同时检查多个文件描述符在类似网络服务器的应用中很有用处，或者是那些必须同时检查终端以及管道或套接字输入的应用程序。</p>
+<p> 需要注意的是这些技术都不会执行实际的 I/O 操作。它们只是告诉我们某个文件描述符已经处于就绪状态了。这时需要调用其他的系统调用来完成实际的 I/O 操作。</p>
+<h3 id="I-O方式的选择"><a href="#I-O方式的选择" class="headerlink" title="I/O方式的选择"></a>I/O方式的选择</h3><ul>
+<li>系统调用select()和poll()在UNIX系统中已经存在了很长的时间。同其他技术相比，它 们主要的优势在于可移植性，主要缺点在于当同时检查大量的(数百或数千个)文件 描述符时性能延展性不佳。</li>
+<li>epollAPI的关键优势在于它能让应用程序高效地检查大量的文件描述符。其主要缺点 在于它是专属于 Linux 系统的 API。</li>
+<li>同 epoll 一样，信号驱动 I/O 可以让应用程序高效地检查大量的文件描述符。但是 epoll 有一些信号驱动 I/O 所没有的优点。<ul>
+<li>避免了处理信号的复杂性。</li>
+<li>我们可以指定想要检查的事件类型(即，读就绪或者写就绪)。</li>
+<li>我们可以选择以水平触发或边缘触发的形式来通知进程。</li>
+</ul>
+</li>
+</ul>
+<p>另外，要完全利用信号 I/O 的优点需要用到不可移植的 Linux 专有的特性，而如果我们这么做了，那么信号驱动 I/O 的可移植性也不会比 epoll 更好。</p>
+<h3 id="水平触发和边缘触发"><a href="#水平触发和边缘触发" class="headerlink" title="水平触发和边缘触发"></a>水平触发和边缘触发</h3><p>在深入讨论多种可选的 I/O 机制之前，我们需要先区分两种文件描述符准备就绪的通知模式。</p>
+<ul>
+<li>水平触发通知:如果文件描述符上可以非阻塞地执行 I/O 系统调用，此时认为它已经就绪。</li>
+<li>边缘触发通知:如果文件描述符自上次状态检查以来有了新的 I/O 活动(比如新的输入)，此时需要触发通知。</li>
+</ul>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/e8tMom.png" alt="e8tMom"></p>
+<span id="more"></span>
+
+<p>当采用水平触发通知时，我们可以在任意时刻检查文件描述符的就绪状态。这表示当我 们确定了文件描述符处于就绪态时(比如存在有输入数据)，就可以对其执行一些 I/O 操作， 然后重复检查文件描述符，看看是否仍然处于就绪态(比如还有更多的输入数据)，此时我们 就能执行更多的 I/O，以此类准。<strong>换句话说，由于水平触发模式允许我们在任意时刻重复检 查 I/O 状态，没有必要每次当文件描述符就绪后需要尽可能多地执行 I/O(也就是尽可能多地读 取字节，亦或是根本不去执行任何 I/O)。</strong></p>
+<p>与之相反的是，当我们采用边缘触发时，只有当 I/O 事件发生时我们才会收到通知。在另 一个 I/O 事件到来前我们不会收到任何新的通知。另外，当文件描述符收到 I/O 事件通知时， 通常我们并不知道要处理多少 I/O(例如有多少字节可读)。因此，采用边缘触发通知的程序 通常要按照如下规则来设计。</p>
+<ul>
+<li>在接收到一个 I/O 事件通知后，程序在某个时刻应该在相应的文件描述符上尽可能多 地执行 I/O(比如尽可能多地读取字节)。如果程序没这么做，那么就可能失去执行 I/O 的机会。因为直到产生另一个 I/O 事件为止，在此之前程序都不会再接收到通知了， 因此也就不知道此时应该执行 I/O 操作。这将导致数据丢失或者程序中出现阻塞。</li>
+<li>如果程序采用循环来对文件描述符执行尽可能多的 I/O，而文件描述符又被置为可阻 塞的，那么最终当没有更多的 I/O 可执行时，I/O 系统调用就会阻塞。基于这个原因， 每个被检查的文件描述符通常都应该置为非阻塞模式，在得到 I/O 事件通知后重复执行I/O 操作，直到相应的系统调用(比如 read()，write())以错误码 EAGAIN 或 EWOULDBLOCK 的形式失败。</li>
+</ul>
+<h2 id="select-和-poll"><a href="#select-和-poll" class="headerlink" title="select()和 poll()"></a>select()和 poll()</h2><h3 id="比较-select-和-poll"><a href="#比较-select-和-poll" class="headerlink" title="比较 select()和 poll()"></a>比较 select()和 poll()</h3><p><strong>实现细节</strong><br>在 Linux 内核层面，select()和 poll()都使用了相同的内核 poll 例程集合。这些 poll 例程有别 于系统调用 poll()本身。每个例程都返回有关单个文件描述符就绪的信息。这个就绪信息以位掩码的形式返回，其值同 poll()系统调用中返回的 revents 字段中的比特值相关。</p>
+<p><strong>可移植性</strong><br>历史上，select()比 poll()使用得更加广泛。如今这两个接口都在 SUSv3 中标准化了，且都 广泛存在于现代的 UNIX 实现中。但是poll()在不同的实现中行为上会有一些差别。</p>
+<p><strong>性能</strong><br>当如满足如下两条中任意一条时，poll()和 select()将具有相似的性能表现。</p>
+<ul>
+<li>待检查的文件描述符范围较小(即，最大的文件描述符号较低)。</li>
+<li>有大量的文件描述符待检查，但是它们分布得很密集。(即，大部分或所有的文件描述符号都在 0 到某个上限之间)。</li>
+</ul>
+<p>然而，如果被检查的文件描述符集合很稀疏的话，select()和 poll()的性能差异将变得非常明显。比如，最大文件描述符号 N 是个很大的整数，但在 0 到 N 之间只有 1 个或几个文件描述符 要被检查。在这种情况下，poll()的性能表现将优于 select()。原因是select()底层使用数组存储描述符集，而poll()是链表。</p>
+<h3 id="select-和-poll-存在的问题"><a href="#select-和-poll-存在的问题" class="headerlink" title="select()和 poll()存在的问题"></a>select()和 poll()存在的问题</h3><p>系统调用 select()和 poll()是用来同时检查多个文件描述符就绪状态的方法，它们是可移植的、 长期存在且被广泛使用的。但是当检查大量的文件描述符时，这两个 API 都会遇到一些问题。</p>
+<ul>
+<li>每次调用 select()或 poll()，内核都必须检查所有被指定的文件描述符，看它们是否处于就绪态。当检查大量处于密集范围内的文件描述符时，该操作耗费的时间将大大超 过接下来的操作。</li>
+<li>每次调用 select()或 poll()时，程序都必须传递一个表示所有需要被检查的文件描述符 的数据结构到内核，内核检查过描述符后，修改这个数据结构并返回给程序。(此外， 对于 select()来说，我们还必须在每次调用前初始化这个数据结构。)对于 poll()来说， 随着待检查的文件描述符数量的增加，传递给内核的数据结构大小也会随之增加。当检 查大量文件描述符时，从用户空间到内核空间来回拷贝这个数据结构将占用大量 的 CPU 时间。对于 select()来说，这个数据结构的大小固定为 FD_ SETSIZE，与待检 查的文件描述符数量无关。</li>
+<li>select()或 poll()调用完成后，程序必须检查返回的数据结构中的每个元素，以此查明 哪个文件描述符处于就绪态了。</li>
+</ul>
+<p>上述要点产生的结果就是随着待检查的文件描述符数量的增加，select()和 poll()所占用的 CPU 时间也会随之增加。对于需要检查大量文件描述符的程序来说，这就产生了问题。</p>
+<h2 id="epoll"><a href="#epoll" class="headerlink" title="epoll()"></a>epoll()</h2><p>同 I/O 多路复用和信号驱动 I/O 一样，Linux 的 epoll(event poll)API 可以检查多个文件 描述符上的 I/O 就绪状态。epoll API 的主要优点如下。</p>
+<ul>
+<li>当检查大量的文件描述符时，epoll 的性能延展性比 select()和 poll()高很多。</li>
+<li>epoll API 既支持水平触发也支持边缘触发。与之相反，select()和 poll()只支持水平触发，而信号驱动 I/O 只支持边缘触发。</li>
+</ul>
+<p>性能表现上，epoll 同信号驱动 I/O 相似。但是，epoll 有一些胜过信号驱动 I/O 的优点。</p>
+<ul>
+<li>可以避免复杂的信号处理流程(比如信号队列溢出时的处理)。</li>
+<li>灵活性高，可以指定我们希望检查的事件类型(例如，检查套接字文件描述符的读就绪、写就绪或者两者同时指定)。</li>
+</ul>
+<h3 id="深入探究-epoll-的语义"><a href="#深入探究-epoll-的语义" class="headerlink" title="深入探究 epoll 的语义"></a>深入探究 epoll 的语义</h3><p>现在我们来看看打开的文件同文件描述符以及 epoll 之间交互的一些细微之处。回顾一下下图中展示的文件描述符，打开的文件描述(file description)，以及整 个系统的文件 i-node 表之间的关系。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/y2mUv2.png" alt="y2mUv2"></p>
+<p><strong>当我们通过 epoll_create()创建一个 epoll 实例时，内核在内存中创建了一个新的 i-node 并 打开文件描述，随后在调用进程中为打开的这个文件描述分配一个新的文件描述符。同 epoll 实 例的兴趣列表相关联的是打开的文件描述，而不是 epoll 文件描述符。</strong>这将产生下列结果。</p>
+<ul>
+<li>如果我们使用 dup()(或类似的函数)复制一个 epoll 文件描述符，那么被复制的描述 符所指代的 epoll 兴趣列表和就绪列表同原始的 epoll 文件描述符相同。若要修改兴趣列表，在 epoll_ctl()的参数 epfd 上设定文件描述符可以是原始的也可以是复制的。</li>
+<li>上一条观点同样也适用于 fork()调用之后的情况。此时子进程通过继承复制了父进程 的 epoll 文件描述符，而这个复制的文件描述符所指向的 epoll 数据结构同原始的描述符相同。</li>
+</ul>
+<p><strong>当我们执行 epoll_ctl()的 EPOLL_CTL_ADD 操作时，内核在 epoll 兴趣列表中添加了一个 元素，这个元素同时记录了需要检查的文件描述符数量以及对应的打开文件描述的引用。 epoll_wait()调用的目的就是让内核负责监视打开的文件描述。</strong>这表示我们必须对之前的观点做 改进:如果一个文件描述符是 epoll 兴趣列表中的成员，当关闭它后会自动从列表中移除。改 进版应该是这样的:一旦所有指向打开的文件描述的文件描述符都被关闭后，这个打开的文 件描述将从 epoll 的兴趣列表中移除。这表示如果我们通过 dup()(或类似的函数)或者 fork() 为打开的文件创建了描述符副本，那么这个打开的文件只会在原始的描述符以及所有其他的 副本都被关闭时才会移除。</p>
+<h3 id="epoll-的工作原理"><a href="#epoll-的工作原理" class="headerlink" title="epoll 的工作原理"></a>epoll 的工作原理</h3><p>epoll 的 API 非常简洁，涉及到的只有 3 个系统调用：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/epoll.h&gt;</span>  </span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_create</span><span class="params">(<span class="keyword">int</span> size)</span></span>; <span class="comment">// int epoll_create1(int flags);</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_ctl</span><span class="params">(<span class="keyword">int</span> epfd, <span class="keyword">int</span> op, <span class="keyword">int</span> fd, struct epoll_event *event)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">epoll_wait</span><span class="params">(<span class="keyword">int</span> epfd, struct epoll_event *events, <span class="keyword">int</span> maxevents, <span class="keyword">int</span> timeout)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>其中，epoll_create 创建一个 epoll 实例并返回 epollfd；epoll_ctl 注册 file descriptor 等待的 I/O 事件(比如 EPOLLIN、EPOLLOUT 等) 到 epoll 实例上；epoll_wait 则是阻塞监听 epoll 实例上所有的 file descriptor 的 I/O 事件，它接收一个用户空间上的一块内存地址 (events 数组)，kernel 会在有 I/O 事件发生的时候把文件描述符列表复制到这块内存地址上，然后 epoll_wait 解除阻塞并返回，最后用户空间上的程序就可以对相应的 fd 进行读写了：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">ssize_t</span> <span class="title">read</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> count)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">ssize_t</span> <span class="title">write</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">const</span> <span class="keyword">void</span> *buf, <span class="keyword">size_t</span> count)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>epoll 的工作原理如下：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/QzIOqj.png" alt="QzIOqj"></p>
+<p><strong>与 select&amp;poll 相比，epoll 分清了高频调用和低频调用。例如，epoll_ctl 相对来说就是非频繁调用的，而 epoll_wait 则是会被高频调用的。所以 epoll 利用 epoll_ctl 来插入或者删除一个 fd，实现用户态到内核态的数据拷贝，这确保了每一个 fd 在其生命周期只需要被拷贝一次，而不是每次调用 epoll_wait 的时候都拷贝一次。 epoll_wait 则被设计成几乎没有入参的调用，相比 select&amp;poll 需要把全部监听的 fd 集合从用户态拷贝至内核态的做法，epoll 的效率就高出了一大截。</strong></p>
+<p><strong>在实现上 epoll 采用红黑树来存储所有监听的 fd，而红黑树本身插入和删除性能比较稳定，时间复杂度 O(logN)。通过 epoll_ctl 函数添加进来的 fd 都会被放在红黑树的某个节点内，所以，重复添加是没有用的。当把 fd 添加进来的时候时候会完成关键的一步：该 fd 会与相应的设备（网卡）驱动程序建立回调关系，也就是在内核中断处理程序为它注册一个回调函数，在 fd 相应的事件触发（中断）之后（设备就绪了），内核就会调用这个回调函数，该回调函数在内核中被称为： ep_poll_callback ，这个回调函数其实就是把这个 fd 添加到 rdllist 这个双向链表（就绪链表）中。epoll_wait 实际上就是去检查 rdllist 双向链表中是否有就绪的 fd，当 rdllist 为空（无就绪 fd）时挂起当前进程，直到 rdllist 非空时进程才被唤醒并返回。</strong></p>
+<p>相比于 select&amp;poll 调用时会将全部监听的 fd 从用户态空间拷贝至内核态空间并线性扫描一遍找出就绪的 fd 再返回到用户态，epoll_wait 则是直接返回已就绪 fd，因此 epoll 的 I/O 性能不会像 select&amp;poll 那样随着监听的 fd 数量增加而出现线性衰减，是一个非常高效的 I/O 事件驱动技术。</p>
+<p>由于使用 epoll 的 I/O 多路复用需要用户进程自己负责 I/O 读写，从用户进程的角度看，读写过程是阻塞的，所以 select&amp;poll&amp;epoll 本质上都是同步 I/O 模型，而像 Windows 的 IOCP 这一类的异步 I/O，只需要在调用 WSARecv 或 WSASend 方法读写数据的时候把用户空间的内存 buffer 提交给 kernel，kernel 负责数据在用户空间和内核空间拷贝，完成之后就会通知用户进程，整个过程不需要用户进程参与，所以是真正的异步 I/O。</p>
+<h2 id="三者相比较"><a href="#三者相比较" class="headerlink" title="三者相比较"></a>三者相比较</h2><p>下表展示了当我们使用 poll()、select()以及 epoll 监视 0 到 N−1 的 N 个连续文件描 述符时的结果。从这个表格中，我们发现随着被监视的文件描述符数量的上升， poll()和 select()的性能表现越来越差。与之相反，当 N 增长到很大的值时，epoll 的性能表 现几乎不会降低。(当N值上升时，微小的性能下降可能是由于测试系统上的CPU cache 达到了上限。)</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/6H1lQ5.png" alt="6H1lQ5"></p>
+<p>我们讨论了为什么 select()和 poll()在监视大量的文件描述符时性能表现很差。现在我们看看为什么 epoll 的性能表现会更好。</p>
+<ul>
+<li>每次调用 select()和 poll()时，内核必须检查所有在调用中指定的文件描述符。与之相 反，当通过 epoll_ctl()指定了需要监视的文件描述符时，内核会在与打开的文件描述 上下文相关联的列表中记录该描述符。之后每当执行 I/O 操作使得文件描述符成为就 绪态时，内核就在 epoll 描述符的就绪列表中添加一个元素。(单个打开的文件描述上 下文中的一次 I/O 事件可能导致与之相关的多个文件描述符成为就绪态。)之后的 epoll_wait()调用从就绪列表中简单地取出这些元素。</li>
+<li>每次调用 select()或 poll()时，我们传递一个标记了所有待监视的文件描述符的 数据结构给内核，调用返回时，内核将所有标记为就绪态的文件描述符的数据 结构再传回给我们。与之相反，在 epoll 中我们使用 epoll_ctl()在内核空间中建 立一个数据结构，该数据结构会将待监视的文件描述符都记录下来。一旦这个 数据结构建立完成，稍后每次调用 epoll_wait()时就不需要再传递任何与文件描 述符有关的信息给内核了，而调用返回的信息中只包含那些已经处于就绪态的 描述符。</li>
+</ul>
+<p>粗略来看，我们可以认为当 N(被监视的文件描述符数量)取值很大时，select()和 poll()的 性能会随着 N 的增大而线性下降。这可以从表中 N=100 和 N=1000 时的情况得到。而当 N=10000 时，性能伸缩性实际上比线性还要差。<br>与之相反的是，epoll 的性能会根据发生 I/O 事件的数量而扩展(呈线性)。因此常见的能 够高效使用 epoll API 的应用场景就是需要同时处理许多客户端的服务器:需要监视大量的文 件描述符，但大部分处于空闲状态，只有少数文件描述符处于就绪态。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.png" alt=" 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Linux/" rel="tag"># Linux</a>
+          
+            <a href="/tags/I-O/" rel="tag"># I/O</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/articles/Ceph-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E3%80%81%E5%8E%9F%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84/" rel="next" title="Ceph-基本概念、原理及架构">
+                <i class="fa fa-chevron-left"></i> Ceph-基本概念、原理及架构
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/articles/Go-netpoller-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E8%AF%A6%E8%A7%A3/" rel="prev" title="Go netpoller 网络模型详解">
+                Go netpoller 网络模型详解 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a target="_blank" rel="noopener" href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="">
+              
+                  <span class="site-state-item-count">78</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">35</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/akaQin" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:aka.qin@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://coolshell.cn/" title="coolshell" target="_blank">coolshell</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://draveness.me/" title="draveness" target="_blank">draveness</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://morven.life/" title="Morven" target="_blank">Morven</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://strikefreedom.top/" title="潘少" target="_blank">潘少</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://colobu.com/" title="鸟窝" target="_blank">鸟窝</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://ctimbai.github.io/" title="猿大白" target="_blank">猿大白</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://eddycjy.com/" title="煎鱼" target="_blank">煎鱼</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://lessisbetter.site/" title="大彬" target="_blank">大彬</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/" title="深入解析GO" target="_blank">深入解析GO</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%BC%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text">综述</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#I-O%E6%96%B9%E5%BC%8F%E7%9A%84%E9%80%89%E6%8B%A9"><span class="nav-number">1.1.</span> <span class="nav-text">I&#x2F;O方式的选择</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B0%B4%E5%B9%B3%E8%A7%A6%E5%8F%91%E5%92%8C%E8%BE%B9%E7%BC%98%E8%A7%A6%E5%8F%91"><span class="nav-number">1.2.</span> <span class="nav-text">水平触发和边缘触发</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#select-%E5%92%8C-poll"><span class="nav-number">2.</span> <span class="nav-text">select()和 poll()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AF%94%E8%BE%83-select-%E5%92%8C-poll"><span class="nav-number">2.1.</span> <span class="nav-text">比较 select()和 poll()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#select-%E5%92%8C-poll-%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">2.2.</span> <span class="nav-text">select()和 poll()存在的问题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#epoll"><span class="nav-number">3.</span> <span class="nav-text">epoll()</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B7%B1%E5%85%A5%E6%8E%A2%E7%A9%B6-epoll-%E7%9A%84%E8%AF%AD%E4%B9%89"><span class="nav-number">3.1.</span> <span class="nav-text">深入探究 epoll 的语义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#epoll-%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="nav-number">3.2.</span> <span class="nav-text">epoll 的工作原理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E8%80%85%E7%9B%B8%E6%AF%94%E8%BE%83"><span class="nav-number">4.</span> <span class="nav-text">三者相比较</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Aaron Qin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'https://akaqin.github.io/articles/%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%9Aselect%E3%80%81poll%E4%B8%8Eepoll%E7%9A%84%E6%AF%94%E8%BE%83/';
+          this.page.identifier = 'articles/多路复用：select、poll与epoll的比较/';
+          this.page.title = '多路复用：select、poll与epoll的比较';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

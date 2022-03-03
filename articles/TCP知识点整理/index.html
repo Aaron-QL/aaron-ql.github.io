@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="网络,TCP," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="最近把《TCP&#x2F;IP详解》看完了，对网络有了更深的理解，是一本难得的好书，这里总结一下书中TCP相关的核心知识点。 TCP头部与封装 TCP头部通常是20字节（不带TCP选项），带选项的话可达60字节，但不管多少一定是32比特（4字节）的倍数。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TCP知识点整理">
+<meta property="og:url" content="https://akaqin.github.io/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/index.html">
+<meta property="og:site_name" content="Code Your Ambition">
+<meta property="og:description" content="最近把《TCP&#x2F;IP详解》看完了，对网络有了更深的理解，是一本难得的好书，这里总结一下书中TCP相关的核心知识点。 TCP头部与封装 TCP头部通常是20字节（不带TCP选项），带选项的话可达60字节，但不管多少一定是32比特（4字节）的倍数。">
+<meta property="og:locale">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/onlRfY.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/nDVZ8D.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/P8J0sJ.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/PQRfOE.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/Wss6Sa.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/op7UGJ.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/Bpmn4O.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/xzheBU.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/1aRIDJ.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/NWcyky.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/2lZW4K.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/1dzU8C.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/t82kK1.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/yEyUt1.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/TAL4Vk.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/etD6M5.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/WIZ1Lc.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/vcYK5u.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/HznXMH.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/GxG5ps.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/My4iCp.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/c2HGWi.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/OlYjxW.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/8QoG6j.png">
+<meta property="article:published_time" content="2022-01-16T01:22:12.000Z">
+<meta property="article:modified_time" content="2022-03-01T11:45:12.202Z">
+<meta property="article:author" content="Aaron Qin">
+<meta property="article:tag" content="网络">
+<meta property="article:tag" content="TCP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/onlRfY.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://akaqin.github.io/articles/TCP知识点整理/"/>
+
+
+
+
+
+  <title>TCP知识点整理 | Code Your Ambition</title>
+  
+
+
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZV2QP61MNB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-ZV2QP61MNB');
+</script>
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Code Your Ambition</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-commonweal">
+          <a href="/404/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            公益404
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://akaqin.github.io/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">TCP知识点整理</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-01-16T09:22:12+08:00">
+                2022-01-16
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
+                    <span itemprop="name">知识点总结</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/%E7%BD%91%E7%BB%9C/" itemprop="url" rel="index">
+                    <span itemprop="name">网络</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/TCP知识点整理/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>最近把《TCP/IP详解》看完了，对网络有了更深的理解，是一本难得的好书，这里总结一下书中TCP相关的核心知识点。</p>
+<h2 id="TCP头部与封装"><a href="#TCP头部与封装" class="headerlink" title="TCP头部与封装"></a>TCP头部与封装</h2><p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/onlRfY.png" alt="onlRfY"></p>
+<p>TCP头部通常是20字节（不带TCP选项），带选项的话可达60字节，但不管多少一定是32比特（4字节）的倍数。</p>
+<span id="more"></span>
+
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/nDVZ8D.png" alt="nDVZ8D"></p>
+<h3 id="基础头部字段"><a href="#基础头部字段" class="headerlink" title="基础头部字段"></a>基础头部字段</h3><p><strong>序列号（SYN）</strong>：标识发送端到接收端方的数据流的一个字节，该字节字节代表包含该序列号的报文段的数据中的第一个字节。是一个32位无符号整数，到达<code>2^32-1</code>后在循环到0。</p>
+<p><strong>确认号（ACK）</strong>：标识该确认号的发送方期待接收的下一个序列号，即最后被成功接收的序列号+1。发送一个ACK与发送任何一个TCP报文段的开销都是一样的，因为那个32位字段一直都是头部的一部分。</p>
+<p><strong>CWR</strong>：拥塞窗口减（发送方降低它的发送速率）。</p>
+<p><strong>ECE</strong>：ECN回显（发送方接收到了一个更早的拥塞通告）。</p>
+<p><strong>URG</strong>：紧急指针有效（很少被使用）。</p>
+<p><strong>ACK</strong>：确认号字段有效（连接建立后一般都是开启的）。</p>
+<p><strong>PSH</strong>：推送数据（接收方应尽快给应用程序传送这个数据）。</p>
+<p><strong>RST</strong>：重置连接。</p>
+<p><strong>SYN</strong>：用于初始化一个连接的同步序列号（建立连接时被置为1）。</p>
+<p><strong>FIN</strong>：该报文段的发送方已经结束向对方发送数据。</p>
+<p><strong>窗口大小</strong>：从ACK开始计算的字节数，用于实现流量控制。16位限制了最大大小为65535，可通过窗口缩放选项进行缩放。</p>
+<p><strong>校验和</strong>：验证数据是否完整正确。</p>
+<h3 id="选项字段"><a href="#选项字段" class="headerlink" title="选项字段"></a>选项字段</h3><p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/P8J0sJ.png" alt="P8J0sJ"></p>
+<p><strong>最大段大小</strong></p>
+<p>TCP协议所允许的从对方接收到的最大报文段，也是通信对方在发送数据时能够使用的最大报文段，称为<code>MSS</code>。连接的每个端点一般在它发送的第一个报文段（SYN位字段被设置的那个报文段）上指定这个选项。默认值是536字节，加上加上TCP头部和IPv4头部正好能够组成一个576（536+20+20）字节的IPv4数据报。典型值是1460，加上两个头是1500，MTU的典型大小。<code>MSS</code>不是通信双方协商的结果，而是一个单方的限定值。</p>
+<p><strong>选择确认</strong></p>
+<p>TCP接收的数据是无序的，因此序列号也是不连续的，会出现空洞的情况。选择确认（<code>SACK</code>）能够让发送方了解接收方当前存在的空洞情况，在报文段丢失或被接收方遗漏时更好的进行重传工作。</p>
+<p><strong>窗口缩放</strong></p>
+<p>通过将原TCP窗口大小左移n位的方式，将窗口大小从16位扩展至最多30位。该选项只能出现于一个SYN报文段中，当连接建立后比例因子是方向绑定的。</p>
+<p><strong>时间戳选项与防回绕序列号</strong></p>
+<p>用于估算TCP连接的往返时间。</p>
+<p><strong>用户超时选项</strong></p>
+<p>指明了发送方在确认对方未能成功接收数据之前愿意等待该数据ACK确认的时间。该选项是建议性的，并不意味着另一段就必须遵从。</p>
+<p><strong>认证选项</strong></p>
+<p>用于增强连接的安全性。</p>
+<h2 id="TCP连接管理"><a href="#TCP连接管理" class="headerlink" title="TCP连接管理"></a>TCP连接管理</h2><p>TCP是一种面向连接的单播协议。发送数据前，必须先建立连接，发送后终止连接。一条连接由四元组构成（发送端IP、发送端端口号、接收端IP、接收端端口号）。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/PQRfOE.png" alt="PQRfOE"></p>
+<h3 id="特殊状态"><a href="#特殊状态" class="headerlink" title="特殊状态"></a>特殊状态</h3><p><strong>半关闭</strong></p>
+<p>主动关闭不再发送数据，但是能接收数据并发送ACK。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/Wss6Sa.png" alt="Wss6Sa"></p>
+<p><strong>同时打开与关闭</strong></p>
+<p>一个同时打开需要交换4个报文段。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/op7UGJ.png" alt="op7UGJ"></p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/Bpmn4O.png" alt="Bpmn4O"></p>
+<h3 id="最大传输单元发现"><a href="#最大传输单元发现" class="headerlink" title="最大传输单元发现"></a>最大传输单元发现</h3><p>T C P 常规的路径最大传输单元发现过程如下: 在一个连接建立时，TCP 使用对外接口的最大传输单元的最小值，或者根据通信对方声明的最大段大小来选择发送方的最大段大小（SMSS ）。路径最大传输单元发现不允许T C P 发送方有超过另一方所声明的最大段大小的行<br>为。如果对方没有指明最大段大小的数值, 发送方将假设采用默认的5 3 6 字节, 但是这种情 况比较少⻅。如果为每一个目的地保存对应的路径最大传输单元, 那么就能方便地对段大小<br>进行选择。值得注意的是, 一条连接的两个方向的路径最大传输单元是不同的。一旦为发送方的最大段大小选定了初始值，TCP通过这条连接发送的所有IPv4数据报都会对<code>DF</code>位字段进行设置。</p>
+<h3 id="TCP状态转换"><a href="#TCP状态转换" class="headerlink" title="TCP状态转换"></a>TCP状态转换</h3><p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/xzheBU.png" alt="xzheBU"></p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/1aRIDJ.png" alt="1aRIDJ"></p>
+<h4 id="TIME-WAIT状态"><a href="#TIME-WAIT状态" class="headerlink" title="TIME_WAIT状态"></a>TIME_WAIT状态</h4><p><code>TIME_WAIT</code>也就是2MSL状态。在该状态中，TCP将会等待两倍于最大段生存期（MSL）的时间。每个实现都必须为最大生存期选择一个数值，它代表任何报文段在被丢弃前在网络中被允许存在的最长时间。这个时限是有限制的，IP数据包拥有<code>TTL</code>和条数限制字段，这两个字段共同限制了IP数据报的有效生存时间。在常见实现中，MSL可以是30秒、1分钟、2分钟，linux中通过<code>net.ipv4.tcp_fin_timeou</code>记录<code>TIME_WAIT</code>需要的超时时间。</p>
+<p><strong>TIME_WAIT的意义</strong></p>
+<ol>
+<li><p>能够让TCP重新发送最终的ACK以避免丢失的情况。</p>
+</li>
+<li><p>防止新的连接将前一个连接的延迟报文段解释成自身数据的状况。</p>
+</li>
+</ol>
+<h3 id="重置报文段"><a href="#重置报文段" class="headerlink" title="重置报文段"></a>重置报文段</h3><p><strong>场景</strong></p>
+<ol>
+<li><p>针对不存在的端口请求连接时会产生一个重置报文段</p>
+</li>
+<li><p>立即主动关闭一个连接：任何排队的数据包会被丢弃，重置报文段会被立即发送出去；重置报文段表示非正常关闭，接收方不会再走三次握手流程。</p>
+</li>
+</ol>
+<p><strong>半开连接</strong></p>
+<p>在未告知另一段的情况下主动关闭或终止连接，则该连接处于半开状态。如一端重启后，再收到另一端的信息，会产生重置报文段。</p>
+<h3 id="连接队列"><a href="#连接队列" class="headerlink" title="连接队列"></a>连接队列</h3><p>Linux服务端会在内核中维护两个队列：一个是接收到SYN还没完成握手的连接队列；一个是完成握手处于ESTABLISH状态但还未被应用程序接收的连接队列。两个队列的最大容量受内核参数影响。如果队列中没有足够的空间分配给新的连接，TCP会延迟对SYN做出响应。</p>
+<h3 id="与TCP连接管理相关的攻击"><a href="#与TCP连接管理相关的攻击" class="headerlink" title="与TCP连接管理相关的攻击"></a>与TCP连接管理相关的攻击</h3><ul>
+<li><p>SYN洪泛：TCP拒绝服务攻击。解决方案是<code>SYN cookies</code>：当SYN到达时编码大部分信息保存着SYN + ACK的序列号字段里，等身份确认后才分配内存。</p>
+</li>
+<li><p>伪造ICMP PTB消息，使用最小的MTU，迫使受害的TCP使用非常小的数据包来填充数据，从而大幅降低性能。</p>
+</li>
+<li><p>欺骗攻击：精心定制报文段，破坏或改变TCP连接的行为。</p>
+</li>
+</ul>
+<h2 id="TCP超时与重传"><a href="#TCP超时与重传" class="headerlink" title="TCP超时与重传"></a>TCP超时与重传</h2><p>TCP有两套独立的机制来完成重传，一个基于时间（超时重传），一个基于信息确认（快速重传）</p>
+<h3 id="超时重传"><a href="#超时重传" class="headerlink" title="超时重传"></a>超时重传</h3><p>TCP在发送数据包时设置一个计时器，若计时器超时仍未收到ACK则触发重传操作。计时器超时称为重传超时<code>RTO</code>。</p>
+<p>TCP有两个阈值来决定如何重传同一个报文段：一个是最大重传次数（<code>net.ipv4.tcp_retries1</code>）_；一个是最大等待时间（<code>net.ipv4.tcp_retries2</code>）。超过任何一个则连接中断。</p>
+<p><strong>设置重传超时</strong></p>
+<p>TCP会根据<code>RTT</code>设置<code>RTO</code>，这其中有很多种算法，最初的TCP采用经典算法：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/NWcyky.png" alt="NWcyky"></p>
+<p>Linux的RTT测量过程与标准方法有所差别。</p>
+<h3 id="快速重传"><a href="#快速重传" class="headerlink" title="快速重传"></a>快速重传</h3><p>快速重传机制基于接收端的反馈信息来引发重传。与超时重传相比，能更及时有效的修复丢包的情况。TCP发送端在观测到至少<code>dupthresh</code>个重复ACK后，重传可能丢失的数据分组，而不必等到计时器超时。</p>
+<p>不采用SACK时，在接收到有效ACK前最多重传一个报文段。采用SACK时，ACK可包含额外信息，使得发送端在每个RTT时间内可以填补多个空缺。</p>
+<p><strong>SACK</strong></p>
+<p>带选择确认的重传。TCP接收端可提供SACK功能，通过TCP头部的累积ACK号字段来描述其接收到的数据。合理采用SACK信息能更快的实现空缺填补，且能够减少不必要重传，原因在于其在一个RTT内能获知多个空缺。</p>
+<h2 id="TCP-数据流与窗口管理"><a href="#TCP-数据流与窗口管理" class="headerlink" title="TCP 数据流与窗口管理"></a>TCP 数据流与窗口管理</h2><p>不同的网络流量存在相当大的差异。对于交互式通信如ssh，通常每次按键都会产生一个单独的数据包，以及独立的ACK。。因此, 每个输入的字符会生成4 个TCP数据段: 客户端的交互击键输入、服务器端对击键的确认、服务器端 生成的回显、客户端对该回显的确认。</p>
+<p>通常第2段和第3段可以合并，称为<code>捎带延时确认</code>。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/2lZW4K.png" alt="2lZW4K"></p>
+<h3 id="延时确认"><a href="#延时确认" class="headerlink" title="延时确认"></a>延时确认</h3><p>在许多情况下，TCP并不对收到的每个数据包返回ACK，而是利用累积ACK字段，延迟一段时间发送，以便和相同方向上需要发送的数据结合。这种捎带用于批量传输。这个延迟时间不能过长，否则对方会误认为丢包而进行重传。各个操作系统可以对这个时间进行设置。</p>
+<h3 id="Nagle-算法"><a href="#Nagle-算法" class="headerlink" title="Nagle 算法"></a>Nagle 算法</h3><p><code>Nagle</code>算法要求，当一个TCP连接中有在传数据（即那些已发送但还未经确认的数据），小的报文段（长度小于SMSS）就不能被发送，直到所有的在传数据都收到ACK。并且，在收到ACK后，TCP需要收集这些小数据，将其整合到一个报文段中发送。<strong>这种方法迫使TCP遵循停等规则（stop-and-wait）—— 只有等接收到所有在传数据的ACK后才能继续发送。该算法的精妙之处在于它实现了自时钟(self -CIocking) 控制: ACK返回越快, 数据传输也越快。在相对高延迟的广域网中, 更需要减少微型报的数目, 该算法使得单位时间内发送的报文段数目少。也就是说，RTT控制着发包速率。</strong></p>
+<p>Nagle算法做出了一种折中：传输的包数目更少而⻓度更大, 但同时传输时延也更⻓。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/1dzU8C.png" alt="1dzU8C"></p>
+<p><strong>延时ACK与Nagle算法的结合</strong></p>
+<p>延时ACK与Nagle算法结合并不会有好的效果，它会导致某种程度的死锁，直到延时ACK计时器超时后解除。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/t82kK1.png" alt="t82kK1"></p>
+<h3 id="流量控制与窗口管理（重点）"><a href="#流量控制与窗口管理（重点）" class="headerlink" title="流量控制与窗口管理（重点）"></a>流量控制与窗口管理（重点）</h3><p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/yEyUt1.png" alt="yEyUt1"></p>
+<p><strong>滑动窗口</strong></p>
+<p>每个TCP活动连接的两端都维护一个<strong>发送窗口</strong>和一个<strong>接收窗口</strong>。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/TAL4Vk.png" alt="TAL4Vk"></p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/etD6M5.png" alt="etD6M5"></p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/WIZ1Lc.png" alt="WIZ1Lc"></p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/vcYK5u.png" alt="vcYK5u"></p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/HznXMH.png" alt="HznXMH"></p>
+<p><strong>零窗口和持续计时器</strong></p>
+<p>TCP通过接收端的窗口通告实现流量控制。当窗口值变为0时，可有效阻止发送端继续发送，直到窗口大小恢复为非0，接收端会发送一个窗口更新的纯ACK。但这并不可靠，发送端在得知窗口为0时还是会间歇性的查询接收端，看窗口是否增长。窗口探测包含一个字节的数据，采用TCP可靠传输，避免由窗口更新丢失导致的死锁。</p>
+<p><strong>糊涂窗口综合症SWS</strong></p>
+<p>当出现该问题时，交换数据段大小不是全长的而是一些较小的数据段。由于每个报文段中有用数据相对于头部信息的比例较小，因此耗费的资源也更多，相应的传输效率也更低。TCP两端都可能出现SWS：接收端的通告窗口较小或发送端发送的数据段较小。</p>
+<p>避免该问题的方法：</p>
+<ol>
+<li><p>对于接收端，不通告小的窗口值。</p>
+</li>
+<li><p>对于发送端，不发送小的报文段。</p>
+</li>
+</ol>
+<p><strong>大容量缓存与自动调优</strong></p>
+<p>很多TCP协议栈中不允许上层应用指定接收缓存大小，而是由操作系统指定一个较大的固定值或动态计算。对于Linux，两端都支持自动调优，连接的在传数据值（带宽时延积）被不断估算，通告窗口值不能小于这个值。这种方法使得TCP达到最大吞吐率。自动调优受限于缓存大小，由下列参数控制：</p>
+<ul>
+<li><p>net.core.rmem_max</p>
+</li>
+<li><p>net.core.wmem_max</p>
+</li>
+<li><p>net.core.rmem_default</p>
+</li>
+<li><p>net.core.wmem_default</p>
+</li>
+</ul>
+<p>通过下面的变量设定自动调优参数（最小值、默认值、最大值）</p>
+<ul>
+<li><p>net.ipv4.tcp_rmem = 4096 87380 174760</p>
+</li>
+<li><p>net.ipv4.tcp_wmem = 4096 16384 131073</p>
+</li>
+</ul>
+<h2 id="TCP拥塞控制-重点"><a href="#TCP拥塞控制-重点" class="headerlink" title="TCP拥塞控制(重点)"></a>TCP拥塞控制(重点)</h2><p>路由器因无法处理高速率到达的流量而被迫丢弃数据信息的现象称为<strong>拥塞</strong>。TCP通信的每一方实行<strong>拥塞控制机制</strong>来缓解这一状况。</p>
+<h3 id="拥塞检测"><a href="#拥塞检测" class="headerlink" title="拥塞检测"></a>拥塞检测</h3><p>针对丢包情况，TCP采取的首要机制是重传，包括<strong>超时重传</strong>和<strong>快速重传</strong>，但在网络处于拥塞崩溃状态时，重传只会让结果更糟，所以应减缓TCP发送端的发送速率，避免这种情况。<strong>对于TCP发送方，没有办法感知路由器的状态（拥塞状况的发生），只能以是否出现丢包作为判断拥塞发生与否的依据</strong>，从而采取相应措施。</p>
+<h3 id="最佳窗口大小（带宽时延积）"><a href="#最佳窗口大小（带宽时延积）" class="headerlink" title="最佳窗口大小（带宽时延积）"></a>最佳窗口大小（带宽时延积）</h3><p><strong>目标：期望的最佳速率（最佳窗口大小）</strong></p>
+<p>TCP头部设置了<strong>通告窗口</strong>（<code>awnd</code>）大小字段，该值表示接收方当前能容纳的数据量，作为发送方调节速率的依据之一。</p>
+<p>反应网络传输能力的变量称为**拥塞窗口(congestion window)**，记作<code>cwnd</code>。因此，发送端实际（可用）窗口W就是接收端通告窗口awnd和拥塞窗口cwnd的较小者：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">W = min(cwnd, awnd)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>当TCP不实用选择确认机制时，W的限制作用体现为：发送方发送的报文段序列号不能大于ACK的最大值与W之和</p>
+</li>
+<li><p>当使用选择确认机制时，表示发送端发送的数据中，还没有收到ACK回复的数据量不能大于W</p>
+</li>
+</ul>
+<p>因为网络和接收端状况会随时变化，<code>awnd</code>与<code>cwnd</code>也会随时改变，并且发送端也无法直接获得<code>cwnd</code>的准确值，所以变量<code>W</code>、<code>awnd</code>、<code>cwmd</code>都会动态调节，我们希望<code>W</code>的值接近<strong>带宽时延积（Bandwidth-Delay Product, BDP）</strong>，也称作最佳窗口大小。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">W（BDP）= RTT * 链路最小通行速率（发送端与接收端传输路径重的“瓶颈”）</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/GxG5ps.png" alt="GxG5ps"></p>
+<p>我的理解：一个链路在单位时间内能流动的数据包是有限的，这个“容量”的大小就是用链路最小通行速率乘以往返时间，而发送端要做的就是把发送速率逼近这个值从而把数据包“填满”整个链路不浪费多余空间，并且还不能超过这个容量产生丢包。</p>
+<h3 id="拥塞控制的方法"><a href="#拥塞控制的方法" class="headerlink" title="拥塞控制的方法"></a>拥塞控制的方法</h3><h4 id="慢启动"><a href="#慢启动" class="headerlink" title="慢启动"></a>慢启动</h4><p>当一个新的TCP连接建立或检测到由重传超时（RTO）导致的丢包时，需要执行慢启动。目的是使TCP在用拥塞避免探寻更多可用带宽之前得到cwnd值，以及帮助TCP建立ACK时钟。慢启动执行到有丢包时，转为执行拥塞避免算法进入稳定状态。</p>
+<p>TCP以发送一定数目的数据段开始慢启动（在SYN交换之后），称为<strong>初始窗口（IW）</strong>，IW的值初始设为一个SMSS（发送方的最大段大小），但在<code>RFC5681</code>中设为一个稍大的值：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/My4iCp.png" alt="My4iCp"></p>
+<p>SMSS通常为接收方的MSS和路径MTU两者中的较小值。以IW = 1 SMSS为例，初始的cwnd = 1SMSS，在不出现丢包的情况下，每到达一个“好的ACK”，慢启动算法会以min(N, SMSS)来增加cwnd的值。N是指在未经确认的传输数据中能通过这一“好的ACK”确认的字节数。所谓“好的ACK”是指新接收的ACK号大于之前收到的ACK。</p>
+<p>理想情况下，cwnd会在每次收到ACK后翻倍增长，最终cwnd会增至很大，大量数据包的发送将导致网络瘫痪。此时cwnd将减至原值一半。这是TCP由<strong>慢启动</strong>阶段至<strong>拥塞避免</strong>阶段的转折点。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/c2HGWi.png" alt="c2HGWi"></p>
+<h4 id="拥塞避免"><a href="#拥塞避免" class="headerlink" title="拥塞避免"></a>拥塞避免</h4><p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/OlYjxW.png" alt="OlYjxW"></p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/8QoG6j.png" alt="8QoG6j"></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.png" alt=" 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E7%BD%91%E7%BB%9C/" rel="tag"># 网络</a>
+          
+            <a href="/tags/TCP/" rel="tag"># TCP</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E5%AE%9E%E6%88%98%E7%AF%87/" rel="next" title="深入理解透明代理——实战篇">
+                <i class="fa fa-chevron-left"></i> 深入理解透明代理——实战篇
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/articles/%E5%A6%82%E4%BD%95%E4%BC%98%E9%9B%85%E7%9A%84%E5%85%B3%E9%97%AD%E6%9C%8D%E5%8A%A1%E5%99%A8/" rel="prev" title="如何优雅的关闭服务器">
+                如何优雅的关闭服务器 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a target="_blank" rel="noopener" href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="">
+              
+                  <span class="site-state-item-count">78</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">35</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/akaQin" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:aka.qin@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://coolshell.cn/" title="coolshell" target="_blank">coolshell</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://draveness.me/" title="draveness" target="_blank">draveness</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://morven.life/" title="Morven" target="_blank">Morven</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://strikefreedom.top/" title="潘少" target="_blank">潘少</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://colobu.com/" title="鸟窝" target="_blank">鸟窝</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://ctimbai.github.io/" title="猿大白" target="_blank">猿大白</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://eddycjy.com/" title="煎鱼" target="_blank">煎鱼</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://lessisbetter.site/" title="大彬" target="_blank">大彬</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/" title="深入解析GO" target="_blank">深入解析GO</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#TCP%E5%A4%B4%E9%83%A8%E4%B8%8E%E5%B0%81%E8%A3%85"><span class="nav-number">1.</span> <span class="nav-text">TCP头部与封装</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E7%A1%80%E5%A4%B4%E9%83%A8%E5%AD%97%E6%AE%B5"><span class="nav-number">1.1.</span> <span class="nav-text">基础头部字段</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%89%E9%A1%B9%E5%AD%97%E6%AE%B5"><span class="nav-number">1.2.</span> <span class="nav-text">选项字段</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TCP%E8%BF%9E%E6%8E%A5%E7%AE%A1%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">TCP连接管理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%B9%E6%AE%8A%E7%8A%B6%E6%80%81"><span class="nav-number">2.1.</span> <span class="nav-text">特殊状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%80%E5%A4%A7%E4%BC%A0%E8%BE%93%E5%8D%95%E5%85%83%E5%8F%91%E7%8E%B0"><span class="nav-number">2.2.</span> <span class="nav-text">最大传输单元发现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TCP%E7%8A%B6%E6%80%81%E8%BD%AC%E6%8D%A2"><span class="nav-number">2.3.</span> <span class="nav-text">TCP状态转换</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#TIME-WAIT%E7%8A%B6%E6%80%81"><span class="nav-number">2.3.1.</span> <span class="nav-text">TIME_WAIT状态</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%87%8D%E7%BD%AE%E6%8A%A5%E6%96%87%E6%AE%B5"><span class="nav-number">2.4.</span> <span class="nav-text">重置报文段</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%9E%E6%8E%A5%E9%98%9F%E5%88%97"><span class="nav-number">2.5.</span> <span class="nav-text">连接队列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8ETCP%E8%BF%9E%E6%8E%A5%E7%AE%A1%E7%90%86%E7%9B%B8%E5%85%B3%E7%9A%84%E6%94%BB%E5%87%BB"><span class="nav-number">2.6.</span> <span class="nav-text">与TCP连接管理相关的攻击</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TCP%E8%B6%85%E6%97%B6%E4%B8%8E%E9%87%8D%E4%BC%A0"><span class="nav-number">3.</span> <span class="nav-text">TCP超时与重传</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B6%85%E6%97%B6%E9%87%8D%E4%BC%A0"><span class="nav-number">3.1.</span> <span class="nav-text">超时重传</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BF%AB%E9%80%9F%E9%87%8D%E4%BC%A0"><span class="nav-number">3.2.</span> <span class="nav-text">快速重传</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TCP-%E6%95%B0%E6%8D%AE%E6%B5%81%E4%B8%8E%E7%AA%97%E5%8F%A3%E7%AE%A1%E7%90%86"><span class="nav-number">4.</span> <span class="nav-text">TCP 数据流与窗口管理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BB%B6%E6%97%B6%E7%A1%AE%E8%AE%A4"><span class="nav-number">4.1.</span> <span class="nav-text">延时确认</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Nagle-%E7%AE%97%E6%B3%95"><span class="nav-number">4.2.</span> <span class="nav-text">Nagle 算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%81%E9%87%8F%E6%8E%A7%E5%88%B6%E4%B8%8E%E7%AA%97%E5%8F%A3%E7%AE%A1%E7%90%86%EF%BC%88%E9%87%8D%E7%82%B9%EF%BC%89"><span class="nav-number">4.3.</span> <span class="nav-text">流量控制与窗口管理（重点）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TCP%E6%8B%A5%E5%A1%9E%E6%8E%A7%E5%88%B6-%E9%87%8D%E7%82%B9"><span class="nav-number">5.</span> <span class="nav-text">TCP拥塞控制(重点)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8B%A5%E5%A1%9E%E6%A3%80%E6%B5%8B"><span class="nav-number">5.1.</span> <span class="nav-text">拥塞检测</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%80%E4%BD%B3%E7%AA%97%E5%8F%A3%E5%A4%A7%E5%B0%8F%EF%BC%88%E5%B8%A6%E5%AE%BD%E6%97%B6%E5%BB%B6%E7%A7%AF%EF%BC%89"><span class="nav-number">5.2.</span> <span class="nav-text">最佳窗口大小（带宽时延积）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8B%A5%E5%A1%9E%E6%8E%A7%E5%88%B6%E7%9A%84%E6%96%B9%E6%B3%95"><span class="nav-number">5.3.</span> <span class="nav-text">拥塞控制的方法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%85%A2%E5%90%AF%E5%8A%A8"><span class="nav-number">5.3.1.</span> <span class="nav-text">慢启动</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D"><span class="nav-number">5.3.2.</span> <span class="nav-text">拥塞避免</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Aaron Qin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'https://akaqin.github.io/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/';
+          this.page.identifier = 'articles/TCP知识点整理/';
+          this.page.title = 'TCP知识点整理';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

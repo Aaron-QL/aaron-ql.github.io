@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Kubernetes," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="导言最近把《Kubernetes in Action》 英文原版书又看了一遍，愈发觉得这是一本难得一遇的好书，抽丝剥茧，图文并茂。如果大家想系统的学习Kubernetes，强烈建议找来看一下。这里对书中的核心知识点进行一个整理，包含以下内容：  Kubernetes集群由哪些组件构成 每个组件做了什么，具体是怎样做的 从创建一个Deployment到Pod运行，这之间发生了什么 一个运行的Pod具">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解Kubernetes">
+<meta property="og:url" content="https://akaqin.github.io/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Kubernetes/index.html">
+<meta property="og:site_name" content="Code Your Ambition">
+<meta property="og:description" content="导言最近把《Kubernetes in Action》 英文原版书又看了一遍，愈发觉得这是一本难得一遇的好书，抽丝剥茧，图文并茂。如果大家想系统的学习Kubernetes，强烈建议找来看一下。这里对书中的核心知识点进行一个整理，包含以下内容：  Kubernetes集群由哪些组件构成 每个组件做了什么，具体是怎样做的 从创建一个Deployment到Pod运行，这之间发生了什么 一个运行的Pod具">
+<meta property="og:locale">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/QmWYCp.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/aDI9VL.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/fL7tcj.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/zY98V9.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/tJRTPm.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/2xI5TR.jpg">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/LHuYXc.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/WGYTxT.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/J7DlaL.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/KQe6qZ.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/UlKIIu.png">
+<meta property="article:published_time" content="2021-12-04T02:45:29.000Z">
+<meta property="article:modified_time" content="2022-03-01T11:45:12.233Z">
+<meta property="article:author" content="Aaron Qin">
+<meta property="article:tag" content="Kubernetes">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/QmWYCp.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://akaqin.github.io/articles/深入理解Kubernetes/"/>
+
+
+
+
+
+  <title>深入理解Kubernetes | Code Your Ambition</title>
+  
+
+
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZV2QP61MNB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-ZV2QP61MNB');
+</script>
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Code Your Ambition</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-commonweal">
+          <a href="/404/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            公益404
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://akaqin.github.io/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Kubernetes/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">深入理解Kubernetes</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-12-04T10:45:29+08:00">
+                2021-12-04
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index">
+                    <span itemprop="name">学习笔记</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Kubernetes/" itemprop="url" rel="index">
+                    <span itemprop="name">Kubernetes</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Kubernetes/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/深入理解Kubernetes/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="导言"><a href="#导言" class="headerlink" title="导言"></a>导言</h2><p>最近把<a target="_blank" rel="noopener" href="https://book.douban.com/subject/26997846/">《Kubernetes in Action》</a> 英文原版书又看了一遍，愈发觉得这是一本难得一遇的好书，抽丝剥茧，图文并茂。如果大家想系统的学习Kubernetes，强烈建议找来看一下。这里对书中的核心知识点进行一个整理，包含以下内容：</p>
+<ul>
+<li>Kubernetes集群由哪些组件构成</li>
+<li>每个组件做了什么，具体是怎样做的</li>
+<li>从创建一个Deployment到Pod运行，这之间发生了什么</li>
+<li>一个运行的Pod具体是什么</li>
+<li>Pod之间的网络是怎样的</li>
+<li>Service是怎样工作的</li>
+<li>高可用是怎样实现的</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="1-理解架构"><a href="#1-理解架构" class="headerlink" title="1. 理解架构"></a>1. 理解架构</h2><p>Kubernetes 的架构有三部分组成：</p>
+<ul>
+<li>控制面组件<ul>
+<li>etcd 分布式持久化存储</li>
+<li>API Server</li>
+<li>Scheduler</li>
+<li>Controller Manager</li>
+</ul>
+</li>
+<li>运行在worker节点上的组件<ul>
+<li>kubelet</li>
+<li>kuby-proxy</li>
+<li>Container Runtime（Docker，containerd， or others）</li>
+</ul>
+</li>
+<li>附加组件<ul>
+<li>DNS server</li>
+<li>Dashboard</li>
+<li>Ingress Controller</li>
+<li>Heapster</li>
+<li>CNI、CSI、CRI</li>
+</ul>
+</li>
+</ul>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/QmWYCp.png" alt="QmWYCp"></p>
+<p>K8S的所有组件都只跟<code>API server</code>进行通信，他们之间并不相互通信。<code>API server</code>是唯一跟<code>etcd</code>通信的组件，其他组件读写数据都是靠请求<code>API server</code>实现。</p>
+<p>这带来一些好处：<code>API server</code>可以使用强大的乐观锁机制保证多个组件间的读写冲突；将组件与实际存储进行解耦，方便未来对存储方案进行替换。</p>
+<p>控制面组件可运行多个副本以实现高可用。控制面的组件以及<code>kube-proxy</code>都是既可以直接运行在宿主机上，也可以以Pod的方式运行，只有<code>kubelet</code>是必须直接运行在宿主机上的。</p>
+<blockquote>
+<p>关于乐观锁的并发控制</p>
+<p>乐观锁并不锁定一段数据，而是给数据增加一个版本号的概念。每次更新数据时，版本号都会增加。更新数据时，将检查版本号，以查看在客户端读取数据和提交更新之间版本号是否增加。如果发生这种情况，更新将被拒绝，客户端必须重新读取新数据并尝试再次更新它。当两个客户端同时更新一段数据时，只有第一个会成功。</p>
+<p>所有的K8S字段都有一个<code>metadata.resourceVersion</code>字段，客户端更新资源时需要将此字段传给<code>API server</code>，如果版本号与<code>etcd</code>中的不一致，<code>API server</code>将拒绝更新</p>
+</blockquote>
+<h3 id="etcd集群如何保证一致性"><a href="#etcd集群如何保证一致性" class="headerlink" title="etcd集群如何保证一致性"></a>etcd集群如何保证一致性</h3><p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/aDI9VL.png" alt="aDI9VL"></p>
+<h3 id="API-Server做了什么"><a href="#API-Server做了什么" class="headerlink" title="API Server做了什么"></a>API Server做了什么</h3><p><code>API server</code>在接收Restful请求后会像下图所示使用几组插件执行校验逻辑，每组插件只要有一个通过后就会进入下一组，如果某一组所有插件的校验都没通过，则报错。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/fL7tcj.png" alt="fL7tcj"></p>
+<ul>
+<li><code>Authentication</code>：验证用户（客户端）的真实性</li>
+<li><code>Authorization</code>：验证用户（客户端）是否有权限访问/修改资源</li>
+<li><code>Admission</code>：验证提交资源的合法性，会因各种资源修改请求的资源，如初始化未填写的字段、覆盖某些字段、甚至修改其他相关资源。</li>
+</ul>
+<h3 id="API-Server-如何通知客户端资源变动"><a href="#API-Server-如何通知客户端资源变动" class="headerlink" title="API Server 如何通知客户端资源变动"></a>API Server 如何通知客户端资源变动</h3><p>像我们上面说的，<code>API server</code>除了处理各组件的Restful请求以外不做任何事，比如它不会在你创建一个<code>Deployment</code>或<code>ReplicaSet</code>后创建相关的<code>Pod</code>，这是<code>Controller Manager</code>中的各个Controller做的事，它甚至不会告诉各个Controller该做什么。它所做的只是提供一种监听机制让各个Controller以及其他组件能够观察到资源的变化。</p>
+<p>客户端通过与<code>API server</code>建立HTTP长链接的方式请求<code>API server</code>在它关注的某个资源被创建/修改/删除时通知它，以便客户端执行后续的相关工作。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/zY98V9.png" alt="zY98V9"></p>
+<h2 id="Client-go-Informer-机制"><a href="#Client-go-Informer-机制" class="headerlink" title="Client-go Informer 机制"></a>Client-go Informer 机制</h2><p>各个Controller和其他组件都是通过 <a target="_blank" rel="noopener" href="https://github.com/kubernetes/client-go">client-go</a> 这个库提供的Informer机制对资源进行监听，我们自己的业务代码也可以利用这个机制，大致流程如下：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/tJRTPm.png" alt="tJRTPm"></p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/2xI5TR.jpg" alt="2xI5TR"></p>
+<p>⚠️ 这张图分为两部分，黄色图标是开发者需要自行开发的部分，而其它的部分是 client-go 已经提供的，直接使用即可。</p>
+<p><strong>client-go 组件</strong></p>
+<ul>
+<li><code>Reflector</code>：reflector用来watch特定的k8s API资源。具体的实现是通过<code>ListAndWatch</code>的方法，watch可以是k8s内建的资源或者是自定义的资源。当reflector通过watch API接收到有关新资源实例存在的通知时，它使用相应的列表API获取新创建的对象，并将其放入watchHandler函数内的Delta Fifo队列中。</li>
+<li><code>Informer</code>：informer从Delta Fifo队列中弹出对象。执行此操作的功能是processLoop。base controller的作用是保存对象以供以后检索，并调用我们的控制器将对象传递给它。</li>
+<li><code>Indexer</code>：索引器提供对象的索引功能。典型的索引用例是基于对象标签创建索引。 Indexer可以根据多个索引函数维护索引。Indexer使用线程安全的数据存储来存储对象及其键。 在Store中定义了一个名为<code>MetaNamespaceKeyFunc</code>的默认函数，该函数生成对象的键作为该对象的<code>&lt;namespace&gt; / &lt;name&gt;</code>组合。</li>
+</ul>
+<p><strong>自定义Controller组件</strong></p>
+<ul>
+<li><p><code>Informer reference</code>：指的是Informer实例的引用，定义如何使用自定义资源对象。 自定义控制器代码需要创建对应的Informer。</p>
+</li>
+<li><p><code>Indexer reference</code>: 自定义控制器对Indexer实例的引用。自定义控制器需要创建对应的Indexser。</p>
+</li>
+<li><p><code>Resource Event Handlers</code>：资源事件回调函数，当它想要将对象传递给控制器时，它将被调用。 编写这些函数的典型模式是获取调度对象的key，并将该key排入工作队列以进行进一步处理。</p>
+</li>
+<li><p><code>Workqueue</code>：任务队列。 编写资源事件处理程序函数以提取传递的对象的key并将其添加到任务队列。</p>
+</li>
+<li><p><code>Process Item</code>：处理任务队列中对象的函数， 这些函数通常使用Indexer引用或Listing包装器来重试与该key对应的对象。</p>
+</li>
+</ul>
+<h3 id="理解-Scheduler"><a href="#理解-Scheduler" class="headerlink" title="理解 Scheduler"></a>理解 Scheduler</h3><p><code>Scheduler</code>负责将新创建的<code>Pod</code>调度到一个合适的节点，具体流程分为两步：</p>
+<ol>
+<li>筛选出所有能够接受此<code>Pod</code>的节点</li>
+<li>根据各种衡量因素为所有可接受的节点排一个优先级，选出一个最合适的节点</li>
+</ol>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/LHuYXc.png" alt="LHuYXc"></p>
+<p>筛选时会考虑多方面因素：</p>
+<ul>
+<li>该节点是否有足够的硬件资源？</li>
+<li>该节点是否有资源即将耗尽的情况？（是否被报告cpu、内存存在压力）</li>
+<li>是否是<code>Pod</code>指定的节点？（如果指定了的话）</li>
+<li>节点标签是否与<code>Pod</code>的node-selector匹配（如果指定了的话）</li>
+<li>如果<code>Pod</code>绑定了宿主机端口，该端口是否已被占用</li>
+<li>如果<code>Pod</code>使用了某些存储卷，这些存储卷能否挂到这个节点上？是否已经有其他<code>Pod</code>使用了相同的存储卷</li>
+<li>如果节点存在污点，<code>Pod</code>是否能容忍该污点？</li>
+<li><code>Pod</code>是否设置了节点亲和性与<code>Pod</code>亲和性</li>
+</ul>
+<h3 id="理解-Controller-Manager"><a href="#理解-Controller-Manager" class="headerlink" title="理解 Controller Manager"></a>理解 Controller Manager</h3><p>单个<code>Controller Manager</code>内结合了各种类型的Controller，它们之间相互配合，确保系统的实际状态想着目标状态去转化。它们的类型包括：</p>
+<ul>
+<li>Replication Manager</li>
+<li>ReplicaSet, DaemonSet, and Job controllers</li>
+<li>Deployment controller</li>
+<li>StatefulSet controller</li>
+<li>Node controller</li>
+<li>Service controller</li>
+<li>Endpoints controller</li>
+<li>Namespace controller</li>
+<li>PersistentVolume controller</li>
+<li>Others</li>
+</ul>
+<p>各个Controller做的所有事情，都是以通过向<code>API server</code>监听资源的变动，并执行相关资源的增删改查等操作的方式实现。下面我们具体看下每个Controller都做了什么。</p>
+<h4 id="Replication-Manager"><a href="#Replication-Manager" class="headerlink" title="Replication Manager"></a>Replication Manager</h4><p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/WGYTxT.png" alt="WGYTxT"></p>
+<p>当检测到声明的<code>Pod</code>数量与实际不符，<code>Replication Manager</code>会声明一个<code>Pod manifests</code>提交给<code>API server</code>，然后<code>Scheduler</code>会给它分配一个节点，该节点的<code>kubelet</code>会运行该<code>Pod</code>。</p>
+<h4 id="Endpoints-Controller"><a href="#Endpoints-Controller" class="headerlink" title="Endpoints Controller"></a>Endpoints Controller</h4><p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/J7DlaL.png" alt="J7DlaL"></p>
+<p><code>Service</code>并不会直接跟<code>Pod</code>建立连接，而是维护一个<code>endpoints</code>列表，这个列表时刻与<code>Pod</code>保持一一对应的关系。每当有<code>Pod</code>被创建或删除，对应的<code>endpoint</code>也会随之自动的被创建或删除。当然，你也可以手动创建一个<code>endpoint</code>将一个<code>Service</code>代理到一个<code>Pod</code>或其他外部服务。</p>
+<h3 id="理解-kubelet"><a href="#理解-kubelet" class="headerlink" title="理解 kubelet"></a>理解 kubelet</h3><p>简而言之，<code>kubelet</code>就是一个运行在worker节点上负责跟运行相关所有事情的组件。它将节点的信息初始化给<code>API server</code>，之后时刻监听调度到该节点的<code>Pod</code>并运行它，并维护之后的整个生命周期。包括检测<code>Pod</code>是否健康，是否就绪，是否需要停止。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/KQe6qZ.png" alt="KQe6qZ"></p>
+<h3 id="理解-kube-proxy"><a href="#理解-kube-proxy" class="headerlink" title="理解 kube-proxy"></a>理解 kube-proxy</h3><p><code>kube-proxy</code>通过修改节点的iptables规则，将客户端发出的以<code>Service</code>为目的地的网络请求代理到背后某个真正的<code>Pod</code>上。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/UlKIIu.png" alt="UlKIIu"></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.png" alt=" 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Kubernetes/" rel="tag"># Kubernetes</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/articles/Go-netpoller-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E8%AF%A6%E8%A7%A3/" rel="next" title="Go netpoller 网络模型详解">
+                <i class="fa fa-chevron-left"></i> Go netpoller 网络模型详解
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1Golang%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E7%9A%84%E6%8E%92%E6%9F%A5/" rel="prev" title="记一次Golang内存泄漏的排查">
+                记一次Golang内存泄漏的排查 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a target="_blank" rel="noopener" href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="">
+              
+                  <span class="site-state-item-count">78</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">35</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/akaQin" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:aka.qin@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://coolshell.cn/" title="coolshell" target="_blank">coolshell</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://draveness.me/" title="draveness" target="_blank">draveness</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://morven.life/" title="Morven" target="_blank">Morven</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://strikefreedom.top/" title="潘少" target="_blank">潘少</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://colobu.com/" title="鸟窝" target="_blank">鸟窝</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://ctimbai.github.io/" title="猿大白" target="_blank">猿大白</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://eddycjy.com/" title="煎鱼" target="_blank">煎鱼</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://lessisbetter.site/" title="大彬" target="_blank">大彬</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/" title="深入解析GO" target="_blank">深入解析GO</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%BC%E8%A8%80"><span class="nav-number">1.</span> <span class="nav-text">导言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%90%86%E8%A7%A3%E6%9E%B6%E6%9E%84"><span class="nav-number">2.</span> <span class="nav-text">1. 理解架构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#etcd%E9%9B%86%E7%BE%A4%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E4%B8%80%E8%87%B4%E6%80%A7"><span class="nav-number">2.1.</span> <span class="nav-text">etcd集群如何保证一致性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#API-Server%E5%81%9A%E4%BA%86%E4%BB%80%E4%B9%88"><span class="nav-number">2.2.</span> <span class="nav-text">API Server做了什么</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#API-Server-%E5%A6%82%E4%BD%95%E9%80%9A%E7%9F%A5%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%B5%84%E6%BA%90%E5%8F%98%E5%8A%A8"><span class="nav-number">2.3.</span> <span class="nav-text">API Server 如何通知客户端资源变动</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Client-go-Informer-%E6%9C%BA%E5%88%B6"><span class="nav-number">3.</span> <span class="nav-text">Client-go Informer 机制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%90%86%E8%A7%A3-Scheduler"><span class="nav-number">3.1.</span> <span class="nav-text">理解 Scheduler</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%90%86%E8%A7%A3-Controller-Manager"><span class="nav-number">3.2.</span> <span class="nav-text">理解 Controller Manager</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Replication-Manager"><span class="nav-number">3.2.1.</span> <span class="nav-text">Replication Manager</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Endpoints-Controller"><span class="nav-number">3.2.2.</span> <span class="nav-text">Endpoints Controller</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%90%86%E8%A7%A3-kubelet"><span class="nav-number">3.3.</span> <span class="nav-text">理解 kubelet</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%90%86%E8%A7%A3-kube-proxy"><span class="nav-number">3.4.</span> <span class="nav-text">理解 kube-proxy</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Aaron Qin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'https://akaqin.github.io/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Kubernetes/';
+          this.page.identifier = 'articles/深入理解Kubernetes/';
+          this.page.title = '深入理解Kubernetes';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="网络,linux内核,透明代理," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="创建独立的网络环境首先创建一个独立的网络命名空间 12345678910111213[root@192-168-252-97 ~]# ip netns add ns1[root@192-168-252-97 ~]# ip -n ns1 a1: lo: &lt;LOOPBACK&gt; mtu 65536 qdisc noop state DOWN group default qlen 1000">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解透明代理——实战篇">
+<meta property="og:url" content="https://akaqin.github.io/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E5%AE%9E%E6%88%98%E7%AF%87/index.html">
+<meta property="og:site_name" content="Code Your Ambition">
+<meta property="og:description" content="创建独立的网络环境首先创建一个独立的网络命名空间 12345678910111213[root@192-168-252-97 ~]# ip netns add ns1[root@192-168-252-97 ~]# ip -n ns1 a1: lo: &lt;LOOPBACK&gt; mtu 65536 qdisc noop state DOWN group default qlen 1000">
+<meta property="og:locale">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/u5L6La.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/WohLEm.png">
+<meta property="article:published_time" content="2022-01-09T01:42:32.000Z">
+<meta property="article:modified_time" content="2022-03-01T11:45:12.183Z">
+<meta property="article:author" content="Aaron Qin">
+<meta property="article:tag" content="网络">
+<meta property="article:tag" content="linux内核">
+<meta property="article:tag" content="透明代理">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/u5L6La.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://akaqin.github.io/articles/深入理解透明代理——实战篇/"/>
+
+
+
+
+
+  <title>深入理解透明代理——实战篇 | Code Your Ambition</title>
+  
+
+
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZV2QP61MNB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-ZV2QP61MNB');
+</script>
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Code Your Ambition</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-commonweal">
+          <a href="/404/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            公益404
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://akaqin.github.io/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E5%AE%9E%E6%88%98%E7%AF%87/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">深入理解透明代理——实战篇</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-01-09T09:42:32+08:00">
+                2022-01-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
+                    <span itemprop="name">知识点总结</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86/" itemprop="url" rel="index">
+                    <span itemprop="name">透明代理</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E5%AE%9E%E6%88%98%E7%AF%87/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/深入理解透明代理——实战篇/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="创建独立的网络环境"><a href="#创建独立的网络环境" class="headerlink" title="创建独立的网络环境"></a>创建独立的网络环境</h2><p>首先创建一个独立的网络命名空间</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns add ns1</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip -n ns1 a</span></span><br><span class="line">1: lo: &lt;LOOPBACK&gt; mtu 65536 qdisc noop state DOWN group default qlen 1000</span><br><span class="line">    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00</span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip -n ns1 link set dev lo up</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns exec ns1 ping 127.0.0.1</span></span><br><span class="line">PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.</span><br><span class="line">64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.074 ms</span><br><span class="line">64 bytes from 127.0.0.1: icmp_seq=2 ttl=64 time=0.114 ms</span><br><span class="line">^C</span><br><span class="line">--- 127.0.0.1 ping statistics ---</span><br><span class="line">2 packets transmitted, 2 received, 0% packet loss, time 1005ms</span><br><span class="line">rtt min/avg/max/mdev = 0.074/0.094/0.114/0.020 ms</span><br></pre></td></tr></table></figure>
+
+<span id="more"></span>
+
+<p>创建<code>veth pair</code>，分配命名空间与IP地址，启动</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip link add veth0 type veth peer name veth1</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip l</span></span><br><span class="line">...</span><br><span class="line">22: veth1@veth0: &lt;BROADCAST,MULTICAST,M-DOWN&gt; mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000</span><br><span class="line">    link/ether 72:66:58:dc:16:bf brd ff:ff:ff:ff:ff:ff</span><br><span class="line">23: veth0@veth1: &lt;BROADCAST,MULTICAST,M-DOWN&gt; mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000</span><br><span class="line">    link/ether ea:34:4a:f9:d1:3b brd ff:ff:ff:ff:ff:ff</span><br><span class="line"></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip link set veth1 netns ns1</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip link set veth0 up</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip address add 10.0.0.2/24 dev veth0</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip -n ns1 link set veth1 up</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip -n ns1 address add 10.0.0.3/24 dev veth1</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip a show veth0</span></span><br><span class="line">23: veth0@if22: &lt;NO-CARRIER,BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc noqueue state LOWERLAYERDOWN group default qlen 1000</span><br><span class="line">    link/ether ea:34:4a:f9:d1:3b brd ff:ff:ff:ff:ff:ff link-netns ns1</span><br><span class="line">    inet 10.0.0.2/24 scope global veth0</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line"></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip -n ns1 a show veth1</span></span><br><span class="line">22: veth1@if23: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default qlen 1000</span><br><span class="line">    link/ether 72:66:58:dc:16:bf brd ff:ff:ff:ff:ff:ff link-netnsid 0</span><br><span class="line">    inet 10.0.0.3/24 scope global veth1</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line">    inet6 fe80::7066:58ff:fedc:16bf/64 scope link</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line"></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ping 10.0.0.3</span></span><br><span class="line">PING 10.0.0.3 (10.0.0.3) 56(84) bytes of data.</span><br><span class="line">64 bytes from 10.0.0.3: icmp_seq=1 ttl=64 time=0.400 ms</span><br><span class="line">64 bytes from 10.0.0.3: icmp_seq=2 ttl=64 time=0.243 ms</span><br><span class="line">^C</span><br><span class="line">--- 10.0.0.3 ping statistics ---</span><br><span class="line">2 packets transmitted, 2 received, 0% packet loss, time 1009ms</span><br><span class="line">rtt min/avg/max/mdev = 0.243/0.321/0.400/0.078 ms</span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns exec ns1 ping 10.0.0.2</span></span><br><span class="line">PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.</span><br><span class="line">64 bytes from 10.0.0.2: icmp_seq=1 ttl=64 time=0.300 ms</span><br><span class="line">64 bytes from 10.0.0.2: icmp_seq=2 ttl=64 time=0.217 ms</span><br><span class="line">^C</span><br><span class="line">--- 10.0.0.2 ping statistics ---</span><br><span class="line">2 packets transmitted, 2 received, 0% packet loss, time 1026ms</span><br><span class="line">rtt min/avg/max/mdev = 0.217/0.258/0.300/0.041 ms</span><br></pre></td></tr></table></figure>
+
+<p>创建<code>bridge</code>模拟容器网络环境</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip link add br0 type bridge</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip link set veth0 master br0</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip link set br0 up</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip address add 10.0.0.1/24 dev br0</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip a show br0</span></span><br><span class="line">24: br0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default qlen 1000</span><br><span class="line">    link/ether 1a:a3:77:50:a4:ca brd ff:ff:ff:ff:ff:ff</span><br><span class="line">    inet6 fe80::18a3:77ff:fe50:a4ca/64 scope link tentative</span><br><span class="line">       valid_lft forever preferred_lft forever</span><br><span class="line"></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># brctl show br0</span></span><br><span class="line">bridge name    bridge id        STP enabled    interfaces</span><br><span class="line">br0        8000.1aa37750a4ca    no        veth0</span><br></pre></td></tr></table></figure>
+
+<p><strong>移除veth0的地址，使其沦为“网线”，这样就可以本机与nf1环境的互ping</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip address del 10.0.0.2 dev veth0</span></span><br><span class="line">Warning: Executing wildcard deletion to stay compatible with old scripts.</span><br><span class="line">         Explicitly specify the prefix length (10.0.0.2/32) to avoid this warning.</span><br><span class="line">         This special behaviour is likely to disappear <span class="keyword">in</span> further releases,</span><br><span class="line">         fix your scripts!</span><br><span class="line"></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ping 10.0.0.3 -c 1</span></span><br><span class="line">PING 10.0.0.3 (10.0.0.3) 56(84) bytes of data.</span><br><span class="line">64 bytes from 10.0.0.3: icmp_seq=1 ttl=64 time=0.258 ms</span><br><span class="line"></span><br><span class="line">--- 10.0.0.3 ping statistics ---</span><br><span class="line">1 packets transmitted, 1 received, 0% packet loss, time 0ms</span><br><span class="line">rtt min/avg/max/mdev = 0.258/0.258/0.258/0.000 ms</span><br><span class="line"></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns exec ns1 ping 10.0.0.1 -c 1</span></span><br><span class="line">PING 10.0.0.1 (10.0.0.1) 56(84) bytes of data.</span><br><span class="line">64 bytes from 10.0.0.1: icmp_seq=1 ttl=64 time=0.194 ms</span><br><span class="line"></span><br><span class="line">--- 10.0.0.1 ping statistics ---</span><br><span class="line">1 packets transmitted, 1 received, 0% packet loss, time 0ms</span><br><span class="line">rtt min/avg/max/mdev = 0.194/0.194/0.194/0.000 ms</span><br></pre></td></tr></table></figure>
+
+<p>此时网络结构如图：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/u5L6La.png" alt="u5L6La"></p>
+<p>目前为止，容器局域网通了，但容器内还无法访问外部网络，需要在宿主机上开启<code>IP forwarding</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># sysctl -w net.ipv4.ip_forward=1</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># cat /proc/sys/net/ipv4/ip_forward</span></span><br><span class="line">1</span><br></pre></td></tr></table></figure>
+
+<p>这时候容器内的网络报是发不出去的</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns exec ns1 ping baidu.com</span></span><br><span class="line">ping: connect: Network is unreachable</span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns exec ns1 ping 8.8.8.8</span></span><br><span class="line">ping: connect: Network is unreachable</span><br></pre></td></tr></table></figure>
+
+<p>因为 Network namespace 隔离后，路由也是独立的。容器内添加默认网关，ping baidu.com，baidu 的 IP 不在当前网段，让默认网关处理，也就是 br0 的 IP 地址<code>10.0.0.1</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns exec ns1 ip route add default via 10.0.0.1 dev veth1</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns exec ns1 ip route</span></span><br><span class="line">default via 10.0.0.1 dev veth1</span><br><span class="line">10.0.0.0/24 dev veth1 proto kernel scope link src 10.0.0.3</span><br></pre></td></tr></table></figure>
+
+<p>现在再试一下发数据包，发现丢包了</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns exec ns1 ping 8.8.8.8 -c 1</span></span><br><span class="line">PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.</span><br><span class="line"></span><br><span class="line">--- 8.8.8.8 ping statistics ---</span><br><span class="line">1 packets transmitted, 0 received, 100% packet loss, time 0ms</span><br></pre></td></tr></table></figure>
+
+<p>另一个窗口抓包观察一下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># tcpdump -v -nn -i br0</span></span><br><span class="line">dropped privs to tcpdump</span><br><span class="line">tcpdump: listening on br0, link-type EN10MB (Ethernet), capture size 262144 bytes</span><br><span class="line">10:42:31.420355 IP (tos 0x0, ttl 64, id 35181, offset 0, flags [DF], proto ICMP (1), length 84)</span><br><span class="line">    10.0.0.3 &gt; 8.8.8.8: ICMP <span class="built_in">echo</span> request, id 56197, seq 1, length 64</span><br><span class="line">10:42:36.443053 ARP, Ethernet (len 6), IPv4 (len 4), Request who-has 10.0.0.1 tell 10.0.0.3, length 28</span><br><span class="line">10:42:36.443190 ARP, Ethernet (len 6), IPv4 (len 4), Reply 10.0.0.1 is-at 1a:a3:77:50:a4:ca, length 28</span><br></pre></td></tr></table></figure>
+
+<p>数据包成功发出去了，但是没有回来，因为我们发出去的数据包源地址是<code>10.0.0.3</code>，这个A类地址是没办法路由回来的，需要使用iptables进行10.0.0/24网段的SNAT地址转换</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -j MASQUERADE</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns exec ns1 ping 8.8.8.8 -c 1</span></span><br><span class="line">PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.</span><br><span class="line">64 bytes from 8.8.8.8: icmp_seq=1 ttl=116 time=37.5 ms</span><br><span class="line"></span><br><span class="line">--- 8.8.8.8 ping statistics ---</span><br><span class="line">1 packets transmitted, 1 received, 0% packet loss, time 0ms</span><br><span class="line">rtt min/avg/max/mdev = 37.542/37.542/37.542/0.000 ms</span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns exec ns1 ping baidu.com -c 1</span></span><br><span class="line">PING baidu.com (220.181.38.148) 56(84) bytes of data.</span><br><span class="line">64 bytes from 220.181.38.148 (220.181.38.148): icmp_seq=1 ttl=49 time=4.67 ms</span><br><span class="line"></span><br><span class="line">--- baidu.com ping statistics ---</span><br><span class="line">1 packets transmitted, 1 received, 0% packet loss, time 0ms</span><br><span class="line">rtt min/avg/max/mdev = 4.670/4.670/4.670/0.000 ms</span><br></pre></td></tr></table></figure>
+
+<p>现在我们已经准备好了一个独立的“容器”网络环境，容器的数据包可以通过br0发出去，但外网无法直接访问容器内网络设备。</p>
+<h2 id="编写测试demo"><a href="#编写测试demo" class="headerlink" title="编写测试demo"></a>编写测试demo</h2><p>先试一下单个代理的情况</p>
+<p>server:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">lAddr, err := net.ResolveTCPAddr(<span class="string">&quot;tcp&quot;</span>, listenAddr)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    logger.Fatal(err)</span><br><span class="line">&#125;</span><br><span class="line">listener, err := net.ListenTCP(<span class="string">&quot;tcp&quot;</span>, lAddr)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    logger.Fatal(err)</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">defer</span> listener.Close()</span><br><span class="line">logger.Infof(<span class="string">&quot;listening %s&quot;</span>, listenAddr)</span><br><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line">    conn, err := listener.AcceptTCP()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        logger.Fatal(err)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(c *net.TCPConn)</span></span> &#123;</span><br><span class="line">        <span class="keyword">defer</span> c.Close()</span><br><span class="line">        buffer := <span class="built_in">make</span>([]<span class="keyword">byte</span>, <span class="number">1024</span>)</span><br><span class="line">        n, err := c.Read(buffer)</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            logger.Errorf(<span class="string">&quot;read :%v&quot;</span>, err)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">        logger.Infof(<span class="string">&quot;receive %s from %s to %s&quot;</span>, buffer[:n], c.RemoteAddr().String(), c.LocalAddr().String())</span><br><span class="line">        <span class="keyword">if</span> _, err = c.Write([]<span class="keyword">byte</span>(<span class="string">&quot;world&quot;</span>)); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            logger.Errorf(<span class="string">&quot;write :%v&quot;</span>, err)</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;(conn)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>client:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">r, err := net.ResolveTCPAddr(<span class="string">&quot;tcp&quot;</span>, remoteAddr)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    logger.Fatal(err)</span><br><span class="line">&#125;</span><br><span class="line">conn, err := net.DialTCP(<span class="string">&quot;tcp&quot;</span>, <span class="literal">nil</span>, r)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    logger.Fatal(err)</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">defer</span> conn.Close()</span><br><span class="line">logger.Infof(<span class="string">&quot;sent &#x27;hello&#x27; from %s to %s&quot;</span>, <span class="string">&quot;local&quot;</span>, r)</span><br><span class="line"><span class="keyword">if</span> _, err = conn.Write([]<span class="keyword">byte</span>(<span class="string">&quot;hello&quot;</span>)); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    logger.Fatal(err)</span><br><span class="line">&#125;</span><br><span class="line">buffer := <span class="built_in">make</span>([]<span class="keyword">byte</span>, <span class="number">128</span>)</span><br><span class="line">n, err := conn.Read(buffer)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    logger.Fatal(err)</span><br><span class="line">&#125;</span><br><span class="line">logger.Infof(<span class="string">&quot;receive: %s&quot;</span>, buffer[:n])</span><br></pre></td></tr></table></figure>
+
+<p>tproxy的代码太长就不贴了。</p>
+<p>先给本地添加一条路由规则，让本地发往容器的数据包下一跳走宿主机，整个链路如下：</p>
+<p><code>192.168.251.13</code> =&gt; <code>192.168.252.97</code> =&gt; <code>10.0.0.3</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ip route add 10.0.0.3 via 192.168.252.97</span><br><span class="line">ip route | grep 97</span><br><span class="line">10.0.0.3/32 via 192.168.252.97 dev en7</span><br></pre></td></tr></table></figure>
+
+<p>这时先实验下在不启动代理的情况下链路是通的</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[qinlong]<span class="comment"># ./fhmc-cli-mac client -r 10.0.0.3:80</span></span><br><span class="line">INFO[2022-01-06 16:50:56] sent <span class="string">&#x27;hello&#x27;</span> from <span class="built_in">local</span> to 10.0.0.3:80</span><br><span class="line">INFO[2022-01-06 16:50:56] receive: world</span><br></pre></td></tr></table></figure>
+
+<p>在宿主机<code>252.97</code>抓包能看到11个包，由3次握手 + 请求与响应（来回共4个包）+ 4次挥手构成。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># tcpdump  -nn host  192.168.251.13</span></span><br><span class="line">dropped privs to tcpdump</span><br><span class="line">tcpdump: verbose output suppressed, use -v or -vv <span class="keyword">for</span> full protocol decode</span><br><span class="line">listening on veth0, link-type EN10MB (Ethernet), capture size 262144 bytes</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">16:53:01.629124 IP 192.168.251.13.53994 &gt; 10.0.0.3.80: Flags [S], seq 1558329882, win 65535, options [mss 1460,nop,wscale 6,nop,nop,TS val 3595530199 ecr 0,sackOK,eol], length 0</span><br><span class="line">16:53:01.629384 IP 10.0.0.3.80 &gt; 192.168.251.13.53994: Flags [S.], seq 558739535, ack 1558329883, win 65160, options [mss 1460,sackOK,TS val 3504410723 ecr 3595530199,nop,wscale 7], length 0</span><br><span class="line">16:53:01.629990 IP 192.168.251.13.53994 &gt; 10.0.0.3.80: Flags [.], ack 1, win 2058, options [nop,nop,TS val 3595530200 ecr 3504410723], length 0</span><br><span class="line">16:53:01.632567 IP 192.168.251.13.53994 &gt; 10.0.0.3.80: Flags [P.], seq 1:6, ack 1, win 2058, options [nop,nop,TS val 3595530202 ecr 3504410723], length 5: HTTP</span><br><span class="line">16:53:01.632610 IP 10.0.0.3.80 &gt; 192.168.251.13.53994: Flags [.], ack 6, win 510, options [nop,nop,TS val 3504410727 ecr 3595530202], length 0</span><br><span class="line">16:53:01.633244 IP 10.0.0.3.80 &gt; 192.168.251.13.53994: Flags [P.], seq 1:6, ack 6, win 510, options [nop,nop,TS val 3504410727 ecr 3595530202], length 5: HTTP</span><br><span class="line">16:53:01.633401 IP 10.0.0.3.80 &gt; 192.168.251.13.53994: Flags [F.], seq 6, ack 6, win 510, options [nop,nop,TS val 3504410728 ecr 3595530202], length 0</span><br><span class="line">16:53:01.633690 IP 192.168.251.13.53994 &gt; 10.0.0.3.80: Flags [.], ack 6, win 2058, options [nop,nop,TS val 3595530204 ecr 3504410727], length 0</span><br><span class="line">16:53:01.633765 IP 192.168.251.13.53994 &gt; 10.0.0.3.80: Flags [.], ack 7, win 2058, options [nop,nop,TS val 3595530204 ecr 3504410728], length 0</span><br><span class="line">16:53:01.633865 IP 192.168.251.13.53994 &gt; 10.0.0.3.80: Flags [F.], seq 6, ack 7, win 2058, options [nop,nop,TS val 3595530204 ecr 3504410728], length 0</span><br><span class="line">16:53:01.633924 IP 10.0.0.3.80 &gt; 192.168.251.13.53994: Flags [.], ack 7, win 510, options [nop,nop,TS val 3504410728 ecr 3595530204], length 0</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置代理"><a href="#配置代理" class="headerlink" title="配置代理"></a>配置代理</h2><p>配置代理规则，再次测试</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">iptables -t mangle -N DIVERT</span><br><span class="line">iptables -t mangle -A PREROUTING -p tcp -m socket -j DIVERT</span><br><span class="line"></span><br><span class="line">iptables -t mangle -A DIVERT -j MARK --set-mark 1</span><br><span class="line">iptables -t mangle -A DIVERT -j ACCEPT</span><br><span class="line"></span><br><span class="line">ip rule add fwmark 1 lookup 100</span><br><span class="line">ip route add local 0.0.0.0/0 dev lo table 100</span><br><span class="line"></span><br><span class="line">iptables -t mangle -A PREROUTING -p tcp -j TPROXY --tproxy-mark 0x1/0x1 --on-port 8080</span><br></pre></td></tr></table></figure>
+
+<p>观察代理日志：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># ./fhmc tproxy</span></span><br><span class="line">INFO[2022-01-06 16:29:51] Starting GoLang TProxy example</span><br><span class="line">INFO[2022-01-06 16:29:51] Binding TCP TProxy listener to 0.0.0.0:8080</span><br><span class="line">INFO[2022-01-06 16:29:51] Binding UDP TProxy listener to 0.0.0.0:8080</span><br><span class="line">INFO[2022-01-06 16:59:12] Accepting TCP connection from 192.168.251.13:54137 with destination of 10.0.0.3:80</span><br></pre></td></tr></table></figure>
+
+<p>可以看到发往10.0.0.3的数据包已经被代理拦截了，证明反向代理的逻辑已经走通</p>
+<p>对宿主机的<code>ens3</code>,<code>br0</code>,<code>veth0</code>,容器内的<code>veth1</code>设备抓包，都可以看到往来的10个包，其中4次挥手的过程被合并为3次。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># tcpdump -v -nn -i br0</span></span><br><span class="line">dropped privs to tcpdump</span><br><span class="line">tcpdump: listening on br0, link-type EN10MB (Ethernet), capture size 262144 bytes</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">17:10:48.646327 IP (tos 0x0, ttl 64, id 26499, offset 0, flags [DF], proto TCP (6), length 60)</span><br><span class="line">    192.168.251.13.54252 &gt; 10.0.0.3.80: Flags [S], cksum 0xc5e7 (incorrect -&gt; 0x2551), seq 2368435817, win 64240, options [mss 1460,sackOK,TS val 1815289344 ecr 0,nop,wscale 7], length 0</span><br><span class="line">17:10:48.646642 IP (tos 0x0, ttl 64, id 0, offset 0, flags [DF], proto TCP (6), length 60)</span><br><span class="line">    10.0.0.3.80 &gt; 192.168.251.13.54252: Flags [S.], cksum 0xc5e7 (incorrect -&gt; 0x5e75), seq 2717251530, ack 2368435818, win 65160, options [mss 1460,sackOK,TS val 3505477760 ecr 1815289344,nop,wscale 7], length 0</span><br><span class="line">17:10:48.646778 IP (tos 0x0, ttl 64, id 26500, offset 0, flags [DF], proto TCP (6), length 52)</span><br><span class="line">    192.168.251.13.54252 &gt; 10.0.0.3.80: Flags [.], cksum 0xc5df (incorrect -&gt; 0x89d3), ack 1, win 502, options [nop,nop,TS val 1815289345 ecr 3505477760], length 0</span><br><span class="line">17:10:48.648095 IP (tos 0x0, ttl 64, id 26501, offset 0, flags [DF], proto TCP (6), length 57)</span><br><span class="line">    192.168.251.13.54252 &gt; 10.0.0.3.80: Flags [P.], cksum 0xc5e4 (incorrect -&gt; 0x45f3), seq 1:6, ack 1, win 502, options [nop,nop,TS val 1815289346 ecr 3505477760], length 5: HTTP</span><br><span class="line">17:10:48.648154 IP (tos 0x0, ttl 64, id 26135, offset 0, flags [DF], proto TCP (6), length 52)</span><br><span class="line">    10.0.0.3.80 &gt; 192.168.251.13.54252: Flags [.], cksum 0xc5df (incorrect -&gt; 0x89c4), ack 6, win 510, options [nop,nop,TS val 3505477761 ecr 1815289346], length 0</span><br><span class="line">17:10:48.648438 IP (tos 0x0, ttl 64, id 26136, offset 0, flags [DF], proto TCP (6), length 57)</span><br><span class="line">    10.0.0.3.80 &gt; 192.168.251.13.54252: Flags [P.], cksum 0xc5e4 (incorrect -&gt; 0x3bda), seq 1:6, ack 6, win 510, options [nop,nop,TS val 3505477762 ecr 1815289346], length 5: HTTP</span><br><span class="line">17:10:48.648473 IP (tos 0x0, ttl 64, id 26502, offset 0, flags [DF], proto TCP (6), length 52)</span><br><span class="line">    192.168.251.13.54252 &gt; 10.0.0.3.80: Flags [.], cksum 0xc5df (incorrect -&gt; 0x89c5), ack 6, win 502, options [nop,nop,TS val 1815289347 ecr 3505477762], length 0</span><br><span class="line">17:10:48.648538 IP (tos 0x0, ttl 64, id 26137, offset 0, flags [DF], proto TCP (6), length 52)</span><br><span class="line">    10.0.0.3.80 &gt; 192.168.251.13.54252: Flags [F.], cksum 0xc5df (incorrect -&gt; 0x89bc), seq 6, ack 6, win 510, options [nop,nop,TS val 3505477762 ecr 1815289347], length 0</span><br><span class="line">17:10:48.649307 IP (tos 0x0, ttl 64, id 26503, offset 0, flags [DF], proto TCP (6), length 52)</span><br><span class="line">    192.168.251.13.54252 &gt; 10.0.0.3.80: Flags [F.], cksum 0xc5df (incorrect -&gt; 0x89c3), seq 6, ack 7, win 502, options [nop,nop,TS val 1815289347 ecr 3505477762], length 0</span><br><span class="line">17:10:48.649351 IP (tos 0x0, ttl 64, id 26138, offset 0, flags [DF], proto TCP (6), length 52)</span><br><span class="line">    10.0.0.3.80 &gt; 192.168.251.13.54252: Flags [.], cksum 0xc5df (incorrect -&gt; 0x89bb), ack 7, win 510, options [nop,nop,TS val 3505477762 ecr 1815289347], length 0</span><br></pre></td></tr></table></figure>
+
+<p><strong>但是对宿主机的<code>lo</code>设备抓包却看不到任何信息，这并不符合我的预期，目前还没搞明白是什么原理。</strong></p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/WohLEm.png" alt="WohLEm"></p>
+<p><strong>测试结论</strong>：</p>
+<p>透明代理不跟客户端或服务端在同一节点的情况下能够正常运行。</p>
+<p>客户端（在容器内）和正向代理在同一节点时流量无法被代理劫持。</p>
+<h2 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h2><ul>
+<li>宿主机上创建的server访问不通：防火墙进行了限制，关闭后结局</li>
+<li>netns1内ping不通baidu.com：同样是防火墙搞的鬼，它删除了我添加的iptables规则，关闭后解决</li>
+<li>对于通过docker创建的容器，它所属的网络的网络命名空间无法通过<code>ip netns</code>命令看到：因为 docker 把网络命名空间的文件存在另一个位置，没有创建所需的符号链接(symbolic link)</li>
+<li>veth0接到交换机上时链路不通：需要去掉veth0的IP</li>
+<li>发往本地的数据包走<code>lo</code>不走<code>eth0</code></li>
+<li>一次HTTP请求与响应会产生10或11个包（三次握手（3）+请求与响应（4）+四次挥手（3或4）</li>
+<li>代理和被代理程序不能在同一个节点</li>
+<li>宿主机上抓<code>lo</code>设备看不到信息</li>
+<li><code>TProxy</code>如何做Outbound方向上的代理</li>
+<li>nat的方式会改写数据包，服务端程序内看到就是监听端口，看不到原始端口</li>
+<li>对于一次HTTP请求，iptables记录的REDIRECT pkts数量只+1，虽然传输了多个数据包</li>
+<li>iptables的<code>-i</code>和<code>-o</code>选项在路由前筛选设备的逻辑</li>
+<li>数据包是否会完整经过iptables的每个链？</li>
+<li>监听范围端口是否可行？</li>
+</ul>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a target="_blank" rel="noopener" href="https://www.servicemesher.com/blog/sidecar-injection-iptables-and-traffic-routing/">Istio 中的 Sidecar 注入及透明流量劫持过程详解 · Service Mesh|服务网格中文社区</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.kernel.org/doc/Documentation/networking/tproxy.txt">Transparent proxy support</a></p>
+<p><a target="_blank" rel="noopener" href="https://arthurchiao.art/blog/conntrack-design-and-implementation-zh/">连接跟踪（conntrack）：原理、应用及 Linux 内核实现</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/LiamHaworth/go-tproxy">Golang TProxy</a></p>
+<p><a target="_blank" rel="noopener" href="http://rui0.cn/archives/1619">Service Mesh中的iptables流量劫持 - Ruilin</a></p>
+<p><a target="_blank" rel="noopener" href="https://ebpf.io/">eBPF</a></p>
+<p><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000041125908">KubeCon 2021｜使用 eBPF 代替 iptables 优化服务网格数据面性能</a></p>
+<p><a target="_blank" rel="noopener" href="https://wangchujiang.com/linux-command/c/iptables.html">iptables 命令，Linux iptables 命令详解：Linux上常用的防火墙软件 - Linux 命令搜索引擎</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/wongbingming/p/13212306.html">全网最详细的 tcpdump 使用指南 - 王一白 - 博客园</a></p>
+<p><a target="_blank" rel="noopener" href="https://wangchujiang.com/linux-command/c/iptables.html#%E5%91%BD%E4%BB%A4%E9%80%89%E9%A1%B9%E8%BE%93%E5%85%A5%E9%A1%BA%E5%BA%8F">iptables 命令，Linux iptables 命令详解：Linux上常用的防火墙软件 - Linux 命令搜索引擎</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.zsythink.net/archives/tag/iptables">iptables-朱双印博客</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.png" alt=" 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E7%BD%91%E7%BB%9C/" rel="tag"># 网络</a>
+          
+            <a href="/tags/linux%E5%86%85%E6%A0%B8/" rel="tag"># linux内核</a>
+          
+            <a href="/tags/%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86/" rel="tag"># 透明代理</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E6%A6%82%E5%BF%B5%E7%AF%87/" rel="next" title="深入理解透明代理——概念篇">
+                <i class="fa fa-chevron-left"></i> 深入理解透明代理——概念篇
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/" rel="prev" title="TCP知识点整理">
+                TCP知识点整理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a target="_blank" rel="noopener" href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="">
+              
+                  <span class="site-state-item-count">78</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">35</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/akaQin" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:aka.qin@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://coolshell.cn/" title="coolshell" target="_blank">coolshell</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://draveness.me/" title="draveness" target="_blank">draveness</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://morven.life/" title="Morven" target="_blank">Morven</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://strikefreedom.top/" title="潘少" target="_blank">潘少</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://colobu.com/" title="鸟窝" target="_blank">鸟窝</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://ctimbai.github.io/" title="猿大白" target="_blank">猿大白</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://eddycjy.com/" title="煎鱼" target="_blank">煎鱼</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://lessisbetter.site/" title="大彬" target="_blank">大彬</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/" title="深入解析GO" target="_blank">深入解析GO</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E7%8B%AC%E7%AB%8B%E7%9A%84%E7%BD%91%E7%BB%9C%E7%8E%AF%E5%A2%83"><span class="nav-number">1.</span> <span class="nav-text">创建独立的网络环境</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E5%86%99%E6%B5%8B%E8%AF%95demo"><span class="nav-number">2.</span> <span class="nav-text">编写测试demo</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E4%BB%A3%E7%90%86"><span class="nav-number">3.</span> <span class="nav-text">配置代理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">4.</span> <span class="nav-text">遇到的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%82%E8%80%83"><span class="nav-number">5.</span> <span class="nav-text">参考</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Aaron Qin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'https://akaqin.github.io/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E5%AE%9E%E6%88%98%E7%AF%87/';
+          this.page.identifier = 'articles/深入理解透明代理——实战篇/';
+          this.page.title = '深入理解透明代理——实战篇';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
