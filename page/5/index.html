@@ -270,6 +270,175 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://akaqin.github.io/articles/%E3%80%8AAPUE%E3%80%8Bch9%E2%80%94%E2%80%94%E8%BF%9B%E7%A8%8B%E5%85%B3%E7%B3%BB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/%E3%80%8AAPUE%E3%80%8Bch9%E2%80%94%E2%80%94%E8%BF%9B%E7%A8%8B%E5%85%B3%E7%B3%BB/" itemprop="url">《APUE》ch9——进程关系</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-11-26T15:53:47+08:00">
+                2019-11-26
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index">
+                    <span itemprop="name">读书笔记</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/%E3%80%8AAPUE%E3%80%8B/" itemprop="url" rel="index">
+                    <span itemprop="name">《APUE》</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E3%80%8AAPUE%E3%80%8Bch9%E2%80%94%E2%80%94%E8%BF%9B%E7%A8%8B%E5%85%B3%E7%B3%BB/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/《APUE》ch9——进程关系/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="终端登录"><a href="#终端登录" class="headerlink" title="终端登录"></a>终端登录</h2><p>我们现在描述的过程用于经由终端登录至UNIX系统。该过程几乎与所使用的终端类型无关，可以是基于字符的终端、仿真基于字符终端的图形终端，或者运行窗口系统的图形终端。</p>
+<h3 id="BSD终端登录"><a href="#BSD终端登录" class="headerlink" title="BSD终端登录"></a>BSD终端登录</h3><p>系统管理者创建通常名为/etc/ttys的文件，其中每个终端设备都有一行，说明设备名和传到getty程序的参数。当系统自举时，内核创建进程ID为1的进程，也就是init进程。<br>init进程使系统进入多用户模式。init读取文件/etc/ttys，对每一个允许登录的终端设备，init调用一次fork，它所生成的子进程则exec getty程序。<br><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/3lQjBj.png" alt="3lQjBj"></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/%E3%80%8AAPUE%E3%80%8Bch9%E2%80%94%E2%80%94%E8%BF%9B%E7%A8%8B%E5%85%B3%E7%B3%BB/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://akaqin.github.io/articles/%E4%B8%BA%E4%BB%80%E4%B9%88calloc%E4%BC%9A%E6%AF%94malloc-memset%E5%BF%AB/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1790,162 +1959,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://akaqin.github.io/articles/2019-5-18-%E6%9C%80%E8%BF%91%E7%9A%84%E9%97%AE%E9%A2%98%E5%8F%8D%E6%80%9D/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/2019-5-18-%E6%9C%80%E8%BF%91%E7%9A%84%E9%97%AE%E9%A2%98%E5%8F%8D%E6%80%9D/" itemprop="url">最近的问题反思</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-05-18T18:11:07+08:00">
-                2019-05-18
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%BB%8F%E9%AA%8C%E5%8F%8D%E6%80%9D/" itemprop="url" rel="index">
-                    <span itemprop="name">经验反思</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/2019-5-18-%E6%9C%80%E8%BF%91%E7%9A%84%E9%97%AE%E9%A2%98%E5%8F%8D%E6%80%9D/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/2019-5-18-最近的问题反思/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>关于最近的问题：</p>
-<p>1、要解决问题，首先得学会分析一个问题具体出在哪个环节，越细越好</p>
-<p>2、每个人都有犯错的机会，但是犯同类的错误会降低别人对你的信任，一定要会反思</p>
-<p>3、你对每一个问题的责任心和态度都会有人记在心上，尽量给每个关注问题的人及时的反馈</p>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -1996,7 +2009,7 @@
               
                 <a href="">
               
-                  <span class="site-state-item-count">78</span>
+                  <span class="site-state-item-count">79</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
