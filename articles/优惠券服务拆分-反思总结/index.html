@@ -82,12 +82,12 @@
 <meta name="description" content="过程中出现的问题：思考问题 ​    安全意识还是不够，不能因为这块是朝沛拆的就不怎么看，导致要上线了才发现回滚逻辑有这么多问题，临上线又重构代码，给测试也带来很多麻烦；想的不够细，有些逻辑靠衍雷提出来才想到，这一点感觉还是得靠多实践去改变。 买家端无法提供服务 ​    虽然不是我的主要问题，但出问题时看到nginx的error_log：recv() failed (104: Connectio">
 <meta property="og:type" content="article">
 <meta property="og:title" content="反思总结：优惠券服务拆分">
-<meta property="og:url" content="https://akaqin.github.io/articles/%E4%BC%98%E6%83%A0%E5%88%B8%E6%9C%8D%E5%8A%A1%E6%8B%86%E5%88%86-%E5%8F%8D%E6%80%9D%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:url" content="https://aaron-ql.github.io/articles/%E4%BC%98%E6%83%A0%E5%88%B8%E6%9C%8D%E5%8A%A1%E6%8B%86%E5%88%86-%E5%8F%8D%E6%80%9D%E6%80%BB%E7%BB%93/index.html">
 <meta property="og:site_name" content="Code Your Ambition">
 <meta property="og:description" content="过程中出现的问题：思考问题 ​    安全意识还是不够，不能因为这块是朝沛拆的就不怎么看，导致要上线了才发现回滚逻辑有这么多问题，临上线又重构代码，给测试也带来很多麻烦；想的不够细，有些逻辑靠衍雷提出来才想到，这一点感觉还是得靠多实践去改变。 买家端无法提供服务 ​    虽然不是我的主要问题，但出问题时看到nginx的error_log：recv() failed (104: Connectio">
 <meta property="og:locale">
 <meta property="article:published_time" content="2019-11-06T10:35:09.000Z">
-<meta property="article:modified_time" content="2022-03-01T11:45:12.189Z">
+<meta property="article:modified_time" content="2022-03-01T11:45:12.000Z">
 <meta property="article:author" content="Aaron Qin">
 <meta property="article:tag" content="architecture">
 <meta name="twitter:card" content="summary">
@@ -120,7 +120,7 @@
 
 
 
-  <link rel="canonical" href="https://akaqin.github.io/articles/优惠券服务拆分-反思总结/"/>
+  <link rel="canonical" href="https://aaron-ql.github.io/articles/优惠券服务拆分-反思总结/"/>
 
 
 
@@ -274,7 +274,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://akaqin.github.io/articles/%E4%BC%98%E6%83%A0%E5%88%B8%E6%9C%8D%E5%8A%A1%E6%8B%86%E5%88%86-%E5%8F%8D%E6%80%9D%E6%80%BB%E7%BB%93/">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E4%BC%98%E6%83%A0%E5%88%B8%E6%9C%8D%E5%8A%A1%E6%8B%86%E5%88%86-%E5%8F%8D%E6%80%9D%E6%80%BB%E7%BB%93/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -546,7 +546,7 @@
               
               
               <div class="site-state-item site-state-categories">
-                <a href="/categories/index.html">
+                <a href="/categories/index%202.html">
                   <span class="site-state-item-count">29</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
@@ -557,7 +557,7 @@
               
               
               <div class="site-state-item site-state-tags">
-                <a href="/tags/index%202.html">
+                <a href="/tags/index.html">
                   <span class="site-state-item-count">35</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
@@ -823,7 +823,7 @@
     
       <script type="text/javascript">
         var disqus_config = function () {
-          this.page.url = 'https://akaqin.github.io/articles/%E4%BC%98%E6%83%A0%E5%88%B8%E6%9C%8D%E5%8A%A1%E6%8B%86%E5%88%86-%E5%8F%8D%E6%80%9D%E6%80%BB%E7%BB%93/';
+          this.page.url = 'https://aaron-ql.github.io/articles/%E4%BC%98%E6%83%A0%E5%88%B8%E6%9C%8D%E5%8A%A1%E6%8B%86%E5%88%86-%E5%8F%8D%E6%80%9D%E6%80%BB%E7%BB%93/';
           this.page.identifier = 'articles/优惠券服务拆分-反思总结/';
           this.page.title = '反思总结：优惠券服务拆分';
         };
