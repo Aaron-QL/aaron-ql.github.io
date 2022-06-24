@@ -270,6 +270,183 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/Ceph-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E3%80%81%E5%8E%9F%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/Ceph-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E3%80%81%E5%8E%9F%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84/" itemprop="url">Ceph-基本概念、原理及架构</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-08-17T10:55:09+08:00">
+                2021-08-17
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
+                    <span itemprop="name">知识点总结</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/Ceph/" itemprop="url" rel="index">
+                    <span itemprop="name">Ceph</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/Ceph-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E3%80%81%E5%8E%9F%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/Ceph-基本概念、原理及架构/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在实现容器化的初期，计划使用 Ceph 作为容器的存储。都说存储是虚拟化之母，相对容器来说，存储也起到了至关重要的作用。</p>
+<p>选用 Ceph 作为容器化存储理由如下：</p>
+<p>方便后期横向扩展；<br>Ceph能够同时支持快存储、对象存储、文件存储，容器使用块存储，后期也会用到对象存储来取代 OSS 服务。<br>基于以上理由，采用 Ceph 分布式存储应该是个不错的选择。容器化第一步从 存储 开始。</p>
+<p><a target="_blank" rel="noopener" href="https://docs.ceph.com/docs/master/start/intro/">Ceph 官方文档（英文）</a></p>
+<p><a target="_blank" rel="noopener" href="http://docs.ceph.org.cn/start/intro/">Ceph 官方文档（中文）</a></p>
+<h2 id="Ceph-简介"><a href="#Ceph-简介" class="headerlink" title="Ceph 简介"></a>Ceph 简介</h2><p>不管你是想为 云平台 提供 Ceph 对象存储或块设备，还是想部署一个 Ceph 文件系统 ，所有 Ceph 存储集群的部署都始于一个个 Ceph节点、网络和 Ceph存储集群。</p>
+<p>创建Ceph 存储，至少需要以下服务：</p>
+<p>一个Ceph Monitor<br>两个OSD守护进程</p>
+<p>而运行 Ceph 文件系统客户端时，则必须要有元数据服务器（Metadata Server） ，使用 Ceph 作为文件系统这种需求场景应该不会很多，而本次的容器化项目也不会涉及到 文件系统存储，因此不深究。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/z9LES0.png" alt="z9LES0"></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/Ceph-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E3%80%81%E5%8E%9F%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/Golang%E7%BD%91%E7%BB%9C%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93%E5%AE%9E%E6%88%98%E5%88%86%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1818,197 +1995,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E5%9B%9B%EF%BC%89/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E5%9B%9B%EF%BC%89/" itemprop="url">《计算机网络——自顶向下》学习笔记（四）</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-12T23:14:48+08:00">
-                2020-09-12
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index">
-                    <span itemprop="name">读书笔记</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/%E3%80%8A%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E2%80%94%E2%80%94%E8%87%AA%E9%A1%B6%E5%90%91%E4%B8%8B%E3%80%8B/" itemprop="url" rel="index">
-                    <span itemprop="name">《计算机网络——自顶向下》</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E5%9B%9B%EF%BC%89/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/计算机网络学习笔记（四）/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h1 id="网络层"><a href="#网络层" class="headerlink" title="网络层"></a><strong>网络层</strong></h1><h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><h3 id="两个平面"><a href="#两个平面" class="headerlink" title="两个平面"></a>两个平面</h3><ul>
-<li><p>数据平面</p>
-<ul>
-<li>从输入链路向其输出链路转发数据报</li>
-</ul>
-</li>
-<li><p>控制平面</p>
-<ul>
-<li>协调这些本地路由器的转发动作，使数据报沿着路径进行端到端传送</li>
-</ul>
-</li>
-</ul>
-<h3 id="两个功能"><a href="#两个功能" class="headerlink" title="两个功能"></a>两个功能</h3><ul>
-<li><p>转发</p>
-<ul>
-<li>将分组从一个输入链路接口转移到适当的输出链路接口的路由器本地动作</li>
-</ul>
-</li>
-<li><p>路由选择</p>
-<ul>
-<li>确定分组从源到目的地所采取的路径的网络范围处理过程</li>
-</ul>
-</li>
-</ul>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E5%9B%9B%EF%BC%89/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2059,7 +2045,7 @@
               
                 <a href="">
               
-                  <span class="site-state-item-count">79</span>
+                  <span class="site-state-item-count">80</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
