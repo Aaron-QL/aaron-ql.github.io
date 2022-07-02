@@ -270,6 +270,181 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/k8s%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-2%20Kubernetes%E5%AF%B9%E8%B1%A1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/k8s%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-2%20Kubernetes%E5%AF%B9%E8%B1%A1/" itemprop="url">k8s学习笔记-2 Kubernetes对象</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-14T17:56:37+08:00">
+                2020-06-14
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index">
+                    <span itemprop="name">学习笔记</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Kubernetes/" itemprop="url" rel="index">
+                    <span itemprop="name">Kubernetes</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/k8s%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-2%20Kubernetes%E5%AF%B9%E8%B1%A1/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/k8s学习笔记-2 Kubernetes对象/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h1 id="Kubernetes对象"><a href="#Kubernetes对象" class="headerlink" title="Kubernetes对象"></a>Kubernetes对象</h1><hr>
+<h2 id="理解Kubernetes对象"><a href="#理解Kubernetes对象" class="headerlink" title="理解Kubernetes对象"></a>理解Kubernetes对象</h2><p>在 Kubernetes 系统中，Kubernetes 对象 是持久化的实体。Kubernetes 使用这些实体去表示整个集群的状态。特别地，它们描述了如下信息：</p>
+<ul>
+<li>哪些容器化应用在运行（以及在哪个 Node 上）</li>
+<li>可以被应用使用的资源</li>
+<li>关于应用运行时表现的策略，比如重启策略、升级策略，以及容错策略<br>Kubernetes 对象是 “目标性记录” —— 一旦创建对象，Kubernetes 系统将持续工作以确保对象存在。通过创建对象，本质上是在告知 Kubernetes 系统，所需要的集群工作负载看起来是什么样子的，这就是 Kubernetes 集群的 期望状态（Desired State）。</li>
+</ul>
+<p>操作 Kubernetes 对象 —— 无论是创建、修改，或者删除 —— 需要使用 Kubernetes API。比如，当使用 kubectl 命令行接口时，CLI 会执行必要的 Kubernetes API 调用，也可以在程序中使用 客户端库 直接调用 Kubernetes API。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/k8s%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-2%20Kubernetes%E5%AF%B9%E8%B1%A1/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/k8s%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-1%20%E6%A6%82%E8%BF%B0/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1804,176 +1979,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E5%85%B3%E4%BA%8E%E4%BC%98%E6%83%A0%E5%88%B8%E8%B5%84%E9%87%91%E9%97%AE%E9%A2%98%E7%9A%84%E5%8F%8D%E6%80%9D/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/%E5%85%B3%E4%BA%8E%E4%BC%98%E6%83%A0%E5%88%B8%E8%B5%84%E9%87%91%E9%97%AE%E9%A2%98%E7%9A%84%E5%8F%8D%E6%80%9D/" itemprop="url">关于优惠券资金问题的反思</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-12-06T16:01:03+08:00">
-                2019-12-06
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%BB%8F%E9%AA%8C%E5%8F%8D%E6%80%9D/" itemprop="url" rel="index">
-                    <span itemprop="name">经验反思</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/%E5%85%B3%E4%BA%8E%E4%BC%98%E6%83%A0%E5%88%B8%E8%B5%84%E9%87%91%E9%97%AE%E9%A2%98%E7%9A%84%E5%8F%8D%E6%80%9D/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/关于优惠券资金问题的反思/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <ul>
-<li><p>offline脚本漏掉了回滚资金逻辑：<br>这块因为是离线脚本，只是在测试环境手动调用测的能不能跑通，线上因为不方便测就直接对接了。<br>以后这块有改动还是要多review，不能疏忽。</p>
-</li>
-<li><p>cms追加优惠券时忽略了事务一致性问题<br>事务一致性的问题本来一开始整理的时候列到了，把各项目到查了一遍，还是漏掉了一个，惭愧。。<br>后面需要推进事务协调器，撤掉解决这种问题出现的可能。</p>
-</li>
-<li><p>问题及时向上反馈<br>问题一开始出现时，只有我、春光和潘静在查这个问题，因为当时不知道问题2和少了30万预算这两件事的存在，<br>所以我和春光查了两天这个数怎么也对不上，如果早点向上反馈的话知道少了30万预算说不定这个问题早就解决了。。</p>
-</li>
-<li><p>找不到问题原因时的思考思路<br>昨天一天用各种方案算的数都对不上，这时候我们应该把已知并确定正确的信息列出来，和现有的数据做对比，<br>如果发现对不上，大胆的列出所有的可能性，并一一排查验证，排除掉不可能的，剩下的就是正确答案。</p>
-<blockquote>
-<p>比如 现有冻结金额远小于应有冻结金额，那么猜测可能的原因：<br>过期回滚时冻结资金扣多了 （验证后被排除<br>删除回滚时冻结资金扣多了（验证后被排除<br>创建时没有加冻结资金（验证后被排除<br>追加时没有加冻结资金————找到正确答案</p>
-</blockquote>
-</li>
-</ul>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/3/">&lt;</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/page/8/">8</a><a class="extend next" rel="next" href="/page/5/">&gt;</a>
+    <a class="extend prev" rel="prev" href="/page/3/">&lt;</a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" href="/page/5/">&gt;</a>
   </nav>
 
 
@@ -2019,7 +2029,7 @@
               
                 <a href="">
               
-                  <span class="site-state-item-count">80</span>
+                  <span class="site-state-item-count">81</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2041,7 +2051,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">35</span>
+                  <span class="site-state-item-count">36</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>

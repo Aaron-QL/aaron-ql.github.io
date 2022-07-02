@@ -270,6 +270,259 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/MIT-6-S081-xv6-%E8%B0%83%E8%AF%95%E6%8C%87%E5%8C%97/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/MIT-6-S081-xv6-%E8%B0%83%E8%AF%95%E6%8C%87%E5%8C%97/" itemprop="url">MIT 6.S081 xv6 调试指北</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-07-02T15:47:51+08:00">
+                2022-07-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index">
+                    <span itemprop="name">踩坑记录</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/MIT-6-S081-xv6-%E8%B0%83%E8%AF%95%E6%8C%87%E5%8C%97/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/MIT-6-S081-xv6-调试指北/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h1 id="还是从直接用gdb调试说起"><a href="#还是从直接用gdb调试说起" class="headerlink" title="还是从直接用gdb调试说起"></a>还是从直接用gdb调试说起</h1><p>刚开始码lab时，我想很多人第一反应和我是一样的：我的程序是在程序上跑的，那我该如何调试我的程序？</p>
+<p>google之可以找到答案：<a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/10534798/debugging-user-code-on-xv6-with-gdb">https://stackoverflow.com/questions/10534798/debugging-user-code-on-xv6-with-gdb</a></p>
+<p>但实际执行过程有点不同，拿我个人写的sleep.c来说吧，代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;kernel/types.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;user.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">parse_int</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span>* arg)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span>* p = arg;</span><br><span class="line">    <span class="keyword">for</span> ( ; *p ; p++ ) &#123;</span><br><span class="line">        <span class="keyword">if</span> ( *p &lt; <span class="string">&#x27;0&#x27;</span> || *p &gt; <span class="string">&#x27;9&#x27;</span> ) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> atoi(arg);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc,<span class="keyword">char</span>** argv)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> time;</span><br><span class="line">    <span class="keyword">if</span> (argc != <span class="number">2</span>) &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;you must input one argument only\n&quot;</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">    &#125; </span><br><span class="line">    </span><br><span class="line">    time = parse_int(argv[<span class="number">1</span>]);</span><br><span class="line">    <span class="keyword">if</span> (time &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;error argument : %s\n&quot;</span>,argv[<span class="number">1</span>]);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    sleep(time);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>函数parse_int的作用是检查我们输入的参数(睡眠的时间)是否包括除了数字以外的东西。编写好之后，在makefile中把我们写好的sleep.c加进去：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">UPROGS=\</span><br><span class="line">	$U/_cat\</span><br><span class="line">    $U/_echo\</span><br><span class="line">    $U/_forktest\</span><br><span class="line">    ........  </span><br><span class="line">    $U/_kalloctest\  </span><br><span class="line">    $U/_bcachetest\  </span><br><span class="line">    $U/_alloctest\  </span><br><span class="line">    $U/_bigfile\  </span><br><span class="line">    $U/_sleep\</span><br></pre></td></tr></table></figure>
+
+<p>执行 make fs.img，sleep.c就会被编译成elf文件_sleep，并保存在xv6的文件系统中。</p>
+<p>接下来我们打开一个窗口，输入 make qemu-gdb，qemu会卡住，等待gdb与他连接。</p>
+<p>注意，<code>MIT 6.S081</code>提供的xv6采用的指令集是riscv，因此我们虚拟机上针对x86指令集的gdb可能无法较好的调试。我们需要用交叉编译工具来编译xv6，并用交叉编译工具提供的gdb来调试。交叉编译工具在课程主页上有提供（但我找不到链接到哪儿去了）。我的虚拟机已经下载了完整的交叉编译链，并且环境变量也已经设置完毕。因此我只需要在makefile中添加下面一行：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">gdb:</span></span><br><span class="line">    riscv64-unknown-elf-gdb kernel/kernel</span><br></pre></td></tr></table></figure>
+
+<p>在另一个窗口执行make gdb，即可调用专用于riscv的gdb（riscv64-unknown-elf-gdb），调试内核文件kernel/kernel。</p>
+<p>接下来的操作其实与stackoverflow上面的高赞回答几乎一致了：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">ms@ubuntu:~/public/MIT 6.S081/Lab4/xv6-riscv-fall19$ make gdb </span><br><span class="line">riscv64-unknown-elf-gdb kernel/kernel</span><br><span class="line">GNU gdb (GDB) 9.1</span><br><span class="line">Copyright (C) 2020 Free Software Foundation, Inc.</span><br><span class="line">License GPLv3+: GNU GPL version 3 or later &lt;http://gnu.org/licenses/gpl.html&gt;</span><br><span class="line">This is free software: you are free to change and redistribute it.</span><br><span class="line">There is NO WARRANTY, to the extent permitted by law.</span><br><span class="line">Type &quot;show copying&quot; and &quot;show warranty&quot; for details.</span><br><span class="line">This GDB was configured as &quot;--host=x86_64-pc-linux-gnu --target=riscv64-unknown-elf&quot;.</span><br><span class="line">Type &quot;show configuration&quot; for configuration details.</span><br><span class="line">For bug reporting instructions, please see:</span><br><span class="line">&lt;http://www.gnu.org/software/gdb/bugs/&gt;.</span><br><span class="line">Find the GDB manual and other documentation resources online at:</span><br><span class="line">&lt;http://www.gnu.org/software/gdb/documentation/&gt;.</span><br><span class="line">For help, type &quot;help&quot;.</span><br><span class="line">Type &quot;apropos word&quot; to search for commands related to &quot;word&quot;...</span><br><span class="line">Reading symbols from kernel/kernel...</span><br><span class="line">The target architecture is assumed to be riscv:rv64</span><br><span class="line">0x0000000000001000 in ?? ()</span><br><span class="line">(gdb) file user/_sleep </span><br><span class="line">Reading symbols from user/_sleep...</span><br><span class="line">(gdb) b parse_int </span><br><span class="line">Breakpoint 1 at 0x0: file user/sleep.c, line 6.</span><br><span class="line">(gdb) c</span><br></pre></td></tr></table></figure>
+
+<p>我们已经在sleep.c上打了断点。按c执行到断点处：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">(gdb) file user/_sleep</span><br><span class="line">Reading symbols from user/_sleep...</span><br><span class="line">(gdb) b parse_int</span><br><span class="line">Breakpoint 1 at 0x0: file user/sleep.c, line 6.</span><br><span class="line">(gdb) c</span><br><span class="line">Continuing.` `Breakpoint 1, parse_int (</span><br><span class="line"></span><br><span class="line">    arg=0x505050505050505 &lt;error: Cannot access memory at address 0x505050505050505&gt;)</span><br><span class="line">    at user/sleep.c:6</span><br><span class="line">6   for` `( ; *p ; p++ ) &#123;</span><br><span class="line">(gdb)</span><br></pre></td></tr></table></figure>
+
+<p>这程序输出？wtf ？我们xv6的界面还没有提示shell启动，为什么就跳转到了这个函数上了？</p>
+<p>不急，我们先看看pc指针的值：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Breakpoint 1, parse_int (</span><br><span class="line">    arg=0x505050505050505 &lt;error: Cannot access memory at address 0x505050505050505&gt;)</span><br><span class="line">    at user/sleep.c:6</span><br><span class="line">6           for ( ; *p ; p++ ) &#123;</span><br><span class="line">(gdb) info reg pc</span><br><span class="line">pc             0x0      0x0 &lt;parse_int&gt;</span><br><span class="line">(gdb) </span><br></pre></td></tr></table></figure>
+
+
+
+<p>pc指向0x0，也就是NULL，这个地址很明显是一个虚地址。而我们在parse_int上打下的断点，地址也是在0x0处。其实看到这里应该你应该已经猜到，gdb很可能就是在监视pc值，当pc值等于断点值时断点就会被触发。其实这个断点触发是因为内核加载完成后启动的第一个用户程序，具体代码在kernel/proc.c中的userinit.c中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Set up first user process.</span></span><br><span class="line"><span class="function"><span class="keyword">void</span></span></span><br><span class="line"><span class="function"><span class="title">userinit</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">proc</span> *<span class="title">p</span>;</span></span><br><span class="line">  p = allocproc();　　　　　　　　<span class="comment">// xv6的第一个进程，其pid = 1</span></span><br><span class="line">  initproc = p;</span><br><span class="line">  uvminit(p-&gt;pagetable, initcode, <span class="keyword">sizeof</span>(initcode));　　<span class="comment">// 第一个进程的代码段就是proc.c下的initcode，将这段代码的虚实映射关系添加到用户进程页表中</span></span><br><span class="line">  p-&gt;sz = PGSIZE;</span><br><span class="line">  p-&gt;tf-&gt;epc = <span class="number">0</span>;　　　　　　　　<span class="comment">//  设定用户进程的pc指针初始值为0，这就是sleep.c中断点被触发的原因</span></span><br><span class="line">  p-&gt;tf-&gt;sp = PGSIZE;</span><br><span class="line">  safestrcpy(p-&gt;name, <span class="string">&quot;initcode&quot;</span>, <span class="keyword">sizeof</span>(p-&gt;name));</span><br><span class="line">  p-&gt;cwd = namei(<span class="string">&quot;/&quot;</span>);</span><br><span class="line">  p-&gt;state = RUNNABLE;　　　　　　<span class="comment">// 该进程等待调度</span></span><br><span class="line">  release(&amp;p-&gt;lock);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>你只需要知道，xv6会在内核加载完毕后创建第一个进程，第一个进程的代码段是proc.c下的initcode数组，程序入口地址为0x0。当这个进程被调度时，pc指针被设为0，触发了我们打在sleep.c中的断点。这个时候断点虽然被触发，但程序并没有执行到我们想要的地方，仅仅是pc值正好与断点值相同而已。</p>
+<h2 id="进一步讨论"><a href="#进一步讨论" class="headerlink" title="进一步讨论"></a>进一步讨论</h2><p>下面我们提出一个问题：</p>
+<p>\1) 从上面的讨论来看，gdb只是在监测pc指针。以及一些其他寄存器(例如说堆栈指针sp、其他的用户可访问寄存器)。那么为什么我们设断点b parse_int, gdb就可以知道断点打在0x0处？为什么gdb可以告诉我们我们的变量值？</p>
+<p>为了搞懂这个问题，我们需要对elf文件有一个简单的了解。我们知道，代码的虚拟地址是在编译(链接)期生成的，而代码编译后的结果一般是一个ELF(Executable Linkable Format)文件。ELF文件记录了我们代码中每个函数的虚拟地址，此外还会有一些其他有助于我们的信息。我们可以使用指令查看一下user/_sleep这个ELF文件的格式。新开一个终端，输入命令<code>readelf -a user/_sleep</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br></pre></td><td class="code"><pre><span class="line"> 1 ms@ubuntu:~/public/MIT 6.S081/Lab4/xv6-riscv-fall19$ readelf -a user/_sleep </span><br><span class="line">  2 ELF 头：</span><br><span class="line">  3   Magic：   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 </span><br><span class="line">  4   类别:                              ELF64</span><br><span class="line">  5   数据:                              2 补码，小端序 (little endian)</span><br><span class="line">  6   版本:                              1 (current)</span><br><span class="line">  7   OS/ABI:                            UNIX - System V</span><br><span class="line">  8   ABI 版本:                          0</span><br><span class="line">  9   类型:                              EXEC (可执行文件)</span><br><span class="line"> 10   系统架构:                          RISC-V</span><br><span class="line"> 11   版本:                              0x1</span><br><span class="line"> 12   入口点地址：               0x3a</span><br><span class="line"> 13   程序头起点：          64 (bytes into file)</span><br><span class="line"> 14   Start of section headers:          22520 (bytes into file)</span><br><span class="line"> 15   标志：             0x5, RVC, double-float ABI</span><br><span class="line"> 16   本头的大小：       64 (字节)</span><br><span class="line"> 17   程序头大小：       56 (字节)</span><br><span class="line"> 18   Number of program headers:         1</span><br><span class="line"> 19   节头大小：         64 (字节)</span><br><span class="line"> 20   节头数量：         18</span><br><span class="line"> 21   字符串表索引节头： 17</span><br><span class="line"> 22 </span><br><span class="line"> 23 节头：</span><br><span class="line"> 24   [号] 名称              类型             地址              偏移量</span><br><span class="line"> 25        大小              全体大小          旗标   链接   信息   对齐</span><br><span class="line"> 26   [ 0]                   NULL             0000000000000000  00000000</span><br><span class="line"> 27        0000000000000000  0000000000000000           0     0     0</span><br><span class="line"> 28   [ 1] .text             PROGBITS         0000000000000000  00000078</span><br><span class="line"> 29        0000000000000834  0000000000000000 WAX       0     0     2</span><br><span class="line"> 30   [ 2] .rodata           PROGBITS         0000000000000838  000008b0</span><br><span class="line"> 31        0000000000000059  0000000000000000   A       0     0     8</span><br><span class="line"> 32   [ 3] .sbss             NOBITS           0000000000000898  00000909</span><br><span class="line"> 33        0000000000000008  0000000000000000  WA       0     0     8</span><br><span class="line"> 34   [ 4] .bss              NOBITS           00000000000008a0  00000909</span><br><span class="line"> 35        0000000000000010  0000000000000000  WA       0     0     8</span><br><span class="line"> 36   [ 5] .comment          PROGBITS         0000000000000000  00000909</span><br><span class="line"> 37        0000000000000012  0000000000000001  MS       0     0     1</span><br><span class="line"> 38   [ 6] .riscv.attributes LOPROC+0x3       0000000000000000  0000091b</span><br><span class="line"> 39        0000000000000035  0000000000000000           0     0     1</span><br><span class="line"> 40   [ 7] .debug_aranges    PROGBITS         0000000000000000  00000950</span><br><span class="line"> 41        00000000000000f0  0000000000000000           0     0     16</span><br><span class="line"> 42   [ 8] .debug_info       PROGBITS         0000000000000000  00000a40</span><br><span class="line"> 43        0000000000000ea7  0000000000000000           0     0     1</span><br><span class="line"> 44   [ 9] .debug_abbrev     PROGBITS         0000000000000000  000018e7</span><br><span class="line"> 45        00000000000005ab  0000000000000000           0     0     1</span><br><span class="line"> 46   [10] .debug_line       PROGBITS         0000000000000000  00001e92</span><br><span class="line"> 47        000000000000133c  0000000000000000           0     0     1</span><br><span class="line"> 48   [11] .debug_frame      PROGBITS         0000000000000000  000031d0</span><br><span class="line"> 49        0000000000000488  0000000000000000           0     0     8</span><br><span class="line"> 50   [12] .debug_str        PROGBITS         0000000000000000  00003658</span><br><span class="line"> 51        00000000000002d0  0000000000000001  MS       0     0     1</span><br><span class="line"> 52   [13] .debug_loc        PROGBITS         0000000000000000  00003928</span><br><span class="line"> 53        0000000000001578  0000000000000000           0     0     1</span><br><span class="line"> 54   [14] .debug_ranges     PROGBITS         0000000000000000  00004ea0</span><br><span class="line"> 55        0000000000000080  0000000000000000           0     0     1</span><br><span class="line"> 56   [15] .symtab           SYMTAB           0000000000000000  00004f20</span><br><span class="line"> 57        00000000000006a8  0000000000000018          16    24     8</span><br><span class="line"> 58   [16] .strtab           STRTAB           0000000000000000  000055c8</span><br><span class="line"> 59        000000000000017b  0000000000000000           0     0     1</span><br><span class="line"> 60   [17] .shstrtab         STRTAB           0000000000000000  00005743</span><br><span class="line"> 61        00000000000000b5  0000000000000000           0     0     1</span><br><span class="line"> 62 Key to Flags:</span><br><span class="line"> 63   W (write), A (alloc), X (execute), M (merge), S (strings), I (info),</span><br><span class="line"> 64   L (link order), O (extra OS processing required), G (group), T (TLS),</span><br><span class="line"> 65   C (compressed), x (unknown), o (OS specific), E (exclude),</span><br><span class="line"> 66   p (processor specific)</span><br><span class="line"> 67 </span><br><span class="line"> 68 There are no section groups in this file.</span><br><span class="line"> 69 </span><br><span class="line"> 70 程序头：</span><br><span class="line"> 71   Type           Offset             VirtAddr           PhysAddr</span><br><span class="line"> 72                  FileSiz            MemSiz              Flags  Align</span><br><span class="line"> 73   LOAD           0x0000000000000078 0x0000000000000000 0x0000000000000000</span><br><span class="line"> 74                  0x0000000000000891 0x00000000000008b0  RWE    0x8</span><br><span class="line"> 75 </span><br><span class="line"> 76  Section to Segment mapping:</span><br><span class="line"> 77   段节...</span><br><span class="line"> 78    00     .text .rodata .sbss .bss </span><br><span class="line"> 79 </span><br><span class="line"> 80 There is no dynamic section in this file.</span><br><span class="line"> 81 </span><br><span class="line"> 82 该文件中没有重定位信息。</span><br><span class="line"> 83 </span><br><span class="line"> 84 The decoding of unwind sections for machine type RISC-V is not currently supported.</span><br><span class="line"> 85 </span><br><span class="line"> 86 Symbol table &#x27;.symtab&#x27; contains 71 entries:</span><br><span class="line"> 87    Num:    Value          Size Type    Bind   Vis      Ndx Name</span><br><span class="line"> 88      0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND </span><br><span class="line"> 89      1: 0000000000000000     0 SECTION LOCAL  DEFAULT    1 </span><br><span class="line"> 90      2: 0000000000000838     0 SECTION LOCAL  DEFAULT    2 </span><br><span class="line"> 91      3: 0000000000000898     0 SECTION LOCAL  DEFAULT    3 </span><br><span class="line"> 92      4: 00000000000008a0     0 SECTION LOCAL  DEFAULT    4 </span><br><span class="line"> 93      5: 0000000000000000     0 SECTION LOCAL  DEFAULT    5 </span><br><span class="line"> 94      6: 0000000000000000     0 SECTION LOCAL  DEFAULT    6 </span><br><span class="line"> 95      7: 0000000000000000     0 SECTION LOCAL  DEFAULT    7 </span><br><span class="line"> 96      8: 0000000000000000     0 SECTION LOCAL  DEFAULT    8 </span><br><span class="line"> 97      9: 0000000000000000     0 SECTION LOCAL  DEFAULT    9 </span><br><span class="line"> 98     10: 0000000000000000     0 SECTION LOCAL  DEFAULT   10 </span><br><span class="line"> 99     11: 0000000000000000     0 SECTION LOCAL  DEFAULT   11 </span><br><span class="line">100     12: 0000000000000000     0 SECTION LOCAL  DEFAULT   12 </span><br><span class="line">101     13: 0000000000000000     0 SECTION LOCAL  DEFAULT   13 </span><br><span class="line">102     14: 0000000000000000     0 SECTION LOCAL  DEFAULT   14 </span><br><span class="line">103     15: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS sleep.c</span><br><span class="line">104     16: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS ulib.c</span><br><span class="line">105     17: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS printf.c</span><br><span class="line">106     18: 00000000000003b8    34 FUNC    LOCAL  DEFAULT    1 putc</span><br><span class="line">107     19: 00000000000003da   170 FUNC    LOCAL  DEFAULT    1 printint</span><br><span class="line">108     20: 0000000000000880    17 OBJECT  LOCAL  DEFAULT    2 digits</span><br><span class="line">109     21: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS umalloc.c</span><br><span class="line">110     22: 0000000000000898     8 OBJECT  LOCAL  DEFAULT    3 freep</span><br><span class="line">111     23: 00000000000008a0    16 OBJECT  LOCAL  DEFAULT    4 base</span><br><span class="line">112     24: 00000000000000a2    28 FUNC    GLOBAL DEFAULT    1 strcpy</span><br><span class="line">113     25: 0000000000000690    54 FUNC    GLOBAL DEFAULT    1 printf</span><br><span class="line">114     26: 0000000000001091     0 NOTYPE  GLOBAL DEFAULT  ABS __global_pointer$</span><br><span class="line">115     27: 000000000000025e    88 FUNC    GLOBAL DEFAULT    1 memmove</span><br><span class="line">116     28: 0000000000000358     0 NOTYPE  GLOBAL DEFAULT    1 mknod</span><br><span class="line">117     29: 000000000000015a   116 FUNC    GLOBAL DEFAULT    1 gets</span><br><span class="line">118     30: 0000000000000891     0 NOTYPE  GLOBAL DEFAULT    2 __SDATA_BEGIN__</span><br><span class="line">119     31: 0000000000000390     0 NOTYPE  GLOBAL DEFAULT    1 getpid</span><br><span class="line">120     32: 00000000000002f0    24 FUNC    GLOBAL DEFAULT    1 memcpy</span><br><span class="line">121     33: 000000000000074e   230 FUNC    GLOBAL DEFAULT    1 malloc</span><br><span class="line">122     34: 00000000000003a0     0 NOTYPE  GLOBAL DEFAULT    1 sleep</span><br><span class="line">123     35: 0000000000000320     0 NOTYPE  GLOBAL DEFAULT    1 pipe</span><br><span class="line">124     36: 0000000000000330     0 NOTYPE  GLOBAL DEFAULT    1 write</span><br><span class="line">125     37: 0000000000000368     0 NOTYPE  GLOBAL DEFAULT    1 fstat</span><br><span class="line">126     38: 0000000000000662    46 FUNC    GLOBAL DEFAULT    1 fprintf</span><br><span class="line">127     39: 0000000000000340     0 NOTYPE  GLOBAL DEFAULT    1 kill</span><br><span class="line">128     40: 0000000000000484   478 FUNC    GLOBAL DEFAULT    1 vprintf</span><br><span class="line">129     41: 0000000000000380     0 NOTYPE  GLOBAL DEFAULT    1 chdir</span><br><span class="line">130     42: 0000000000000348     0 NOTYPE  GLOBAL DEFAULT    1 exec</span><br><span class="line">131     43: 0000000000000318     0 NOTYPE  GLOBAL DEFAULT    1 wait</span><br><span class="line">132     44: 0000000000000000    58 FUNC    GLOBAL DEFAULT    1 parse_int</span><br><span class="line">133     45: 0000000000000328     0 NOTYPE  GLOBAL DEFAULT    1 read</span><br><span class="line">134     46: 0000000000000360     0 NOTYPE  GLOBAL DEFAULT    1 unlink</span><br><span class="line">135     47: 00000000000002b6    58 FUNC    GLOBAL DEFAULT    1 memcmp</span><br><span class="line">136     48: 0000000000000308     0 NOTYPE  GLOBAL DEFAULT    1 fork</span><br><span class="line">137     49: 00000000000008b0     0 NOTYPE  GLOBAL DEFAULT    4 __BSS_END__</span><br><span class="line">138     50: 0000000000000398     0 NOTYPE  GLOBAL DEFAULT    1 sbrk</span><br><span class="line">139     51: 00000000000003a8     0 NOTYPE  GLOBAL DEFAULT    1 uptime</span><br><span class="line">140     52: 0000000000000891     0 NOTYPE  GLOBAL DEFAULT    3 __bss_start</span><br><span class="line">141     53: 0000000000000114    34 FUNC    GLOBAL DEFAULT    1 memset</span><br><span class="line">142     54: 000000000000003a   104 FUNC    GLOBAL DEFAULT    1 main</span><br><span class="line">143     55: 00000000000003b0     0 NOTYPE  GLOBAL DEFAULT    1 ntas</span><br><span class="line">144     56: 00000000000000be    44 FUNC    GLOBAL DEFAULT    1 strcmp</span><br><span class="line">145     57: 0000000000000388     0 NOTYPE  GLOBAL DEFAULT    1 dup</span><br><span class="line">146     58: 0000000000000891     0 NOTYPE  GLOBAL DEFAULT    2 __DATA_BEGIN__</span><br><span class="line">147     59: 00000000000001ce    70 FUNC    GLOBAL DEFAULT    1 stat</span><br><span class="line">148     60: 0000000000000891     0 NOTYPE  GLOBAL DEFAULT    2 _edata</span><br><span class="line">149     61: 00000000000008b0     0 NOTYPE  GLOBAL DEFAULT    4 _end</span><br><span class="line">150     62: 0000000000000370     0 NOTYPE  GLOBAL DEFAULT    1 link</span><br><span class="line">151     63: 0000000000000310     0 NOTYPE  GLOBAL DEFAULT    1 exit</span><br><span class="line">152     64: 0000000000000214    74 FUNC    GLOBAL DEFAULT    1 atoi</span><br><span class="line">153     65: 00000000000000ea    42 FUNC    GLOBAL DEFAULT    1 strlen</span><br><span class="line">154     66: 0000000000000350     0 NOTYPE  GLOBAL DEFAULT    1 open</span><br><span class="line">155     67: 0000000000000136    36 FUNC    GLOBAL DEFAULT    1 strchr</span><br><span class="line">156     68: 0000000000000378     0 NOTYPE  GLOBAL DEFAULT    1 mkdir</span><br><span class="line">157     69: 0000000000000338     0 NOTYPE  GLOBAL DEFAULT    1 close</span><br><span class="line">158     70: 00000000000006c6   136 FUNC    GLOBAL DEFAULT    1 free</span><br><span class="line">159 </span><br><span class="line">160 No version information found in this file.</span><br></pre></td></tr></table></figure>
+
+<p>可以看到编译后的结果中有不少.debug段。这些程序段为我们debug提供辅助。在编译时如果提供了调试选项 -g，那么编译后就会给我们提供这些辅助信息。这些辅助信息是我们程序中的符号。gdb可以监控pc、sp、各类寄存器的值，配合这些符号，就可以将这些信息“翻译”为我们想要看的变量。</p>
+<p>举个不恰当的例子。某个函数f(int a,int b)那么函数调用时，将会执行两次 sp -= sizeof(int)的操作，将两个int压到栈上。当我们用gdb调试时，gdb根据sp、pc值，结合符号表可知此时有两个int类型变量a和b正在被调用，于是将sp + sizeof(int)处的地址解释为int b，将sp + 2 * sizeof(int)解释为int a，并展示在gdb前端界面上。执行bt查看堆栈时，gdb也是根据sp，通过查阅符号表，将堆栈中的函数地址解释为我们的函数名，并展示在gdb前端上。</p>
+<p>我们曾经输入过命令 file user/_sleep，其目的就是告诉gdb，加载_sleep的符号表，用它的符号表去解释你看到的东西！</p>
+<p>你可以尝试一下在其他地方打下断点:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">(gdb) b sleep  </span><br><span class="line">Breakpoint 2 at 0x3a0: file user/usys.S, line 100.</span><br><span class="line">(gdb) b sys_close</span><br><span class="line">Function </span><br><span class="line">&quot;sys_close&quot; not defined.</span><br></pre></td></tr></table></figure>
+
+<p>在_sleep的符号表中可以看到sleep的段，即ELF文件_sleep包含了sleep函数的符号信息，因此这个断点可以被准确打下。</p>
+<p>sys_close的断点是无法打下来的，有时它还会提示你“Cannot access address at XXXX”。原因也很明显，_sleep的符号表中没有sys_close函数的记录。实际上这个函数的符号存放在kernel/kernel的符号表中。除非让gdb加载kernel/kernel的符号表，否则gdb就根本不知道这个函数到底在哪里。</p>
+<p>这个时候你也可以理解，为什么parse_int的函数参数这么奇怪了。因为这个时候执行的根本不是_sleep，拿_sleep的符号表去解释这些信息，肯定是错误的。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">(gdb) c</span><br><span class="line">Continuing.` `Breakpoint 1, parse_int (</span><br><span class="line"></span><br><span class="line">    arg=0x1 &lt;parse_int+1&gt; </span><br><span class="line">&quot;\021\006\354\&quot;\350&amp;\344&quot;</span><br><span class="line">, &lt;incomplete sequence \340&gt;)</span><br><span class="line"></span><br><span class="line">at user/sleep.c:6</span><br><span class="line">6      </span><br><span class="line">for` `( ; *p ; p++ ) &#123;</span><br><span class="line">    (gdb) c</span><br><span class="line">Continuing.` `Breakpoint 1, parse_int (arg=0x1460 </span><br><span class="line">    &quot;&quot;</span><br><span class="line">) at user/sleep.c:6</span><br><span class="line">6      </span><br><span class="line">for` `( ; *p ; p++ ) &#123;</span><br><span class="line">    (gdb)</span><br><span class="line">    Continuing.</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>按了几次c后，终于出现了我们的shell界面。</p>
+<p>随后，在xv6的shell输入命令 sleep 10。可能还需要按几次c，才能到达真正的parse_int函数的断点。</p>
+<p>这个时候我们已经可以调试parse_int了，enjoy it！</p>
+<h1 id="调试xv6的第一个进程"><a href="#调试xv6的第一个进程" class="headerlink" title="调试xv6的第一个进程"></a>调试xv6的第一个进程</h1><p>虽然我们已经很好的解释了为什么parse_int的断点被触发了，但上述内容并不是我们的重点，下面来我们的重头戏之一：让我们看看initcode那堆东西到底做了什么，即xv6的第一个用户进程到底做了什么！</p>
+<p>我们直接将断点打在0x0上，查看汇编代码，si调试：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">......</span><br><span class="line">For help, type &quot;help&quot;.</span><br><span class="line">Type &quot;apropos word&quot; to search for commands related to &quot;word&quot;...</span><br><span class="line">Reading symbols from kernel/kernel...</span><br><span class="line">The target architecture is assumed to be riscv:rv64</span><br><span class="line">0x0000000000001000 in ?? ()</span><br><span class="line">(gdb) b *0x0    </span><br><span class="line">Breakpoint 1 at 0x0</span><br><span class="line">(gdb) c</span><br><span class="line">Continuing.</span><br><span class="line"></span><br><span class="line">Breakpoint 1, 0x0000000000000000 in ?? ()</span><br><span class="line">=&gt; 0x0000000000000000:  17 05 00 00     auipc   a0,0x0</span><br><span class="line">(gdb) si</span><br><span class="line">0x0000000000000004 in ?? ()</span><br><span class="line">=&gt; 0x0000000000000004:  13 05 05 02     addi    a0,a0,32</span><br><span class="line">(gdb) </span><br><span class="line">0x0000000000000008 in ?? ()</span><br><span class="line">=&gt; 0x0000000000000008:  97 05 00 00     auipc   a1,0x0</span><br><span class="line">(gdb) </span><br><span class="line">0x000000000000000c in ?? ()</span><br><span class="line">=&gt; 0x000000000000000c:  93 85 05 02     addi    a1,a1,32</span><br><span class="line">(gdb) </span><br><span class="line">0x0000000000000010 in ?? ()</span><br><span class="line">=&gt; 0x0000000000000010:  9d 48   li      a7,7</span><br><span class="line">(gdb) </span><br><span class="line">0x0000000000000012 in ?? ()</span><br><span class="line">=&gt; 0x0000000000000012:  73 00 00 00     ecall</span><br><span class="line">(gdb) </span><br></pre></td></tr></table></figure>
+
+
+
+<p>系统调用的编号存放在寄存器a7中，编号为7，查看kerne/syscall.h可知，编号为7的系统调用是SYS_EXEC。我们先把断点1删掉避免gdb因为断点崩溃掉，然后再exec上打断点：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">0x0000000000000010 in ?? ()</span><br><span class="line">=&gt; 0x0000000000000010:  9d 48   li      a7,7</span><br><span class="line">(gdb) </span><br><span class="line">0x0000000000000012 in ?? ()</span><br><span class="line">=&gt; 0x0000000000000012:  73 00 00 00     ecall</span><br><span class="line">(gdb) delete 1</span><br><span class="line">(gdb) b exec</span><br><span class="line">Cannot access memory at address 0x80004da8</span><br><span class="line">(gdb) </span><br></pre></td></tr></table></figure>
+
+
+
+<p>嗯，失败了…不过可以理解，因为这个时候进程在执行用户程序，而exec的代码在内核区，用户区自然不能去访问内核区的代码了。我们老老实实si单步调试过ecall，直到CPU进入内核态后再看看能不能打下这个断点：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">=&gt; 0x0000000000000010:  9d 48   li      a7,7</span><br><span class="line">(gdb) </span><br><span class="line">0x0000000000000012 in ?? ()</span><br><span class="line">=&gt; 0x0000000000000012:  73 00 00 00     ecall</span><br><span class="line">(gdb) delete 1</span><br><span class="line">(gdb) b exec</span><br><span class="line">Cannot access memory at address 0x80004da8</span><br><span class="line">(gdb) si</span><br><span class="line">0x0000003ffffff004 in ?? ()</span><br><span class="line">=&gt; 0x0000003ffffff004:  23 34 15 02     sd      ra,40(a0)</span><br><span class="line">(gdb) </span><br><span class="line">0x0000003ffffff008 in ?? ()</span><br><span class="line">=&gt; 0x0000003ffffff008:  23 38 25 02     sd      sp,48(a0)</span><br><span class="line">(gdb) </span><br><span class="line"></span><br><span class="line">.....</span><br><span class="line"></span><br><span class="line">0x0000003ffffff07e in ?? ()</span><br><span class="line">=&gt; 0x0000003ffffff07e:  83 32 05 01     ld      t0,16(a0)</span><br><span class="line">(gdb) </span><br><span class="line">0x0000003ffffff082 in ?? ()</span><br><span class="line">=&gt; 0x0000003ffffff082:  03 33 05 00     ld      t1,0(a0)</span><br><span class="line">(gdb) </span><br><span class="line">0x0000003ffffff086 in ?? ()</span><br><span class="line">=&gt; 0x0000003ffffff086:  73 10 03 18     csrw    satp,t1</span><br><span class="line">(gdb) b exec</span><br><span class="line">Cannot access memory at address 0x80004da8</span><br><span class="line">(gdb) si</span><br><span class="line">0x0000003ffffff08a in ?? ()</span><br><span class="line">=&gt; 0x0000003ffffff08a:  73 00 00 12     sfence.vma</span><br><span class="line">(gdb) b exec</span><br><span class="line">Breakpoint 2 at 0x80004da8: file kernel/exec.c, line 14.</span><br><span class="line">(gdb) c</span><br></pre></td></tr></table></figure>
+
+
+
+<p>在执行完csrw　satp, t1后，我们终于能在exec上打下断点了！不过不要打下这个断点，我们继续一步一步调试，代码会进入到kernel/trap.c中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">0x0000003ffffff086 in ?? ()</span><br><span class="line">=&gt; 0x0000003ffffff086:  73 10 03 18     csrw    satp,t1</span><br><span class="line">(gdb) </span><br><span class="line">0x0000003ffffff08a in ?? ()</span><br><span class="line">=&gt; 0x0000003ffffff08a:  73 00 00 12     sfence.vma</span><br><span class="line">(gdb) </span><br><span class="line">0x0000003ffffff08e in ?? ()</span><br><span class="line">=&gt; 0x0000003ffffff08e:  82 82   jr      t0</span><br><span class="line">(gdb) </span><br><span class="line">usertrap () at kernel/trap.c:41</span><br><span class="line">41      &#123;</span><br><span class="line">(gdb) n</span><br><span class="line">44        if((r_sstatus() &amp; SSTATUS_SPP) != 0)</span><br><span class="line">(gdb) </span><br><span class="line">54        return x;</span><br><span class="line">(gdb) </span><br></pre></td></tr></table></figure>
+
+
+
+<p>继续调试，终于我们看到了系统调用总入口，按下s进入系统调用总入口syscall，然后进入我们想要看的系统调用sys_exec中。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">(gdb) </span><br><span class="line">56        if(r_scause() == 8)&#123;</span><br><span class="line">(gdb) </span><br><span class="line">224       return x;</span><br><span class="line">(gdb) </span><br><span class="line">59          if(p-&gt;killed)</span><br><span class="line">(gdb) </span><br><span class="line">64          p-&gt;tf-&gt;epc += 4;</span><br><span class="line">(gdb) </span><br><span class="line">68          intr_on();</span><br><span class="line">(gdb) </span><br><span class="line">70          syscall();</span><br><span class="line">(gdb) s </span><br><span class="line">syscall () at kernel/syscall.c:138</span><br><span class="line">138       struct proc *p = myproc();</span><br><span class="line">(gdb) n</span><br><span class="line">140       num = p-&gt;tf-&gt;a7;</span><br><span class="line">(gdb) </span><br><span class="line">141       if(num &gt; 0 &amp;&amp; num &lt; NELEM(syscalls) &amp;&amp; syscalls[num]) &#123;</span><br><span class="line">(gdb) </span><br><span class="line">142         p-&gt;tf-&gt;a0 = syscalls[num]();</span><br><span class="line">(gdb) s</span><br><span class="line">sys_exec () at kernel/sysfile.c:419</span><br><span class="line">419       if(argstr(0, path, MAXPATH) &lt; 0 || argaddr(1, &amp;uargv) &lt; 0)&#123;</span><br><span class="line">(gdb) n</span><br><span class="line">422       memset(argv, 0, sizeof(argv));</span><br><span class="line">(gdb) </span><br><span class="line">424         if(i &gt;= NELEM(argv))&#123;</span><br><span class="line">(gdb) n</span><br><span class="line">427         if(fetchaddr(uargv+sizeof(uint64)*i, (uint64*)&amp;uarg) &lt; 0)&#123;</span><br><span class="line">(gdb) </span><br><span class="line">430         if(uarg == 0)&#123;</span><br><span class="line">(gdb) </span><br><span class="line">434         argv[i] = kalloc();</span><br><span class="line">(gdb) </span><br><span class="line">435         if(argv[i] == 0)</span><br><span class="line">(gdb) </span><br><span class="line">437         if(fetchstr(uarg, argv[i], PGSIZE) &lt; 0)&#123;</span><br><span class="line">(gdb) </span><br><span class="line">424         if(i &gt;= NELEM(argv))&#123;</span><br><span class="line">(gdb) </span><br><span class="line">427         if(fetchaddr(uargv+sizeof(uint64)*i, (uint64*)&amp;uarg) &lt; 0)&#123;</span><br><span class="line">(gdb) </span><br><span class="line">430         if(uarg == 0)&#123;</span><br><span class="line">(gdb) </span><br><span class="line">431           argv[i] = 0;</span><br><span class="line">(gdb) </span><br><span class="line">442       int ret = exec(path, argv);</span><br><span class="line">(gdb) p path</span><br><span class="line">$1 = &quot;/init\000\000\000 \337\377\377?\000\000\000\340\061\001\200\000\000\000\000 \337\377\377?\000\000\000@\337\377\377?\000\000\000\246\n\000\200\000\000\000\000\330\061\001\200\000\000\000\000\310\061\001\200\000\000\000\000`\337\377\377?\000\000\000\034\061\000\200\000\000\000\000\310\061\001\200&quot;, &#x27;\000&#x27; &lt;repeats 12 times&gt;, &quot;\220\337\377\377?\000\000\000\256?\000\200\000\000\000\000\220\337\377\377?\0</span><br></pre></td></tr></table></figure>
+
+
+
+<p>OK，exec的东西我们已经可以知道了，它要将init这个程序“装入”到内核中。这个程序对应的C代码在user/init.c下，对应的ELF文件为user/_init。我们不再仔细的看exec了，后面我可能会单独写一篇blog细讲ELF文件和exec（不过大概率无限咕咕咕），直接单行跳过，从sys_exec中跳出，回到了trap.c的usertrap()函数中，下一步就会从用户trap里返回用户态：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">442       int ret = exec(path, argv);</span><br><span class="line">(gdb) p path</span><br><span class="line">$1 = &quot;/init\000\000\000 \337\377\377?\000\000\000\340\061\001\200\000\000\000\000 \337\377\377?\000\000\000@\337\377\377?\000\000\000\246\n\000\200\000\000\000\000\330\061\001\200\000\000\000\000\310\061\001\200\000\000\000\000`\337\377\377?\000\000\000\034\061\000\200\000\000\000\000\310\061\001\200&quot;, &#x27;\000&#x27; &lt;repeats 12 times&gt;, &quot;\220\337\377\377?\000\000\000\256?\000\200\000\000\000\000\220\337\377\377?\000\000\000\220\337\377\377?\000\000&quot;</span><br><span class="line">(gdb) n</span><br><span class="line">444       for(i = 0; i &lt; NELEM(argv) &amp;&amp; argv[i] != 0; i++)</span><br><span class="line">(gdb) n</span><br><span class="line">445         kfree(argv[i]);</span><br><span class="line">(gdb) </span><br><span class="line">444       for(i = 0; i &lt; NELEM(argv) &amp;&amp; argv[i] != 0; i++)</span><br><span class="line">(gdb) </span><br><span class="line">447       return ret;</span><br><span class="line">(gdb) n</span><br><span class="line">usertrap () at kernel/trap.c:79</span><br><span class="line">79        if(p-&gt;killed)</span><br><span class="line">(gdb) n</span><br><span class="line">86        usertrapret();</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">usertrap () at kernel/trap.c:79</span><br><span class="line">79        if(p-&gt;killed)</span><br><span class="line">(gdb) </span><br><span class="line">86        usertrapret();</span><br><span class="line">(gdb) s</span><br><span class="line">usertrapret () at kernel/trap.c:95</span><br><span class="line">95        struct proc *p = myproc();</span><br><span class="line">(gdb) n</span><br><span class="line">99        intr_off();</span><br><span class="line">(gdb) </span><br><span class="line">166       asm volatile(&quot;csrw stvec, %0&quot; : : &quot;r&quot; (x));</span><br><span class="line">(gdb) </span><br><span class="line">106       p-&gt;tf-&gt;kernel_satp = r_satp();         // kernel page table</span><br><span class="line">(gdb) </span><br><span class="line">202       return x;</span><br><span class="line">(gdb) </span><br><span class="line">107       p-&gt;tf-&gt;kernel_sp = p-&gt;kstack + PGSIZE; // process&#x27;s kernel stack</span><br><span class="line">(gdb) </span><br><span class="line">108       p-&gt;tf-&gt;kernel_trap = (uint64)usertrap;</span><br><span class="line">(gdb) </span><br><span class="line">109       p-&gt;tf-&gt;kernel_hartid = r_tp();         // hartid for cpuid()</span><br><span class="line">(gdb) </span><br><span class="line">297       return x;</span><br><span class="line">(gdb) </span><br><span class="line">115       unsigned long x = r_sstatus();</span><br><span class="line">(gdb) </span><br><span class="line">116       x &amp;= ~SSTATUS_SPP; // clear SPP to 0 for user mode</span><br><span class="line">(gdb) </span><br><span class="line">60        asm volatile(&quot;csrw sstatus, %0&quot; : : &quot;r&quot; (x));</span><br><span class="line">(gdb) </span><br><span class="line">120       asm volatile(&quot;csrw sepc, %0&quot; : : &quot;r&quot; (x));</span><br><span class="line">(gdb) </span><br><span class="line">130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br></pre></td></tr></table></figure>
+
+
+
+<p>这个诡异的函数指针和函数调用，我们不能用n，因为很可能找不到对应的C代码，我们用si苟过去：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">(gdb) si</span><br><span class="line">0x0000000080002814      130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">(gdb) </span><br><span class="line">0x0000000080002816      130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">(gdb) </span><br><span class="line">0x000000008000281a      130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">(gdb) </span><br><span class="line">0x000000008000281e      130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">(gdb) </span><br><span class="line">0x0000000080002820      130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">(gdb) </span><br><span class="line">0x0000000080002822      130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">(gdb) </span><br><span class="line">0x0000000080002824      130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">(gdb) </span><br><span class="line">0x0000000080002826      130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">(gdb) </span><br><span class="line">0x0000000080002828      130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">(gdb) </span><br><span class="line">0x000000008000282c      130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">(gdb) </span><br><span class="line">0x000000008000282e      130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">(gdb) </span><br><span class="line">0x0000000080002830      130       ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);</span><br><span class="line">(gdb) </span><br><span class="line">0x0000003ffffff090 in ?? ()</span><br><span class="line">=&gt; 0x0000003ffffff090:  73 90 05 18     csrw    satp,a1</span><br><span class="line">(gdb) </span><br><span class="line">0x0000003ffffff094 in ?? ()</span><br><span class="line">=&gt; 0x0000003ffffff094:  73 00 00 12     sfence.vma</span><br><span class="line">(gdb) </span><br><span class="line">0x0000003ffffff098 in ?? ()</span><br><span class="line">=&gt; 0x0000003ffffff098:  83 32 05 07     ld      t0,112(a0)</span><br><span class="line">(gdb) </span><br><span class="line">0x0000003ffffff09c in ?? ()</span><br><span class="line">=&gt; 0x0000003ffffff09c:  73 90 02 14     csrw    sscratch,t0</span><br></pre></td></tr></table></figure>
+
+
+
+<p>后面的汇编代码其实就是trampoline.S下的userret函数。它完成从内核态到用户态的返回。至此系统调用sys_exec的其实在系统调用之前执行的外壳函数（就是ecall那一块的代码），就是其下的uservec函数。userret函数完成从内核态到用户态的返回。至此系统调用sys_exec的流程已经结束。如果你希望看到这段代码回到用户态，还需要重新加载用户态相应的符号表。但用户态代码是initcode，所以你无法观看。不过没关系，掌握了内核符号表与用户程序符号表的切换，你可以随心所欲的调试系统调用，套路都是一样的。</p>
+<p>最后我们来看一下init.c的代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">// init: The initial user-level program</span><br><span class="line"></span><br><span class="line">#include &quot;kernel/types.h&quot;</span><br><span class="line">#include &quot;kernel/stat.h&quot;</span><br><span class="line">#include &quot;user/user.h&quot;</span><br><span class="line">#include &quot;kernel/fcntl.h&quot;</span><br><span class="line"></span><br><span class="line">char *argv[] = &#123; &quot;sh&quot;, 0 &#125;;</span><br><span class="line"></span><br><span class="line">int</span><br><span class="line">main(void)</span><br><span class="line">&#123;</span><br><span class="line">  int pid, wpid;</span><br><span class="line"></span><br><span class="line">  if(open(&quot;console&quot;, O_RDWR) &lt; 0)&#123;</span><br><span class="line">    mknod(&quot;console&quot;, 1, 1);</span><br><span class="line">    open(&quot;console&quot;, O_RDWR);</span><br><span class="line">  &#125;</span><br><span class="line">  dup(0);  // stdout</span><br><span class="line">  dup(0);  // stderr</span><br><span class="line"></span><br><span class="line">  for(;;)&#123;</span><br><span class="line">    printf(&quot;init: starting sh\n&quot;);</span><br><span class="line">    pid = fork();</span><br><span class="line">    if(pid &lt; 0)&#123;</span><br><span class="line">      printf(&quot;init: fork failed\n&quot;);</span><br><span class="line">      exit(1);</span><br><span class="line">    &#125;</span><br><span class="line">    if(pid == 0)&#123;</span><br><span class="line">      exec(&quot;sh&quot;, argv);</span><br><span class="line">      printf(&quot;init: exec sh failed\n&quot;);</span><br><span class="line">      exit(1);</span><br><span class="line">    &#125;</span><br><span class="line">    while((wpid=wait(0)) &gt;= 0 &amp;&amp; wpid != pid)&#123;</span><br><span class="line">      //printf(&quot;zombie!\n&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>大致意思是打开标准输入(0)、标准输出(1)、标准错误输出(2)对应的终端。由于所有的进程的祖先进程都是这个pid = 1的进程，因此它们都会继承标准输入和标准输出。随后初代进程（怎么这么中二？）fork，自己循环调用wait回收僵尸进程，子进程（即pid = 2的进程）执行sh，即加载我们的shell，这样我们就可以利用shell操作我们的xv6了。</p>
+<p>最后我们总结一下xv6的第一个用户程序总流程：</p>
+<p>\1) xv6成功boot，启动第一个用户程序，初始化代码为initcode，这段initcode写死在了kernel/proc.c中</p>
+<p>\2) 第一个用户程序（即initcode代码）开始执行，初始指针为0x0。initcode代码仅仅是一行 exec(“init”)，即将init”装入”到当前进程中。</p>
+<p>\3) init程序装入后执行fork，父进程pid=1，无限循环调用wait回收僵尸进程，子进程pid=2，调用exec(“sh”)，即启动shell，打开交互界面</p>
+<p>OK，如果你能把这节内容掌握，你就可以自由的在xv6中往返于内核和用户空间了。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E5%A4%A7%E6%B5%81%E9%87%8F%E7%BD%91%E7%BB%9C%E8%B4%9F%E8%BD%BD%E5%AF%B9%E9%9B%86%E7%BE%A4%E5%BD%B1%E5%93%8D%E7%9A%84%E6%B5%8B%E8%AF%95/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1791,197 +2044,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%9Aselect%E3%80%81poll%E4%B8%8Eepoll%E7%9A%84%E6%AF%94%E8%BE%83/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%9Aselect%E3%80%81poll%E4%B8%8Eepoll%E7%9A%84%E6%AF%94%E8%BE%83/" itemprop="url">多路复用：select、poll与epoll的比较</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-09-21T16:40:38+08:00">
-                2021-09-21
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
-                    <span itemprop="name">知识点总结</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/I-O/" itemprop="url" rel="index">
-                    <span itemprop="name">I/O</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%9Aselect%E3%80%81poll%E4%B8%8Eepoll%E7%9A%84%E6%AF%94%E8%BE%83/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/多路复用：select、poll与epoll的比较/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h2><p> I/O 多路复用、信号驱动 I/O 以及 epoll 都是用来实现同一个目标的技术— 同 时检查多个文件描述符，看它们是否准备好了执行 I/O 操作(准确地说，是看 I/O 系统调 用是否可以非阻塞地执行)。文件描述符就绪状态的转化是通过一些 I/O 事件来触发的，比 如输入数据到达，套接字连接建立完成，或者是之前满载的套接字发送缓冲区在 TCP 将队 列中的数据传送到对端之后有了剩余空间。同时检查多个文件描述符在类似网络服务器的应用中很有用处，或者是那些必须同时检查终端以及管道或套接字输入的应用程序。</p>
-<p> 需要注意的是这些技术都不会执行实际的 I/O 操作。它们只是告诉我们某个文件描述符已经处于就绪状态了。这时需要调用其他的系统调用来完成实际的 I/O 操作。</p>
-<h3 id="I-O方式的选择"><a href="#I-O方式的选择" class="headerlink" title="I/O方式的选择"></a>I/O方式的选择</h3><ul>
-<li>系统调用select()和poll()在UNIX系统中已经存在了很长的时间。同其他技术相比，它 们主要的优势在于可移植性，主要缺点在于当同时检查大量的(数百或数千个)文件 描述符时性能延展性不佳。</li>
-<li>epollAPI的关键优势在于它能让应用程序高效地检查大量的文件描述符。其主要缺点 在于它是专属于 Linux 系统的 API。</li>
-<li>同 epoll 一样，信号驱动 I/O 可以让应用程序高效地检查大量的文件描述符。但是 epoll 有一些信号驱动 I/O 所没有的优点。<ul>
-<li>避免了处理信号的复杂性。</li>
-<li>我们可以指定想要检查的事件类型(即，读就绪或者写就绪)。</li>
-<li>我们可以选择以水平触发或边缘触发的形式来通知进程。</li>
-</ul>
-</li>
-</ul>
-<p>另外，要完全利用信号 I/O 的优点需要用到不可移植的 Linux 专有的特性，而如果我们这么做了，那么信号驱动 I/O 的可移植性也不会比 epoll 更好。</p>
-<h3 id="水平触发和边缘触发"><a href="#水平触发和边缘触发" class="headerlink" title="水平触发和边缘触发"></a>水平触发和边缘触发</h3><p>在深入讨论多种可选的 I/O 机制之前，我们需要先区分两种文件描述符准备就绪的通知模式。</p>
-<ul>
-<li>水平触发通知:如果文件描述符上可以非阻塞地执行 I/O 系统调用，此时认为它已经就绪。</li>
-<li>边缘触发通知:如果文件描述符自上次状态检查以来有了新的 I/O 活动(比如新的输入)，此时需要触发通知。</li>
-</ul>
-<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/e8tMom.png" alt="e8tMom"></p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%9Aselect%E3%80%81poll%E4%B8%8Eepoll%E7%9A%84%E6%AF%94%E8%BE%83/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/8/">8</a><a class="extend next" rel="next" href="/page/2/">&gt;</a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/9/">9</a><a class="extend next" rel="next" href="/page/2/">&gt;</a>
   </nav>
 
 
@@ -2027,7 +2094,7 @@
               
                 <a href="">
               
-                  <span class="site-state-item-count">80</span>
+                  <span class="site-state-item-count">81</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2049,7 +2116,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">35</span>
+                  <span class="site-state-item-count">36</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
