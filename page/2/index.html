@@ -270,6 +270,182 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/Go-netpoller-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/Go-netpoller-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E8%AF%A6%E8%A7%A3/" itemprop="url">Go netpoller 网络模型详解</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-09-25T20:41:09+08:00">
+                2021-09-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
+                    <span itemprop="name">知识点总结</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/I-O/" itemprop="url" rel="index">
+                    <span itemprop="name">I/O</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/Go-netpoller-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E8%AF%A6%E8%A7%A3/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/Go-netpoller-网络模型详解/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <blockquote><p>本文节选自<code>潘少</code>的文章，写的非常好，理解golang的网络模型非常有意义，建议Gopher都花时间仔细研究下</p>
+<footer><strong>潘建锋</strong><cite><a target="_blank" rel="noopener" href="https://strikefreedom.top/go-netpoll-io-multiplexing-reactor">`Go netpoller` 原生网络模型之源码全面揭秘</a></cite></footer></blockquote>
+
+<h2 id="导言"><a href="#导言" class="headerlink" title="导言"></a>导言</h2><p>Go 基于 I/O multiplexing 和 goroutine scheduler 构建了一个简洁而高性能的原生网络模型(基于 Go 的 <code>I/O</code> 多路复用 <code>netpoller</code> )，提供了 <code>goroutine-per-connection</code> 这样简单的网络编程模式。在这种模式下，开发者<strong>使用的是同步的模式去编写异步</strong>的逻辑，极大地降低了开发者编写网络应用时的心智负担，且借助于 Go runtime scheduler 对 goroutines 的高效调度，这个原生网络模型不论从适用性还是性能上都足以满足绝大部分的应用场景。</p>
+<p>然而，在工程性上能做到如此高的普适性和兼容性，最终暴露给开发者提供接口/模式如此简洁，其底层必然是基于非常复杂的封装，做了很多取舍，也有可能放弃了一些追求极致性能的设计和理念。事实上 <code>Go netpoller</code> 底层就是基于 epoll/kqueue/iocp 这些 <code>I/O</code> 多路复用技术来做封装的，最终暴露出 <code>goroutine-per-connection</code> 这样的极简的开发模式给使用者。</p>
+<p><code>Go netpoller</code> 在不同的操作系统，其底层使用的 <code>I/O</code> 多路复用技术也不一样，可以从 Go 源码目录结构和对应代码文件了解 Go 在不同平台下的网络 <code>I/O</code> 模式的实现。比如，在 Linux 系统下基于 epoll，freeBSD 系统下基于 kqueue，以及 Windows 系统下基于 iocp。</p>
+<p>本文将基于 Linux 平台来解析 <code>Go netpoller</code> 之 <code>I/O</code> 多路复用的底层是如何基于 epoll 封装实现的，从源码层层推进，全面而深度地解析 <code>Go netpoller</code> 的设计理念和实现原理，以及 Go 是如何利用 <code>netpoller</code> 来构建它的原生网络模型的。主要涉及到的一些概念：I/O 模型、用户/内核空间、epoll、Linux 源码、goroutine scheduler 等等，我会尽量简单地讲解，如果有对相关概念不熟悉的同学，还是希望能提前熟悉一下。</p>
+<h2 id="Go-netpoller-核心"><a href="#Go-netpoller-核心" class="headerlink" title="Go netpoller 核心"></a><code>Go netpoller</code> 核心</h2><p><strong><code>Go netpoller</code> 基本原理</strong></p>
+<p><strong><code>Go netpoller</code> 通过在底层对 epoll/kqueue/iocp 的封装，从而实现了使用同步编程模式达到异步执行的效果。总结来说，所有的网络操作都以网络描述符 <code>netFD</code> 为中心实现。<code>netFD</code> 与底层 <code>PollDesc</code> 结构绑定，当在一个 <code>netFD</code> 上读写遇到 EAGAIN 错误时，就将当前 goroutine 存储到这个 <code>netFD</code> 对应的 <code>PollDesc</code> 中，同时调用 gopark 把当前 goroutine 给 park 住，直到这个 <code>netFD</code> 上再次发生读写事件，才将此 goroutine 给 ready 激活重新运行。显然，在底层通知 goroutine 再次发生读写等事件的方式就是 epoll/kqueue/iocp 等事件驱动机制。</strong></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/Go-netpoller-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E8%AF%A6%E8%A7%A3/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%9Aselect%E3%80%81poll%E4%B8%8Eepoll%E7%9A%84%E6%AF%94%E8%BE%83/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1836,179 +2012,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E3%80%8AKubernetes%20in%20Action%E3%80%8B%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/%E3%80%8AKubernetes%20in%20Action%E3%80%8B%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" itemprop="url">《Kubernetes in Action》读书笔记</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-12-16T11:13:56+08:00">
-                2020-12-16
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index">
-                    <span itemprop="name">读书笔记</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/Kubernetes/" itemprop="url" rel="index">
-                    <span itemprop="name">Kubernetes</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/%E3%80%8AKubernetes%20in%20Action%E3%80%8B%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/《Kubernetes in Action》读书笔记/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h1 id="Kubernetes简介"><a href="#Kubernetes简介" class="headerlink" title="Kubernetes简介"></a>Kubernetes简介</h1><p>大多数软件应用最初都是巨大的单体应用，以单进程运行或分散在多个物理机上的多个进程这样的形式运行。内部组件互相依赖，开发难，部署难，维护难。</p>
-<p>对一个组件的改动需要重新部署整个应用，随着时间流逝，组件间对硬性边界的缺乏会导致复杂性上升，并且因为组件间无限制的依赖增长，会导致整个系统的质量下降。</p>
-<h2 id="拆分微服务"><a href="#拆分微服务" class="headerlink" title="拆分微服务"></a>拆分微服务</h2><p>每个微服务作为独立组件开发、部署，减少组件间依赖。服务间通过同步协议（如HTTP）或异步协议（如AMQP）通信。无状态的组件可以横向扩容到多个机器的多个进程里，不能横向扩容的也可以通过给单节点加cpu、加内存进行纵向扩容。</p>
-<p>微服务也有缺点，随着组件的增多，决策相互关联组件的部署方案以及管理组件的多版本外部依赖变得越来越难；部署时，需要将所有组件进行正确的配置；遇到故障时的问题定位也变得复杂；还需要处理不同环境问题。</p>
-<h2 id="持续交付：DevOps-和-NoOps"><a href="#持续交付：DevOps-和-NoOps" class="headerlink" title="持续交付：DevOps 和 NoOps"></a>持续交付：DevOps 和 NoOps</h2><p>开发者参与开发、部署、维护工作，然而开发者也并不了解也不想了解基础设施、底层架构的细节，也不想和运维团队打交道。</p>
-<p>所以Kubernetes诞生了，它抽象底层硬件并将它们暴露成一个可部署和运行应用的平台。让开发者不需要系统管理员的帮助就可以配置、部署他们的应用，让系统管理员专注于基础架构的正常运行，而不用了解上层运行的任何应用。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/%E3%80%8AKubernetes%20in%20Action%E3%80%8B%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2059,7 +2062,7 @@
               
                 <a href="">
               
-                  <span class="site-state-item-count">81</span>
+                  <span class="site-state-item-count">82</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -2180,7 +2183,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
