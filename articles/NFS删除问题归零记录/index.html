@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="NFS," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="1.问题概述时间：2023年8月2日 地点：北京mips64物理机开发环境（） 问题描述： 添加NFS数据源，填写了错误的IP地址192.1682.17，点击确定之后报错，发现IP地址错误后重新修改为192.168.2.17，点击确定，数据源添加成功，过一会儿后发现共享存储路径&#x2F;mnt&#x2F;shareroot内的文件全都没了。 补充信息：  nfs-server运行在Pro集群的其中一个节点上（通常是">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NFS删除问题归零记录">
+<meta property="og:url" content="https://aaron-ql.github.io/articles/NFS%E5%88%A0%E9%99%A4%E9%97%AE%E9%A2%98%E5%BD%92%E9%9B%B6%E8%AE%B0%E5%BD%95/index.html">
+<meta property="og:site_name" content="Code Your Ambition">
+<meta property="og:description" content="1.问题概述时间：2023年8月2日 地点：北京mips64物理机开发环境（） 问题描述： 添加NFS数据源，填写了错误的IP地址192.1682.17，点击确定之后报错，发现IP地址错误后重新修改为192.168.2.17，点击确定，数据源添加成功，过一会儿后发现共享存储路径&#x2F;mnt&#x2F;shareroot内的文件全都没了。 补充信息：  nfs-server运行在Pro集群的其中一个节点上（通常是">
+<meta property="og:locale">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/WX20230817-114836-20230825101436445.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/image-20230821135854078-20230825101436536.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/image-20230823152022399.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/image-20230823153645561.png">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/image-20230823155001202.png">
+<meta property="article:published_time" content="2023-08-25T02:12:52.000Z">
+<meta property="article:modified_time" content="2023-08-25T02:16:02.443Z">
+<meta property="article:author" content="Aaron Qin">
+<meta property="article:tag" content="NFS">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/WX20230817-114836-20230825101436445.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://aaron-ql.github.io/articles/NFS删除问题归零记录/"/>
+
+
+
+
+
+  <title>NFS删除问题归零记录 | Code Your Ambition</title>
+  
+
+
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZV2QP61MNB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-ZV2QP61MNB');
+</script>
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Code Your Ambition</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-commonweal">
+          <a href="/404/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            公益404
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/NFS%E5%88%A0%E9%99%A4%E9%97%AE%E9%A2%98%E5%BD%92%E9%9B%B6%E8%AE%B0%E5%BD%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">NFS删除问题归零记录</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2023-08-25T10:12:52+08:00">
+                2023-08-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index">
+                    <span itemprop="name">踩坑记录</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/NFS%E5%88%A0%E9%99%A4%E9%97%AE%E9%A2%98%E5%BD%92%E9%9B%B6%E8%AE%B0%E5%BD%95/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/NFS删除问题归零记录/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="1-问题概述"><a href="#1-问题概述" class="headerlink" title="1.问题概述"></a>1.问题概述</h1><p><strong>时间</strong>：2023年8月2日</p>
+<p><strong>地点</strong>：北京mips64物理机开发环境（）</p>
+<p><strong>问题描述</strong>：</p>
+<p>添加NFS数据源，填写了错误的IP地址<code>192.1682.17</code>，点击确定之后报错，发现IP地址错误后重新修改为<code>192.168.2.17</code>，点击确定，数据源添加成功，过一会儿后发现共享存储路径<code>/mnt/shareroot</code>内的文件全都没了。</p>
+<p><strong>补充信息</strong>：</p>
+<blockquote>
+<p><code>nfs-server</code>运行在Pro集群的其中一个节点上（通常是第一个节点），对外暴露该节点下<code>/data/share</code>的内容，集群的各个节点会将该路径挂载到各自节点的<code>/mnt/shareroot</code>下，作为共享存储的访问路径:</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@host1 ~]# mount | grep /data/share</span><br><span class="line">192.168.2.17:/data/share on /mnt/shareroot type nfs (rw,relatime,vers=3,rsize=1048576,wsize=1048576,namlen=255,hard,proto=tcp,port=717,timeo=600,retrans=2,sec=sys,mountaddr=192.168.2.17,mountvers=3,mountport=718,mountproto=tcp,local_lock=none,addr=192.168.2.17,user=producer)</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h1 id="2-故障定位"><a href="#2-故障定位" class="headerlink" title="2.故障定位"></a>2.故障定位</h1><p>首先为了复现问题，我们需要再创建一个文件夹<code>/data/test</code>来代替原本的<code>/data/share</code>，在里面写一些文件，配置<code>/etc/exportfs</code>将其导出以便进行测试：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">[root@host1 ~]# ls -l /data | grep -E &#x27;share|test&#x27;</span><br><span class="line">drwxr-xr-x  7 producer producer  4096 Aug  4 10:49 share</span><br><span class="line">drwxr-xr-x  2 producer producer  4096 Aug 17 19:56 test</span><br><span class="line"></span><br><span class="line">[root@host1 ~]# cat /etc/exports</span><br><span class="line">/data/share 10.0.0.0/8(insecure,rw,sync,no_subtree_check,no_root_squash) 192.168.10.1(insecure,rw,sync,no_subtree_check,no_root_squash) 192.168.0.0/16(insecure,rw,sync,no_subtree_check,no_root_squash)</span><br><span class="line">/data/test 10.0.0.0/8(insecure,rw,sync,no_subtree_check,no_root_squash) 192.168.10.1(insecure,rw,sync,no_subtree_check,no_root_squash) 192.168.0.0/16(insecure,rw,sync,no_subtree_check,no_root_squash)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">[root@host1 ~]# touch /data/test/f1</span><br><span class="line">[root@host1 ~]# touch /data/test/f2</span><br><span class="line">[root@host1 ~]# ls -l /data/test</span><br><span class="line">total 0</span><br><span class="line">-rw-r--r-- 1 root root 0 Aug 21 18:36 f1</span><br><span class="line">-rw-r--r-- 1 root root 0 Aug 21 18:36 f2</span><br></pre></td></tr></table></figure>
+
+
+
+<p>按东海的描述添加一个数据源，填写错误的IP，点击确定后按钮开始loading卡住，25秒后超时报错：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/WX20230817-114836-20230825101436445.png" alt="WX20230817-114836"></p>
+<p>修改正确的IP，再次点确定，添加成功，观察pod内挂载路径和<code>nfs-server</code>节点的存储路径，一切正常:</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@host1 ~]# kubectl exec -it -n fhmc-core fhmc-duplugin-nfs-559749d865-srwlf -- ls /mnt/nfstest</span><br><span class="line">f1  f2</span><br><span class="line">[root@host1 ~]# ls -l /data/test</span><br><span class="line">total 0</span><br><span class="line">-rw-r--r-- 1 root root 0 Aug 21 19:08 f1</span><br><span class="line">-rw-r--r-- 1 root root 0 Aug 21 19:08 f2</span><br></pre></td></tr></table></figure>
+
+<p>大概一分半后，存储路径内的文件被清空：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[root@host1 ~]# kubectl exec -it -n fhmc-core fhmc-duplugin-nfs-559749d865-srwlf -- ls -l /mnt/nfstest</span><br><span class="line">total 0</span><br><span class="line">[root@host1 ~]# ls -l /data/test</span><br><span class="line">total 0</span><br><span class="line">[root@host1 ~]#</span><br></pre></td></tr></table></figure>
+
+<p>观察nfs插件日志：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 第一次添加，按错误IP尝试挂载的日志，只输出了挂载前的部分，没有输出结果</span></span><br><span class="line">INFO[2023-08-21 19:29:20] execute: mount -t nfs -o port=717 -o nolock 192.1682.17:/data/test /mnt/nfstest</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 38秒后，第二次添加，填写了正确的IP，挂载成功，日志输出完整</span></span><br><span class="line">INFO[2023-08-21 19:30:08] execute: mount -t nfs -o port=717 -o nolock 192.168.2.17:/data/test /mnt/nfstest</span><br><span class="line">INFO[2023-08-21 19:30:09] mount success:</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 距离第一次挂载2m5s后，挂载失败的结果终于出现：nfs-client连接nfs-server超时</span></span><br><span class="line">ERRO[2023-08-21 19:31:25] mount failed: exit status 32</span><br><span class="line">out: err:mount.nfs: Connection timed out</span><br><span class="line"><span class="meta">#</span><span class="bash"> 挂载失败后，插件会执行清理逻辑，此时重要线索出现：插件尝试删除本地挂载路径 /mnt/nfstest 失败</span></span><br><span class="line">ERRO[2023-08-21 19:31:25] remove &#x27;/mnt/nfstest&#x27; failed: unlinkat /mnt/nfstest: device or resource busy</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p><strong>添加NFS数据源的逻辑说明</strong></p>
+<blockquote>
+<p>添加一个NFS数据源时，NFS的插件会在pod内以数据源名称创建一个本地文件夹，用于将NFS-Server的导出路径挂载到本地</p>
+<p>挂载失败时，插件会删除这个创建的文件夹。</p>
+<p>上面最后一行的错误就是由删除文件夹失败时报错出来的错误</p>
+</blockquote>
+<p>观察fhmc-dataunit-mgr日志：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 第一次添加的39秒后第二次添加数据源的成功日志</span></span><br><span class="line">INFO[2023-08-21 19:30:09]data_source_web_service.go:115 http_services.(*dataSourceService).create() 创建数据源 nfstest 成功</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 第一次添加一分钟后，mgr调用插件超时，报错返回，该请求结束</span></span><br><span class="line">WARN[2023-08-21 19:30:20]catcher.go:63 webserver.ApiErrorCatcher.func1() web return error (400): 1000, get ds status failed when create ds: [rpc error: code = DeadlineExceeded desc = context deadline exceeded]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+<h1 id="3-机理清楚"><a href="#3-机理清楚" class="headerlink" title="3.机理清楚"></a>3.机理清楚</h1><p>观察上面的日志，可能会有这样几个疑问：</p>
+<ol>
+<li>为什么第二次请求的挂载结果的日志先于第一次的产生？两个线程执行的时间顺序是怎样的？</li>
+<li>前端在点确定后禁用了确定按钮，直到请求结束才恢复，为什么还能发出第二次请求？</li>
+<li>为什么删除文件夹失败了，里面的文件依然没了？报错为什么是<code>unlinkat /mnt/nfstest: device or resource busy</code></li>
+</ol>
+<p>带着这些疑问，我们需要看下NFS插件中跟挂载相关的代码逻辑：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 该函数用于跟nfs server交互时，先判断是否需要挂载，如果需要则进行挂载操作</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *nfsPlugin)</span> <span class="title">mountIfNecessary</span><span class="params">(ds *structs.DataSource)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// 根据数据源名称生成挂载用的本地路径</span></span><br><span class="line">    localPath := filepath.Join(<span class="string">&quot;/mnt&quot;</span>, ds.GetMeta().GetName())</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 检测该数据源是否已经被挂载，如果已挂载直接返回</span></span><br><span class="line">    cmd := fmt.Sprintf(<span class="string">&quot;df -h | grep &#x27;%s:%s&#x27; | grep &#x27;%s&#x27;&quot;</span>, host, remotePath, localPath)</span><br><span class="line">    <span class="keyword">if</span> exec.Command(<span class="string">&quot;sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, cmd).Run() == <span class="literal">nil</span> &#123;</span><br><span class="line">      	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果还没挂载，就创建用于挂载的本地文件夹</span></span><br><span class="line">    err := os.MkdirAll(localPath, <span class="number">0777</span>)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      	<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;mkdir &#x27;%s&#x27;: %v&quot;</span>, localPath, err)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// 执行挂载命令</span></span><br><span class="line">    temp := fmt.Sprintf(<span class="string">&quot;mount -t nfs %s -o nolock %s:%s %s&quot;</span>, option, host, nfsServerPath, localPath)</span><br><span class="line">    cmd := exec.Command(<span class="string">&quot;sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, temp)</span><br><span class="line">    log_util.LogTool.Infof(<span class="string">&quot;execute: %s&quot;</span>, temp)</span><br><span class="line">    <span class="keyword">var</span> stdOut, stdErr bytes.Buffer</span><br><span class="line">    cmd.Stdout, cmd.Stderr = &amp;stdOut, &amp;stdErr</span><br><span class="line">    err = cmd.Run()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log_util.LogTool.Errorf(<span class="string">&quot;mount failed: %v\nout: %s\nerr:%s&quot;</span>, err, stdOut.String(), stdErr.String())</span><br><span class="line">        <span class="comment">//删除创建出的文件目录</span></span><br><span class="line">        <span class="keyword">if</span> err2 := os.RemoveAll(localPath); err != <span class="literal">nil</span> &#123;</span><br><span class="line">          	log_util.LogTool.Errorf(<span class="string">&quot;remove &#x27;%s&#x27; failed: %v&quot;</span>, localPath, err2)</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;%s : %v\nout: %s\nerr:%s&quot;</span>, temp, err, stdOut.String(), stdErr.String())</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    log_util.LogTool.Infof(<span class="string">&quot;mount success: %s&quot;</span>, stdOut.String())</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>从代码可以看出，文件没了就是<code>os.RemoveAll()</code>函数所致，执行这个函数的意图就是在挂载一个数据源失败后，需要清理前面为了挂载而创建出来的空文件夹，对应到日志里就是<code>/mnt/nfstest</code>这个路径。</p>
+<h2 id="问题1"><a href="#问题1" class="headerlink" title="问题1"></a>问题1</h2><p>这段逻辑原本没有问题，那为什么第一次错误的输入请求在前，但删除逻辑却等到第二次正确请求都成功了才开始执行呢？对比日志出现的时间点，我们可以发现第一次请求的线程（后面简称线程1）在执行错误的<code>mount</code>命令时卡住了，等到两分钟后，第二次请求（线程2）的逻辑都执行完了，它才返回。两个线程之间没加锁，并行操作了同一个文件夹资源，才导致了这一问题。</p>
+<h2 id="问题2"><a href="#问题2" class="headerlink" title="问题2"></a>问题2</h2><p>但前端在一个请求完成前是同步阻塞住的（【确定】按钮加载loading动画且不可点击），为什么还能发出第二个请求呢？重试这一操作，并观察网络请求，我们可以发现前端在请求发出的25s后便主动断开了请求，而后端此时依然还卡在<code>mount</code>的调用上等待继续执行。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/image-20230821135854078-20230825101436536.png" alt="image-20230821135854078"></p>
+<h2 id="问题3"><a href="#问题3" class="headerlink" title="问题3"></a>问题3</h2><p>关于报错<code>unlinkat /mnt/nfstest: device or resource busy</code>，删除操作的本质就是<code>unlink</code>系统调用，将文件对应的<code>inode</code>节点的链接数减一。但这次调用发生时，<code>/mnt/nfstest</code>这个文件正在被<code>nfs-client</code>使用，所以产生了相应的错误信息<code>deveice or resource busy</code>。</p>
+<p>那既然删除失败了，为什么里面的文件都没了呢？怎么能确定文件没了跟这个删除操作有关呢？</p>
+<p>这里就需要深入的看一下Go语言的<code>os.RemoveAll</code>函数是怎么实现的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// RemoveAll removes path and any children it contains.</span></span><br><span class="line"><span class="comment">// It removes everything it can but returns the first error</span></span><br><span class="line"><span class="comment">// it encounters. If the path does not exist, RemoveAll</span></span><br><span class="line"><span class="comment">// returns nil (no error).</span></span><br><span class="line"><span class="comment">// If there is an error, it will be of type *PathError.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">RemoveAll</span><span class="params">(path <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> removeAll(path)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过注释内容可以发现，它会删除它能删除的全部文件，并返回遇到的第一个错误。</p>
+<p>我们进一步向下看：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">removeAll</span><span class="params">(path <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">		...</span><br><span class="line">  <span class="comment">// removeAll 也会调用os.Remove()，但是这里因为文件被其他进程占用而删除失败</span></span><br><span class="line">    err := Remove(path)</span><br><span class="line">    <span class="keyword">if</span> err == <span class="literal">nil</span> || IsNotExist(err) &#123; <span class="comment">// 实际场景中，err不为空，也不是NotExist</span></span><br><span class="line">      	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">  	<span class="comment">// 这里的注释说明了它会递归的删除文件夹内部的内容</span></span><br><span class="line">    <span class="comment">// RemoveAll recurses by deleting the path base from</span></span><br><span class="line">    <span class="comment">// its parent directory</span></span><br><span class="line">    parentDir, base := splitPath(path) <span class="comment">// 将/mnt/nfstest分成 /mnt 和 test两部分 </span></span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err := removeAllFrom(parent, base); err != <span class="literal">nil</span> &#123; <span class="comment">// 从函数名可以看出，文件名没了跟这个函数有关</span></span><br><span class="line">      <span class="keyword">if</span> pathErr, ok := err.(*PathError); ok &#123;</span><br><span class="line">        pathErr.Path = parentDir + <span class="keyword">string</span>(PathSeparator) + pathErr.Path</span><br><span class="line">        err = pathErr</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="问题总结"><a href="#问题总结" class="headerlink" title="问题总结"></a>问题总结</h2><p>上述排查复现操作以试验过多次，结果完全一致。这里总结一下，问题发生的主要原因是在于多个线程间存在竞争冲突：线程1执行<code>mount</code>命令卡住的时间内，同样的路径被其他线程成功挂载，之后线程1从<code>mount</code>失败返回后，执行<code>RemoveAll</code>函数，而这个函数在删除文件夹时，会递归的删除内部的子文件，最终因这个文件被其他进程使用而报错返回。</p>
+<p>排查到这一步，整个问题产生的逻辑与流程已经捋清楚，画出时序图帮助理解：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">sequenceDiagram</span><br><span class="line">	actor B as Broswer</span><br><span class="line">	box fhmc-dataunit-mgr</span><br><span class="line">	participant MGR as 数据单元管理进程</span><br><span class="line">	end</span><br><span class="line">	box fhmc-duplugin-nfs</span><br><span class="line">	participant P as NFS插件进程</span><br><span class="line">	participant M as Mount命令</span><br><span class="line">	end</span><br><span class="line">	B-&gt;&gt;+MGR: 第一次添加数据源&lt;br/&gt;传递错误的IP地址</span><br><span class="line">	activate B</span><br><span class="line">	MGR-&gt;&gt;+P: 管理端线程1调用插件检测数据源可用性</span><br><span class="line">	Note over P: 插件线程1处理第一个RPC请求</span><br><span class="line">	P-&gt;&gt;+M: 插件执行挂载命令</span><br><span class="line">	Note over P: 插件线程1阻塞在这里</span><br><span class="line">	deactivate P</span><br><span class="line">	Note over M: mount命令尝试连接一个不可访问的地址并卡在这里&lt;br/&gt;mount -t nfs -o port=717 -o nolock&lt;br/&gt;192.1682.17:/data/test /mnt/nfstest</span><br><span class="line">	B--xMGR: 25秒后，浏览器主动&lt;br/&gt;断开了跟管理端的连接</span><br><span class="line">	deactivate B</span><br><span class="line">	B-&gt;&gt;+MGR: 修改正确的IP&lt;br/&gt;第二次添加数据源</span><br><span class="line">	activate B</span><br><span class="line">	MGR-&gt;&gt;+P: 管理端线程2调用插件检查数据源可用性</span><br><span class="line">	Note over P: 插件线程2处理第二个RPC请求</span><br><span class="line">	P-&gt;&gt;+M: 插件线程2调用mount执行挂载命令</span><br><span class="line">	Note over P: 插件线程2阻塞在这里</span><br><span class="line">	deactivate P</span><br><span class="line">	Note over M: mount -t nfs -o port=717 -o nolock&lt;br/&gt;192.168.2.17:/data/test /mnt/nfstest</span><br><span class="line">	M-&gt;&gt;-P: 挂载成功，立即返回</span><br><span class="line">	activate P</span><br><span class="line">	Note over P: 插件线程2从mount命令返回&lt;br/&gt;插件线程2结束</span><br><span class="line">	P-&gt;&gt;-MGR: </span><br><span class="line">	MGR-&gt;&gt;-B: 添加数据源成功</span><br><span class="line">	deactivate B</span><br><span class="line">	MGR--xP: 一分钟后，RPC调用超时&lt;br/&gt;管理端线程1主动断开了跟插件的RPC连接</span><br><span class="line">	MGR--x-B: 管理端线程1向浏览器返回&lt;br/&gt;第一次HTTP请求的结果&lt;br/&gt;浏览器忽略</span><br><span class="line">	M-&gt;&gt;-P: 两分钟后，mount命令超时返回&lt;br/&gt;mount.nfs: Connection timed out</span><br><span class="line">	activate P</span><br><span class="line">	Note over P: 插件线程1从mount命令返回，继续执行</span><br><span class="line">	Note over P: 挂载失败后执行删除逻辑&lt;br/&gt;os.RemoveAll(&quot;/mnt/nfstest&quot;)&lt;br/&gt;unlinkat /mnt/nfstest: device or resource busy</span><br><span class="line">	P--x-MGR: 插件线程1返回RPC调用结果，被管理端端忽略</span><br><span class="line">	Note over P: 插件线程1结束</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h1 id="4-复现步骤"><a href="#4-复现步骤" class="headerlink" title="4.复现步骤"></a>4.复现步骤</h1><ol>
+<li>准备一个复现用的文件夹，将其配置为可挂载路径，如<code>/data/test</code></li>
+<li>添加数据源时填写错误的IP，如<code>192.1682.17</code>，其他内容按正常逻辑填写，点击确定</li>
+<li>页面等待25秒后超时，更改正确IP再次添加</li>
+<li>添加成功后等待一分半左右，问题出现</li>
+</ol>
+<h1 id="5-措施有效"><a href="#5-措施有效" class="headerlink" title="5.措施有效"></a>5.措施有效</h1><h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>在添加数据源的过程中，有这样几个不合理的点需要修改，从而彻底规避掉同样问题的再次发生：</p>
+<ol>
+<li>问题的最根本原因是多个线程之间没有加锁，导致多个线程操作同一资源时存在竞争关系</li>
+<li><code>MGR</code>应该对用户的输入做更严谨的判断，避免恶意逻辑的注入</li>
+<li>对于<code>mount</code>这种可能阻塞很久的命令，增加超时时间限制</li>
+<li>对于一个路径是否已经挂载的判断逻辑写的太过简陋，需要优化</li>
+<li>删除操作不是必要的，不删也不会产生什么影响，可以移除</li>
+</ol>
+<h2 id="优化方案"><a href="#优化方案" class="headerlink" title="优化方案"></a>优化方案</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NFS插件内处理挂载逻辑的函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *nfsPlugin)</span> <span class="title">mountIfNecessary</span><span class="params">(localPath, remotePath, port <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    <span class="comment">// 先抢锁，避免多个线程操作同一个本地路径，保证线程安全</span></span><br><span class="line">    p.Lock()</span><br><span class="line">    <span class="keyword">defer</span> p.Unlock()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 判断远端NFS服务端路径是否已经被使用</span></span><br><span class="line">    output, err := grepRemotePath(remotePath)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123; <span class="comment">// 执行失败或超时</span></span><br><span class="line">      	<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;执行`mount`命令失败: %s&quot;</span>, err.Error())</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">switch</span> strings.Trim(output, <span class="string">&quot;\n&quot;</span>) &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="string">&quot;&quot;</span>: <span class="comment">// 未挂载，执行挂载命令</span></span><br><span class="line">      	<span class="keyword">break</span></span><br><span class="line">    <span class="keyword">case</span> localPath: <span class="comment">// 已挂载，直接返回</span></span><br><span class="line">      	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    <span class="keyword">default</span>: <span class="comment">// 已挂载到其他路径，报错返回</span></span><br><span class="line">      	<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;远端路径&#x27;%s&#x27;已经挂载到其他路径: %s，该数据源可能已添加&quot;</span>, remotePath, output)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 再判断这个本地路径是否已经挂载了其他的nfs路径</span></span><br><span class="line">    output, err = p.grepLocalPath(localPath)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      	<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;执行`mount`命令失败: %s&quot;</span>, err.Error())</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> output != <span class="string">&quot;&quot;</span> &#123; <span class="comment">// 已挂载到其他路径，报错返回</span></span><br><span class="line">      	<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;本地路径&#x27;%s&#x27;已经挂载了其他的nfs路径: %s&quot;</span>, localPath, output)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 创建本地路径</span></span><br><span class="line">    err = os.MkdirAll(localPath, <span class="number">0777</span>)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      	<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;mkdir &#x27;%s&#x27;: %v&quot;</span>, localPath, err)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 默认不指定挂载用的端口号（2049），这里处理指定了端口号的情况</span></span><br><span class="line">    option := <span class="string">&quot;&quot;</span></span><br><span class="line">    <span class="keyword">if</span> port != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">        portNumber, err := strconv.Atoi(port)</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">          	<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;invalid port: %s&quot;</span>, port)</span><br><span class="line">        &#125;</span><br><span class="line">        option = fmt.Sprintf(<span class="string">&quot;-o port=%d&quot;</span>, portNumber)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 执行挂载命令时设置超时时间，避免卡住太久，其他线程饿死的情况</span></span><br><span class="line">    ctx, cancel := context.WithTimeout(context.Background(), time.Second*<span class="number">3</span>)</span><br><span class="line">    <span class="keyword">defer</span> cancel()</span><br><span class="line">    cmdStr := fmt.Sprintf(<span class="string">&quot;mount -t nfs %s -o nolock %s %s&quot;</span>, option, remotePath, localPath)</span><br><span class="line">    cmd := exec.CommandContext(ctx, <span class="string">&quot;sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, cmdStr)</span><br><span class="line">    <span class="keyword">var</span> stdErr bytes.Buffer</span><br><span class="line">    cmd.Stderr = &amp;stdErr</span><br><span class="line">    ch := <span class="built_in">make</span>(<span class="keyword">chan</span> error)</span><br><span class="line"></span><br><span class="line">  	<span class="comment">// 开启一个新线程执行挂载命令</span></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(ch <span class="keyword">chan</span> error)</span></span> &#123;</span><br><span class="line">        log_util.LogTool.Infof(<span class="string">&quot;execute: %s&quot;</span>, cmdStr)</span><br><span class="line">        _, err = cmd.Output()</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="comment">// 移除了挂载失败时删除本地路径的逻辑</span></span><br><span class="line">            ch &lt;- fmt.Errorf(<span class="string">&quot;挂载失败：%s&quot;</span>, stdErr.String())</span><br><span class="line">        &#125;</span><br><span class="line">        ch &lt;- <span class="literal">nil</span></span><br><span class="line">    &#125;(ch)</span><br><span class="line"></span><br><span class="line">  	<span class="comment">// 等待挂载命令返回或超时</span></span><br><span class="line">    <span class="keyword">select</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> &lt;-ctx.Done():</span><br><span class="line">        <span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;挂载超时&quot;</span>)</span><br><span class="line">    <span class="keyword">case</span> result := &lt;-ch:</span><br><span class="line">        <span class="keyword">if</span> result == <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">return</span> result</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 匹配给定的远端路径在mount映射列表中对应的本地路径</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">grepRemotePath</span><span class="params">(remotePath <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">    cmd := fmt.Sprintf(<span class="string">&quot;mount | awk &#x27;&#123;if($1==\&quot;%s\&quot;) print $3&#125;&#x27;&quot;</span>, remotePath)</span><br><span class="line">    log_util.LogTool.Debugf(<span class="string">&quot;execute: %s&quot;</span>, cmd)</span><br><span class="line"></span><br><span class="line">    output, err := exec.Command(<span class="string">&quot;sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, cmd).Output()</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">string</span>(output), err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 匹配给定的本地路径在mount映射列表中对应的远端路径</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *nfsPlugin)</span> <span class="title">grepLocalPath</span><span class="params">(localPath <span class="keyword">string</span>)</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">    cmd := fmt.Sprintf(<span class="string">&quot;mount | awk &#x27;&#123;if($3==\&quot;%s\&quot;) print $1&#125;&#x27;&quot;</span>, localPath)</span><br><span class="line">    log_util.LogTool.Debugf(<span class="string">&quot;execute: %s&quot;</span>, cmd)</span><br><span class="line"></span><br><span class="line">    output, err := exec.Command(<span class="string">&quot;sh&quot;</span>, <span class="string">&quot;-c&quot;</span>, cmd).Output()</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">string</span>(output), err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 管理端检测用户输入参数的有效性：</span></span><br><span class="line"><span class="keyword">if</span> ds.Spec.RegionName == <span class="keyword">string</span>(structs.NFS_RegionName) &#123;</span><br><span class="line">    <span class="keyword">if</span> net.ParseIP(ds.Spec.Config[<span class="string">&quot;host&quot;</span>]) == <span class="literal">nil</span> &#123;</span><br><span class="line">      	<span class="keyword">return</span> <span class="literal">nil</span>, errors.Newf(errors.InvalidParams, <span class="string">&quot;无效的IP地址：%s&quot;</span>, ds.Spec.Config[<span class="string">&quot;host&quot;</span>])</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> !isValidPathFormat(ds.Spec.Config[<span class="string">&quot;nfs_server_path&quot;</span>]) &#123;</span><br><span class="line">      	<span class="keyword">return</span> <span class="literal">nil</span>, errors.Newf(errors.InvalidParams, <span class="string">&quot;无效的挂载地址：%s&quot;</span>, ds.Spec.Config[<span class="string">&quot;nfs_server_path&quot;</span>])</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="有效性验证"><a href="#有效性验证" class="headerlink" title="有效性验证"></a>有效性验证</h2><p>更新优化后的组件，再次以相同输入进行测试：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/image-20230823152022399.png" alt="image-20230823152022399"></p>
+<p>点击确定后，输入界面会立即提示无效的IP地址。</p>
+<p>把这个验证逻辑注释掉，验证是否还存在线程竞争的问题：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/image-20230823153645561.png" alt="image-20230823153645561"></p>
+<p>点击确定loading3秒后，界面弹出“挂载超时”的提示。</p>
+<p>我们把这个超时时间放大，并在抢锁的代码前后加上日志，验证是否还能复现这个问题：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 先抢锁，避免多个线程操作同一个本地路径，保证线程安全</span></span><br><span class="line">log_util.LogTool.Infof(<span class="string">&quot;%s 所在的线程尝试抢锁&quot;</span>, remotePath)</span><br><span class="line">p.Lock()</span><br><span class="line">log_util.LogTool.Infof(<span class="string">&quot;%s 所在的线程抢到锁&quot;</span>, remotePath)</span><br><span class="line"><span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">	log_util.LogTool.Infof(<span class="string">&quot;%s 所在的线程释放锁&quot;</span>, remotePath)</span><br><span class="line">	p.Unlock()</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure>
+
+<p>重新操作这个流程，等25秒浏览器超时端口连接后，修改正确IP再次添加，按钮依然是loading状态无法正常添加，过25秒后浏览器再一次弹出超时提示。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/image-20230823155001202.png" alt="image-20230823155001202"></p>
+<p>观察NFS插件的日志：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 第一次添加的线程1抢锁并执行挂载逻辑</span></span><br><span class="line">INFO[2023-08-23 15:48:54] 192.168.5120:/data/share 所在的线程尝试抢锁</span><br><span class="line">INFO[2023-08-23 15:48:54] 192.168.5120:/data/share 所在的线程抢到锁</span><br><span class="line"><span class="meta">#</span><span class="bash"> 线程1阻塞在mount命令</span></span><br><span class="line">INFO[2023-08-23 15:48:54] execute: mount -t nfs -o port=717 -o nolock 192.168.5120:/data/share /mnt/nfstest</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 线程2尝试抢锁</span></span><br><span class="line">INFO[2023-08-23 15:49:28] 192.168.51.20:/data/share 所在的线程尝试抢锁</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 线程1挂载超时，释放锁</span></span><br><span class="line">INFO[2023-08-23 15:51:07] 192.168.5120:/data/share 所在的线程释放锁</span><br><span class="line">ERRO[2023-08-23 15:51:07] mount ds &#x27;nfstest&#x27; failed: 挂载失败：mount.nfs: Connection timed out</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 线程2在锁被释放后抢到锁</span></span><br><span class="line">INFO[2023-08-23 15:51:07] 192.168.51.20:/data/share 所在的线程抢到锁</span><br><span class="line"><span class="meta">#</span><span class="bash"> 线程2挂载成功并释放锁</span></span><br><span class="line">INFO[2023-08-23 15:51:07] execute: mount -t nfs -o port=717 -o nolock 192.168.51.20:/data/share /mnt/nfstest</span><br><span class="line">INFO[2023-08-23 15:51:07] 192.168.51.20:/data/share 所在的线程释放锁</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>通过日志可以确认多个线程在操作挂载逻辑时的顺序完全是串行的了，不会再有这个问题，改动措施有效。</p>
+<h1 id="6-举一反三"><a href="#6-举一反三" class="headerlink" title="6.举一反三"></a>6.举一反三</h1><ol>
+<li>查看其他组件是否有删除文件的逻辑，如果有的话检查是否存在问题</li>
+<li>检查其他插件对数据资源进行操作时是否存在线程冲突的情况</li>
+<li>将业务服务使用的共享存储挂载路径与Pro自身组件的共享路径解耦，部署脚本或种子机在开设新集群时会创建<code>/data/business-share</code>这个文件夹，并在NFS-server的配置文件<code>/etc/exports</code>中将这个路径配置为共享目录，以后创建NFS数据源时填写这个目录作为挂载路径，禁止再使用<code>/data/share</code>，避免删除数据单元时可能会删除<code>Pro</code>内部组件使用的文件夹。</li>
+</ol>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.png" alt=" 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/NFS/" rel="tag"># NFS</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/articles/MIT-6-S081-xv6-%E8%B0%83%E8%AF%95%E6%8C%87%E5%8C%97/" rel="next" title="MIT 6.S081 xv6 调试指北">
+                <i class="fa fa-chevron-left"></i> MIT 6.S081 xv6 调试指北
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a target="_blank" rel="noopener" href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="">
+              
+                  <span class="site-state-item-count">82</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index%202.html">
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index%202.html">
+                  <span class="site-state-item-count">37</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/Aaron-QL" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:aka.qin@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://coolshell.cn/" title="coolshell" target="_blank">coolshell</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://draveness.me/" title="draveness" target="_blank">draveness</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://morven.life/" title="Morven" target="_blank">Morven</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://strikefreedom.top/" title="潘少" target="_blank">潘少</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://colobu.com/" title="鸟窝" target="_blank">鸟窝</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://ctimbai.github.io/" title="猿大白" target="_blank">猿大白</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://eddycjy.com/" title="煎鱼" target="_blank">煎鱼</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://lessisbetter.site/" title="大彬" target="_blank">大彬</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/" title="深入解析GO" target="_blank">深入解析GO</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-%E9%97%AE%E9%A2%98%E6%A6%82%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text">1.问题概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-%E6%95%85%E9%9A%9C%E5%AE%9A%E4%BD%8D"><span class="nav-number">2.</span> <span class="nav-text">2.故障定位</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-%E6%9C%BA%E7%90%86%E6%B8%85%E6%A5%9A"><span class="nav-number">3.</span> <span class="nav-text">3.机理清楚</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%981"><span class="nav-number">3.1.</span> <span class="nav-text">问题1</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%982"><span class="nav-number">3.2.</span> <span class="nav-text">问题2</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%983"><span class="nav-number">3.3.</span> <span class="nav-text">问题3</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E6%80%BB%E7%BB%93"><span class="nav-number">3.4.</span> <span class="nav-text">问题总结</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-%E5%A4%8D%E7%8E%B0%E6%AD%A5%E9%AA%A4"><span class="nav-number">4.</span> <span class="nav-text">4.复现步骤</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-%E6%8E%AA%E6%96%BD%E6%9C%89%E6%95%88"><span class="nav-number">5.</span> <span class="nav-text">5.措施有效</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">5.1.</span> <span class="nav-text">存在的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BC%98%E5%8C%96%E6%96%B9%E6%A1%88"><span class="nav-number">5.2.</span> <span class="nav-text">优化方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%89%E6%95%88%E6%80%A7%E9%AA%8C%E8%AF%81"><span class="nav-number">5.3.</span> <span class="nav-text">有效性验证</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-%E4%B8%BE%E4%B8%80%E5%8F%8D%E4%B8%89"><span class="nav-number">6.</span> <span class="nav-text">6.举一反三</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Aaron Qin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'https://aaron-ql.github.io/articles/NFS%E5%88%A0%E9%99%A4%E9%97%AE%E9%A2%98%E5%BD%92%E9%9B%B6%E8%AE%B0%E5%BD%95/';
+          this.page.identifier = 'articles/NFS删除问题归零记录/';
+          this.page.title = 'NFS删除问题归零记录';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
