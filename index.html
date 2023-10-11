@@ -373,101 +373,19 @@
 
       
         
-          
-            <h1 id="1-问题概述"><a href="#1-问题概述" class="headerlink" title="1.问题概述"></a>1.问题概述</h1><p><strong>问题描述</strong>：</p>
+          <h1 id="1-问题概述"><a href="#1-问题概述" class="headerlink" title="1.问题概述"></a>1.问题概述</h1><p><strong>问题描述</strong>：</p>
 <p>添加NFS数据源，填写了错误的IP地址<code>192.1682.17</code>，点击确定之后报错，发现IP地址错误后重新修改为<code>192.168.2.17</code>，点击确定，数据源添加成功，过一会儿后发现共享存储路径内的文件全都没了。</p>
 <p><strong>补充信息</strong>：</p>
 <blockquote>
 <p><code>nfs-server</code>运行在集群的其中一个节点上（通常是第一个节点），对外暴露该节点下指定路径的内容，集群的各个节点会将该路径挂载到各自节点的某个路径下，作为共享存储的访问路径:</p>
 </blockquote>
-<h1 id="2-故障定位"><a href="#2-故障定位" class="headerlink" title="2.故障定位"></a>2.故障定位</h1><p>首先为了复现问题，我们需要创建一个文件夹<code>/data/test</code>，在里面写一些文件，配置<code>/etc/exportfs</code>将其导出以便进行测试：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">[root@host1 ~]# ls -l /data | grep &#x27;test&#x27;</span><br><span class="line">drwxr-xr-x  2 producer producer  4096 Aug 17 19:56 test</span><br><span class="line"></span><br><span class="line">[root@host1 ~]# cat /etc/exports</span><br><span class="line">/data/test 10.0.0.0/8(insecure,rw,sync,no_subtree_check,no_root_squash) 192.168.10.1(insecure,rw,sync,no_subtree_check,no_root_squash) 192.168.0.0/16(insecure,rw,sync,no_subtree_check,no_root_squash)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">[root@host1 ~]# touch /data/test/f1</span><br><span class="line">[root@host1 ~]# touch /data/test/f2</span><br><span class="line">[root@host1 ~]# ls -l /data/test</span><br><span class="line">total 0</span><br><span class="line">-rw-r--r-- 1 root root 0 Aug 21 18:36 f1</span><br><span class="line">-rw-r--r-- 1 root root 0 Aug 21 18:36 f2</span><br></pre></td></tr></table></figure>
-
-
-
-<p>添加一个数据源，填写错误的IP，点击确定后按钮开始loading卡住，25秒后超时报错：</p>
-<p>修改正确的IP，再次点确定，添加成功，观察pod内挂载路径和<code>nfs-server</code>节点的存储路径，一切正常:</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@host1 ~]# kubectl exec -it -n fhmc-core fhmc-duplugin-nfs-559749d865-srwlf -- ls /mnt/nfstest</span><br><span class="line">f1  f2</span><br><span class="line">[root@host1 ~]# ls -l /data/test</span><br><span class="line">total 0</span><br><span class="line">-rw-r--r-- 1 root root 0 Aug 21 19:08 f1</span><br><span class="line">-rw-r--r-- 1 root root 0 Aug 21 19:08 f2</span><br></pre></td></tr></table></figure>
-
-<p>大概一分半后，存储路径内的文件被清空：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[root@host1 ~]# kubectl exec -it -n fhmc-core fhmc-duplugin-nfs-559749d865-srwlf -- ls -l /mnt/nfstest</span><br><span class="line">total 0</span><br><span class="line">[root@host1 ~]# ls -l /data/test</span><br><span class="line">total 0</span><br><span class="line">[root@host1 ~]#</span><br></pre></td></tr></table></figure>
-
-<p>观察nfs插件日志：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 第一次添加，按错误IP尝试挂载的日志，只输出了挂载前的部分，没有输出结果</span></span><br><span class="line">INFO[2023-08-21 19:29:20] execute: mount -t nfs -o port=717 -o nolock 192.1682.17:/data/test /mnt/nfstest</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 38秒后，第二次添加，填写了正确的IP，挂载成功，日志输出完整</span></span><br><span class="line">INFO[2023-08-21 19:30:08] execute: mount -t nfs -o port=717 -o nolock 192.168.2.17:/data/test /mnt/nfstest</span><br><span class="line">INFO[2023-08-21 19:30:09] mount success:</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 距离第一次挂载2m5s后，挂载失败的结果终于出现：nfs-client连接nfs-server超时</span></span><br><span class="line">ERRO[2023-08-21 19:31:25] mount failed: exit status 32</span><br><span class="line">out: err:mount.nfs: Connection timed out</span><br><span class="line"><span class="meta">#</span><span class="bash"> 挂载失败后，插件会执行清理逻辑，此时重要线索出现：插件尝试删除本地挂载路径 /mnt/nfstest 失败</span></span><br><span class="line">ERRO[2023-08-21 19:31:25] remove &#x27;/mnt/nfstest&#x27; failed: unlinkat /mnt/nfstest: device or resource busy</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-<p>观察fhmc-dataunit-mgr日志：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 第一次添加的39秒后第二次添加数据源的成功日志</span></span><br><span class="line">INFO[2023-08-21 19:30:09]data_source_web_service.go:115 http_services.(*dataSourceService).create() 创建数据源 nfstest 成功</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 第一次添加一分钟后，mgr调用插件超时，报错返回，该请求结束</span></span><br><span class="line">WARN[2023-08-21 19:30:20]catcher.go:63 webserver.ApiErrorCatcher.func1() web return error (400): 1000, get ds status failed when create ds: [rpc error: code = DeadlineExceeded desc = context deadline exceeded]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-
-
-<h1 id="3-机理清楚"><a href="#3-机理清楚" class="headerlink" title="3.机理清楚"></a>3.机理清楚</h1><p>观察上面的日志，可能会有这样几个疑问：</p>
-<ol>
-<li>为什么第二次请求的挂载结果的日志先于第一次的产生？两个线程执行的时间顺序是怎样的？</li>
-<li>前端在点确定后禁用了确定按钮，直到请求结束才恢复，为什么还能发出第二次请求？</li>
-<li>为什么删除文件夹失败了，里面的文件依然没了？报错为什么是<code>unlinkat /mnt/nfstest: device or resource busy</code></li>
-</ol>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 出于职业操守，代码就不在这里展示了</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>从代码可以看出，文件没了就是<code>os.RemoveAll()</code>函数所致，执行这个函数的意图就是在挂载一个数据源失败后，需要清理前面为了挂载而创建出来的空文件夹，对应到日志里就是<code>/mnt/nfstest</code>这个路径。</p>
-<h2 id="问题1"><a href="#问题1" class="headerlink" title="问题1"></a>问题1</h2><p>这段逻辑原本没有问题，那为什么第一次错误的输入请求在前，但删除逻辑却等到第二次正确请求都成功了才开始执行呢？对比日志出现的时间点，我们可以发现第一次请求的线程（后面简称线程1）在执行错误的<code>mount</code>命令时卡住了，等到两分钟后，第二次请求（线程2）的逻辑都执行完了，它才返回。两个线程之间没加锁，并行操作了同一个文件夹资源，才导致了这一问题。</p>
-<h2 id="问题2"><a href="#问题2" class="headerlink" title="问题2"></a>问题2</h2><p>但前端在一个请求完成前是同步阻塞住的（【确定】按钮加载loading动画且不可点击），为什么还能发出第二个请求呢？重试这一操作，并观察网络请求，我们可以发现前端在请求发出的25s后便主动断开了请求，而后端此时依然还卡在<code>mount</code>的调用上等待继续执行。</p>
-<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/image-20230821135854078-20230825101436536.png" alt="image-20230821135854078"></p>
-<h2 id="问题3"><a href="#问题3" class="headerlink" title="问题3"></a>问题3</h2><p>关于报错<code>unlinkat /mnt/nfstest: device or resource busy</code>，删除操作的本质就是<code>unlink</code>系统调用，将文件对应的<code>inode</code>节点的链接数减一。但这次调用发生时，<code>/mnt/nfstest</code>这个文件正在被<code>nfs-client</code>使用，所以产生了相应的错误信息<code>deveice or resource busy</code>。</p>
-<p>那既然删除失败了，为什么里面的文件都没了呢？怎么能确定文件没了跟这个删除操作有关呢？</p>
-<p>这里就需要深入的看一下Go语言的<code>os.RemoveAll</code>函数是怎么实现的：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// RemoveAll removes path and any children it contains.</span></span><br><span class="line"><span class="comment">// It removes everything it can but returns the first error</span></span><br><span class="line"><span class="comment">// it encounters. If the path does not exist, RemoveAll</span></span><br><span class="line"><span class="comment">// returns nil (no error).</span></span><br><span class="line"><span class="comment">// If there is an error, it will be of type *PathError.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">RemoveAll</span><span class="params">(path <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> removeAll(path)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>通过注释内容可以发现，它会删除它能删除的全部文件，并返回遇到的第一个错误。</p>
-<p>我们进一步向下看：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">removeAll</span><span class="params">(path <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">		...</span><br><span class="line">  <span class="comment">// removeAll 也会调用os.Remove()，但是这里因为文件被其他进程占用而删除失败</span></span><br><span class="line">    err := Remove(path)</span><br><span class="line">    <span class="keyword">if</span> err == <span class="literal">nil</span> || IsNotExist(err) &#123; <span class="comment">// 实际场景中，err不为空，也不是NotExist</span></span><br><span class="line">      	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">  	<span class="comment">// 这里的注释说明了它会递归的删除文件夹内部的内容</span></span><br><span class="line">    <span class="comment">// RemoveAll recurses by deleting the path base from</span></span><br><span class="line">    <span class="comment">// its parent directory</span></span><br><span class="line">    parentDir, base := splitPath(path) <span class="comment">// 将/mnt/nfstest分成 /mnt 和 test两部分 </span></span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err := removeAllFrom(parent, base); err != <span class="literal">nil</span> &#123; <span class="comment">// 从函数名可以看出，文件名没了跟这个函数有关</span></span><br><span class="line">      <span class="keyword">if</span> pathErr, ok := err.(*PathError); ok &#123;</span><br><span class="line">        pathErr.Path = parentDir + <span class="keyword">string</span>(PathSeparator) + pathErr.Path</span><br><span class="line">        err = pathErr</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="问题总结"><a href="#问题总结" class="headerlink" title="问题总结"></a>问题总结</h2><p>上述排查复现操作以试验过多次，结果完全一致。这里总结一下，问题发生的主要原因是在于多个线程间存在竞争冲突：线程1执行<code>mount</code>命令卡住的时间内，同样的路径被其他线程成功挂载，之后线程1从<code>mount</code>失败返回后，执行<code>RemoveAll</code>函数，而这个函数在删除文件夹时，会递归的删除内部的子文件，最终因这个文件被其他进程使用而报错返回。</p>
-<p>排查到这一步，整个问题产生的逻辑与流程已经捋清楚，画出时序图帮助理解：</p>
-<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/image-20230825102327538.png" alt="image-20230825102327538"></p>
-<h1 id="4-复现步骤"><a href="#4-复现步骤" class="headerlink" title="4.复现步骤"></a>4.复现步骤</h1><ol>
-<li>准备一个复现用的文件夹，将其配置为可挂载路径，如<code>/data/test</code></li>
-<li>添加数据源时填写错误的IP，如<code>192.1682.17</code>，其他内容按正常逻辑填写，点击确定</li>
-<li>页面等待25秒后超时，更改正确IP再次添加</li>
-<li>添加成功后等待一分半左右，问题出现</li>
-</ol>
-<h1 id="5-措施有效"><a href="#5-措施有效" class="headerlink" title="5.措施有效"></a>5.措施有效</h1><h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>在添加数据源的过程中，有这样几个不合理的点需要修改，从而彻底规避掉同样问题的再次发生：</p>
-<ol>
-<li>问题的最根本原因是多个线程之间没有加锁，导致多个线程操作同一资源时存在竞争关系</li>
-<li><code>MGR</code>应该对用户的输入做更严谨的判断，避免恶意逻辑的注入</li>
-<li>对于<code>mount</code>这种可能阻塞很久的命令，增加超时时间限制</li>
-<li>对于一个路径是否已经挂载的判断逻辑写的太过简陋，需要优化</li>
-<li>删除操作不是必要的，不删也不会产生什么影响，可以移除</li>
-</ol>
-<h2 id="优化方案"><a href="#优化方案" class="headerlink" title="优化方案"></a>优化方案</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 代码涉及公司机密，不在这里展示</span></span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
-<h2 id="有效性验证"><a href="#有效性验证" class="headerlink" title="有效性验证"></a>有效性验证</h2><p>更新优化后的组件，再次以相同输入进行测试：</p>
-<p>点击确定后，输入界面会立即提示无效的IP地址。</p>
-<p>把这个验证逻辑注释掉，验证是否还存在线程竞争的问题：</p>
-<p>点击确定loading3秒后，界面弹出“挂载超时”的提示。</p>
-<p>我们把这个超时时间放大，并在抢锁的代码前后加上日志，验证是否还能复现这个问题：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 先抢锁，避免多个线程操作同一个本地路径，保证线程安全</span></span><br><span class="line">log_util.LogTool.Infof(<span class="string">&quot;%s 所在的线程尝试抢锁&quot;</span>, remotePath)</span><br><span class="line">p.Lock()</span><br><span class="line">log_util.LogTool.Infof(<span class="string">&quot;%s 所在的线程抢到锁&quot;</span>, remotePath)</span><br><span class="line"><span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">	log_util.LogTool.Infof(<span class="string">&quot;%s 所在的线程释放锁&quot;</span>, remotePath)</span><br><span class="line">	p.Unlock()</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure>
-
-<p>重新操作这个流程，等25秒浏览器超时端口连接后，修改正确IP再次添加，按钮依然是loading状态无法正常添加，过25秒后浏览器再一次弹出超时提示。</p>
-<p>观察NFS插件的日志：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 第一次添加的线程1抢锁并执行挂载逻辑</span></span><br><span class="line">INFO[2023-08-23 15:48:54] 192.168.5120:/data/share 所在的线程尝试抢锁</span><br><span class="line">INFO[2023-08-23 15:48:54] 192.168.5120:/data/share 所在的线程抢到锁</span><br><span class="line"><span class="meta">#</span><span class="bash"> 线程1阻塞在mount命令</span></span><br><span class="line">INFO[2023-08-23 15:48:54] execute: mount -t nfs -o port=717 -o nolock 192.168.5120:/data/share /mnt/nfstest</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 线程2尝试抢锁</span></span><br><span class="line">INFO[2023-08-23 15:49:28] 192.168.51.20:/data/share 所在的线程尝试抢锁</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 线程1挂载超时，释放锁</span></span><br><span class="line">INFO[2023-08-23 15:51:07] 192.168.5120:/data/share 所在的线程释放锁</span><br><span class="line">ERRO[2023-08-23 15:51:07] mount ds &#x27;nfstest&#x27; failed: 挂载失败：mount.nfs: Connection timed out</span><br><span class="line"><span class="meta"></span></span><br><span class="line"><span class="meta">#</span><span class="bash"> 线程2在锁被释放后抢到锁</span></span><br><span class="line">INFO[2023-08-23 15:51:07] 192.168.51.20:/data/share 所在的线程抢到锁</span><br><span class="line"><span class="meta">#</span><span class="bash"> 线程2挂载成功并释放锁</span></span><br><span class="line">INFO[2023-08-23 15:51:07] execute: mount -t nfs -o port=717 -o nolock 192.168.51.20:/data/share /mnt/nfstest</span><br><span class="line">INFO[2023-08-23 15:51:07] 192.168.51.20:/data/share 所在的线程释放锁</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>通过日志可以确认多个线程在操作挂载逻辑时的顺序完全是串行的了，不会再有这个问题，改动措施有效。</p>
-<h1 id="6-举一反三"><a href="#6-举一反三" class="headerlink" title="6.举一反三"></a>6.举一反三</h1><ol>
-<li>查看其他组件是否有删除文件的逻辑，如果有的话检查是否存在问题</li>
-<li>检查其他插件对数据资源进行操作时是否存在线程冲突的情况</li>
-</ol>
-
-          
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/NFS%E5%88%A0%E9%99%A4%E9%97%AE%E9%A2%98%E5%BD%92%E9%9B%B6%E8%AE%B0%E5%BD%95/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
         
       
     </div>
