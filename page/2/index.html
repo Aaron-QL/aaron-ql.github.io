@@ -270,6 +270,1009 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E5%A6%82%E4%BD%95%E4%BC%98%E9%9B%85%E7%9A%84%E5%85%B3%E9%97%AD%E6%9C%8D%E5%8A%A1%E5%99%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/%E5%A6%82%E4%BD%95%E4%BC%98%E9%9B%85%E7%9A%84%E5%85%B3%E9%97%AD%E6%9C%8D%E5%8A%A1%E5%99%A8/" itemprop="url">如何优雅的关闭服务器</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-01-23T14:05:37+08:00">
+                2022-01-23
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index">
+                    <span itemprop="name">踩坑记录</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E5%A6%82%E4%BD%95%E4%BC%98%E9%9B%85%E7%9A%84%E5%85%B3%E9%97%AD%E6%9C%8D%E5%8A%A1%E5%99%A8/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/如何优雅的关闭服务器/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>最近写的代理服务在<code>Ctrl+C</code>时不能正常的停止，进一步排查，发现是<code>TCPListener.Close()</code>被阻塞住没有正常返回，于是整理一篇文章讲下如何安全的关闭一个服务器的所有连接，使其优雅的退出。</p>
+<h2 id="问题排查"><a href="#问题排查" class="headerlink" title="问题排查"></a>问题排查</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 启动一个tcp server</span></span><br><span class="line">    s, _ := net.ResolveTCPAddr(<span class="string">&quot;tcp&quot;</span>, <span class="string">&quot;0.0.0.0:15001&quot;</span>)</span><br><span class="line">    l, _ := net.ListenTCP(<span class="string">&quot;tcp&quot;</span>, s)</span><br><span class="line">    <span class="comment">// 因为用作代理，配置了 IP_TRANSPARENT 选项</span></span><br><span class="line">    f, _ := l.File()</span><br><span class="line">    syscall.SetsockoptInt(<span class="keyword">int</span>(f.Fd()), syscall.SOL_IP, syscall.IP_TRANSPARENT, <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        _, e := l.AcceptTCP() <span class="comment">// 调用Accept接收连接，此协程按预期阻塞在这里</span></span><br><span class="line">        fmt.Println(e)</span><br><span class="line">    &#125;()</span><br><span class="line"></span><br><span class="line">    time.Sleep(time.Second) <span class="comment">// 等待另一个协程阻塞在 Accept</span></span><br><span class="line">    ...</span><br><span class="line">    l.Close()               <span class="comment">// 程序接收到 Ctrl+C 的interrupt信号，主动关闭listener，期望能立即返回，但却被阻塞在了这里</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/%E5%A6%82%E4%BD%95%E4%BC%98%E9%9B%85%E7%9A%84%E5%85%B3%E9%97%AD%E6%9C%8D%E5%8A%A1%E5%99%A8/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86%202/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86%202/" itemprop="url">TCP知识点整理</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-01-16T09:22:12+08:00">
+                2022-01-16
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
+                    <span itemprop="name">知识点总结</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/%E7%BD%91%E7%BB%9C/" itemprop="url" rel="index">
+                    <span itemprop="name">网络</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86%202/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/TCP知识点整理 2/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>最近把《TCP/IP详解》看完了，对网络有了更深的理解，是一本难得的好书，这里总结一下书中TCP相关的核心知识点。</p>
+<h2 id="TCP头部与封装"><a href="#TCP头部与封装" class="headerlink" title="TCP头部与封装"></a>TCP头部与封装</h2><p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/onlRfY.png" alt="onlRfY"></p>
+<p>TCP头部通常是20字节（不带TCP选项），带选项的话可达60字节，但不管多少一定是32比特（4字节）的倍数。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86%202/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/" itemprop="url">TCP知识点整理</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-01-16T09:22:12+08:00">
+                2022-01-16
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
+                    <span itemprop="name">知识点总结</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/%E7%BD%91%E7%BB%9C/" itemprop="url" rel="index">
+                    <span itemprop="name">网络</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/TCP知识点整理/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <p>最近把《TCP/IP详解》看完了，对网络有了更深的理解，是一本难得的好书，这里总结一下书中TCP相关的核心知识点。</p>
+<h2 id="TCP头部与封装"><a href="#TCP头部与封装" class="headerlink" title="TCP头部与封装"></a>TCP头部与封装</h2><p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/onlRfY.png" alt="onlRfY"></p>
+<p>TCP头部通常是20字节（不带TCP选项），带选项的话可达60字节，但不管多少一定是32比特（4字节）的倍数。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E5%AE%9E%E6%88%98%E7%AF%87/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E5%AE%9E%E6%88%98%E7%AF%87/" itemprop="url">深入理解透明代理——实战篇</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-01-09T09:42:32+08:00">
+                2022-01-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
+                    <span itemprop="name">知识点总结</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86/" itemprop="url" rel="index">
+                    <span itemprop="name">透明代理</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E5%AE%9E%E6%88%98%E7%AF%87/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/深入理解透明代理——实战篇/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="创建独立的网络环境"><a href="#创建独立的网络环境" class="headerlink" title="创建独立的网络环境"></a>创建独立的网络环境</h2><p>首先创建一个独立的网络命名空间</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns add ns1</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip -n ns1 a</span></span><br><span class="line">1: lo: &lt;LOOPBACK&gt; mtu 65536 qdisc noop state DOWN group default qlen 1000</span><br><span class="line">    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00</span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip -n ns1 link set dev lo up</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns exec ns1 ping 127.0.0.1</span></span><br><span class="line">PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.</span><br><span class="line">64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.074 ms</span><br><span class="line">64 bytes from 127.0.0.1: icmp_seq=2 ttl=64 time=0.114 ms</span><br><span class="line">^C</span><br><span class="line">--- 127.0.0.1 ping statistics ---</span><br><span class="line">2 packets transmitted, 2 received, 0% packet loss, time 1005ms</span><br><span class="line">rtt min/avg/max/mdev = 0.074/0.094/0.114/0.020 ms</span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E5%AE%9E%E6%88%98%E7%AF%87/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E6%A6%82%E5%BF%B5%E7%AF%87/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E6%A6%82%E5%BF%B5%E7%AF%87/" itemprop="url">深入理解透明代理——概念篇</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-01-08T09:25:09+08:00">
+                2022-01-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
+                    <span itemprop="name">知识点总结</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86/" itemprop="url" rel="index">
+                    <span itemprop="name">透明代理</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E6%A6%82%E5%BF%B5%E7%AF%87/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/深入理解透明代理——概念篇/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>这篇文章源自最近工作内容的一个总结——设计了一个透明代理，把其中跟流量劫持相关的知识点记录下来。</p>
+<p>要想让一个代理程序代理网络流量，最直接的办法就是让客户端以代理程序为目的地址，直接把流量打给他。比如我们在操作系统中配置了代理地址的环境变量，浏览器（或其他原本就支持代理的程序）就会以该地址进行网络请求，使用的应用层协议通常是<code>HTTP/1.1</code>、<code>Socks5</code>，这些协议中有字段声明了原始的目的地址。但这种方式有两个弊端：一是对业务逻辑有入侵；二是支持的协议有限，像<code>TCP</code>、<code>gRPC</code>、<code>HTTP/2</code>这些协议就没法被代理，因为代理程序没办法找到原始的目标地址。</p>
+<p>而我们需要的代理方式是<strong>透明代理</strong>——客户端根本不需要知道代理服务器的存在，它是一种匿名代理，不用手动的配置代理信息，它会自动的监听拦截并改写报文，传送真实IP进行NAT转发。常见的透明代理有三种实现方式：</p>
+<ul>
+<li><p><strong>iptables</strong>：通过配置iptables的nat规则实现数据包的转发，<code>Istio Service Mesh</code>的<code>Envoy</code>代理就是以这种方式实现</p>
+</li>
+<li><p><strong>TProxy</strong>：这是一个自Linux 2.2发布的特性，允许程序给socket绑定不属于自己的IP地址以达到IP伪装的效果，同时还需要配置iptables的mangle表规则对流量进行标记。<code>Envoy</code>也支持这种代理方式</p>
+</li>
+<li><p><strong>eBPF</strong>：<code>Extended Berkeley Packet Filter (eBPF)</code>是一项最近很火的革命性的技术，它是Linux内核新特性（4.X），可以在操作系统内核中运行沙盒程序。用于安全有效地扩展内核的功能，而无需更改内核源代码或加载内核模块。你可以将其视为 Linux 内核中的轻量级沙盒虚拟机 (VM)，程序员可以在其中运行利用特定内核资源的 BPF 字节码。</p>
+</li>
+</ul>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E6%A6%82%E5%BF%B5%E7%AF%87/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1Golang%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E7%9A%84%E6%8E%92%E6%9F%A5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1Golang%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E7%9A%84%E6%8E%92%E6%9F%A5/" itemprop="url">记一次Golang内存泄漏的排查</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-12-18T09:22:44+08:00">
+                2021-12-18
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index">
+                    <span itemprop="name">踩坑记录</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1Golang%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E7%9A%84%E6%8E%92%E6%9F%A5/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/记一次Golang内存泄漏的排查/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>最近发现项目中某个组件在执行任务时内存占用达到了17G，cpu占用也达到了1000+m，简直离谱。通过<code>kubectl top po</code>看到的效果如下：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/EzVW0M.png" alt="EzVW0M"></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1Golang%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E7%9A%84%E6%8E%92%E6%9F%A5/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Kubernetes/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -973,1049 +1976,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/Golang%E7%BD%91%E7%BB%9C%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93%E5%AE%9E%E6%88%98%E5%88%86%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/Golang%E7%BD%91%E7%BB%9C%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93%E5%AE%9E%E6%88%98%E5%88%86%E6%9E%90/" itemprop="url">Golang多种文件传输方式实验对比</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-07-24T15:50:38+08:00">
-                2021-07-24
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index">
-                    <span itemprop="name">踩坑记录</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/Golang%E7%BD%91%E7%BB%9C%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93%E5%AE%9E%E6%88%98%E5%88%86%E6%9E%90/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/Golang网络文件传输实战分析/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h1 id="Golang多种文件传输方式实验对比"><a href="#Golang多种文件传输方式实验对比" class="headerlink" title="Golang多种文件传输方式实验对比"></a>Golang多种文件传输方式实验对比</h1><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>最近工作中遇到一个在节点间进行文件传输的场景，旧的实现是通过GRPC流的方式进行传输，接口定义是这个样子：</p>
-<figure class="highlight protobuf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">message</span> <span class="title">PullPackageRequest</span></span>&#123;</span><br><span class="line">  <span class="built_in">string</span> name = <span class="number">1</span>;</span><br><span class="line">  <span class="built_in">string</span> version = <span class="number">2</span>;</span><br><span class="line">  <span class="built_in">string</span> path = <span class="number">3</span>;</span><br><span class="line">  <span class="built_in">int32</span> idx = <span class="number">4</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">message</span> <span class="title">PullPackageResponse</span></span>&#123;</span><br><span class="line">  <span class="built_in">bytes</span> data = <span class="number">1</span>;</span><br><span class="line">  <span class="built_in">int32</span>  idx = <span class="number">2</span>;</span><br><span class="line">  <span class="built_in">int32</span> total = <span class="number">3</span>;</span><br><span class="line">  <span class="built_in">int32</span> offset = <span class="number">4</span>;</span><br><span class="line">  <span class="built_in">string</span> path = <span class="number">5</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">service</span> <span class="title">DataCatalogRpc</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">rpc</span> PullPackage(stream PullPackageRequest)<span class="keyword">returns</span>(stream PullPackageResponse)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>可以想到以这种方式传输文件，会有大量的时间浪费在HTTP的报文解析与GRPC的协议解析上，性能非常低下，于是想办法进行优化。</p>
-<h2 id="I-O的几种方式"><a href="#I-O的几种方式" class="headerlink" title="I/O的几种方式"></a>I/O的几种方式</h2><h3 id="read-write"><a href="#read-write" class="headerlink" title="read() + write()"></a>read() + write()</h3><p>首先想到的是平时写http server时的方式实现，最简单的版本大概是这个样子：</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line">    n, _ := file.Read(buf)</span><br><span class="line">    <span class="keyword">if</span> n &gt; <span class="number">0</span> &#123;</span><br><span class="line">				w.Write(buf[:n])</span><br><span class="line">		&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>对于一般的程序来说是没有问题的，但是如果需要频繁地传输大文件，那么这种办法效率不够高。因为这里不断地调用两个系统调用，<code>read()</code> 和 <code>write()</code>。对操作系统稍微熟悉的都会知道系统调用是在<strong>内核态</strong>执行而用户程序是跑在<strong>用户态</strong>。</p>
-<p>读取文件就会先从磁盘文件读到内核缓冲区然后再拷贝到用户空间缓冲区，写操作也要先写到内核缓冲区然后再发送。</p>
-<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/4sVkqf.png" alt="4sVkqf"></p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/Golang%E7%BD%91%E7%BB%9C%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93%E5%AE%9E%E6%88%98%E5%88%86%E6%9E%90/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E9%9B%B6%E6%8B%B7%E8%B4%9D%EF%BC%88Zero-copy%EF%BC%89%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/%E9%9B%B6%E6%8B%B7%E8%B4%9D%EF%BC%88Zero-copy%EF%BC%89%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/" itemprop="url">零拷贝（Zero-copy）知识点总结</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-07-24T15:47:41+08:00">
-                2021-07-24
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
-                    <span itemprop="name">知识点总结</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/Linux/" itemprop="url" rel="index">
-                    <span itemprop="name">Linux</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/%E9%9B%B6%E6%8B%B7%E8%B4%9D%EF%BC%88Zero-copy%EF%BC%89%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/零拷贝（Zero-copy）知识点笔记/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h1 id="零拷贝（Zero-copy）知识点总结"><a href="#零拷贝（Zero-copy）知识点总结" class="headerlink" title="零拷贝（Zero-copy）知识点总结"></a>零拷贝（Zero-copy）知识点总结</h1><blockquote>
-<p>本文参考了下列文章：<br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/rickiyang/p/13265043.html">https://www.cnblogs.com/rickiyang/p/13265043.html</a><br><a target="_blank" rel="noopener" href="https://strikefreedom.top/linux-io-and-zero-copy">https://strikefreedom.top/linux-io-and-zero-copy</a></p>
-</blockquote>
-<p>相信大家都有过面试经历，如果跟面试官聊到了操作系统，聊到了文件操作，可能会问你普通的文件读写流程，它有什么缺点，你知道有什么改进的措施。我们经常听说 零拷贝，每次可能只是背诵一些面试要点就过去了，今天我们就从文件读写说起一步一步深入零拷贝。</p>
-<h2 id="Linux-文件系统简介"><a href="#Linux-文件系统简介" class="headerlink" title="Linux 文件系统简介"></a>Linux 文件系统简介</h2><p>说到文件读写，为了增强代入感我们还是先回顾或者说是了解一下基本的 Linux 内核相关知识。</p>
-<h3 id="系统调用"><a href="#系统调用" class="headerlink" title="系统调用"></a>系统调用</h3><p>操作系统的主要功能是为管理硬件资源和为应用程序开发人员提供良好的环境，但是计算机系统的各种硬件资源是有限的，因此为了保证每一个进程都能安全的执行。处理器设有两种模式：用户模式 与 内核模式。一些容易发生安全问题的操作都被限制在只有内核模式下才可以执行，例如 I/O 操作，修改基址寄存器内容等。</p>
-<p>当我们处在用户态但是却不得不调用内核态下一些操作的时候这时候可以利用Linux提供的一些转换接口唤起操作，而连接用户模式和内核模式的接口称之为 系统调用。</p>
-<p>应用程序代码运行在用户模式下，当应用程序需要实现内核模式下的指令时，先向操作系统发送调用请求。操作系统收到请求后，执行系统调用接口，使处理器进入内核模式。当处理器处理完系统调用操作后，操作系统会让处理器返回用户模式，继续执行用户代码。</p>
-<p>进程的虚拟地址空间可分为两部分，内核空间 和 用户空间。内核空间中存放的是内核代码和数据，而进程的用户空间中存放的是用户程序的代码和数据。不管是内核空间还是用户空间，它们都处于虚拟空间中，都是对物理地址的映射。</p>
-<h3 id="虚拟文件系统"><a href="#虚拟文件系统" class="headerlink" title="虚拟文件系统"></a>虚拟文件系统</h3><p>一个操作系统可以支持多种底层不同的文件系统(比如 NTFS, FAT, ext3, ext4)，为了给内核和用户进程提供统一的文件系统视图，Linux 在用户进程和底层文件系统之间加入了一个抽象层，即虚拟文件系统( Virtual File System, VFS )，进程所有的文件操作都通过 VFS，由 VFS 来适配各种底层不同的文件系统，完成实际的文件操作。</p>
-<p>通俗的说，VFS 就是定义了一个通用文件系统的接口层和适配层，一方面为用户进程提供了一组统一的访问文件，目录和其他对象的统一方法，另一方面又要和不同的底层文件系统进行适配。如图所示：</p>
-<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/ZHTKAs.jpg" alt="ZHTKAs"></p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/%E9%9B%B6%E6%8B%B7%E8%B4%9D%EF%BC%88Zero-copy%EF%BC%89%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E5%AE%B9%E5%99%A8%E4%BA%91%E5%AF%B9%E6%8E%A5FC-SAN%E5%9D%97%E5%AD%98%E5%82%A8%E5%A4%8D%E7%9B%98%E8%AE%B0%E5%BD%95/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/%E5%AE%B9%E5%99%A8%E4%BA%91%E5%AF%B9%E6%8E%A5FC-SAN%E5%9D%97%E5%AD%98%E5%82%A8%E5%A4%8D%E7%9B%98%E8%AE%B0%E5%BD%95/" itemprop="url">容器云对接FC SAN块存储复盘记录</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-07-09T16:23:37+08:00">
-                2021-07-09
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index">
-                    <span itemprop="name">踩坑记录</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/FCSAN/" itemprop="url" rel="index">
-                    <span itemprop="name">FCSAN</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/%E5%AE%B9%E5%99%A8%E4%BA%91%E5%AF%B9%E6%8E%A5FC-SAN%E5%9D%97%E5%AD%98%E5%82%A8%E5%A4%8D%E7%9B%98%E8%AE%B0%E5%BD%95/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/容器云对接FC-SAN块存储复盘记录/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h1 id="容器云对接FC-SAN块存储复盘记录"><a href="#容器云对接FC-SAN块存储复盘记录" class="headerlink" title="容器云对接FC SAN块存储复盘记录"></a>容器云对接FC SAN块存储复盘记录</h1><h2 id="1-需求背景"><a href="#1-需求背景" class="headerlink" title="1. 需求背景"></a>1. 需求背景</h2><p>用户现场买了一套FC SAN的块设备，与之进行对接。需要不影响已上云的业务，并要支持多副本，保证服务可用性（服务漂移，块设备自动挂载）以及数据完整性（漂移时数据及时罗盘）。</p>
-<h2 id="2-方案分析"><a href="#2-方案分析" class="headerlink" title="2. 方案分析"></a>2. 方案分析</h2><p>一开始对厂商的块设备不了解，不确定能否拆分，能否多节点挂载，需要从两方面考虑。如果都不支持，那所有用块的服务都需要集中到一个节点上，那就会造成两个问题，需要提前说清楚：</p>
-<ol>
-<li>存储失去隔离性，所有业务都能访问整个块设备</li>
-<li>所有业务都调度到一个节点上，不管上64核还是128核的cpu都不够用，计算资源成为瓶颈。</li>
-</ol>
-<p>如果能拆分，则需要对以下逻辑进行验证：</p>
-<ol>
-<li>一个卷能否支持多节点挂载</li>
-<li>如果支持，挂载需要的信息是否一致，能否实现自动化</li>
-<li>如果支持，多节点写入会有什么问题，如何处理冲突</li>
-<li>一个节点挂掉时，是否需要与对应的卷进行解绑</li>
-<li>pod调度时是否有flush或sync机制，保证数据完整性。</li>
-</ol>
-<h2 id="3-逻辑验证"><a href="#3-逻辑验证" class="headerlink" title="3. 逻辑验证"></a>3. 逻辑验证</h2><h3 id="3-1-多节点挂载可行性"><a href="#3-1-多节点挂载可行性" class="headerlink" title="3.1 多节点挂载可行性"></a>3.1 多节点挂载可行性</h3><p><strong>双实例</strong>：服务器A上的pod写入数据后，重启服务器B上的pod即可看到A写入的内入 <br><strong>三实例</strong>：服务器A和B上的pod都写入数据，重启服务器C上的pod后只能看到前两者中后写入的数据</p>
-<h3 id="3-2-服务漂移可行性"><a href="#3-2-服务漂移可行性" class="headerlink" title="3.2 服务漂移可行性"></a>3.2 服务漂移可行性</h3><h4 id="3-2-1-验证环境："><a href="#3-2-1-验证环境：" class="headerlink" title="3.2.1 验证环境："></a>3.2.1 验证环境：</h4><p>三台arm64架构银河麒麟4.0.2SP系统的服务器组成的集群，每台服务器通过一根光纤直连到同有的FCSAN存储，型号为A1600</p>
-<h4 id="3-2-2-验证步骤："><a href="#3-2-2-验证步骤：" class="headerlink" title="3.2.2 验证步骤："></a>3.2.2 验证步骤：</h4><ol>
-<li>在厂商的web平台上创建存储池、存储卷、主机</li>
-<li>在平台上将每个主机与存储卷进行映射，建立绑定关系</li>
-<li>在每台服务器上执行一些命令使服务器能够发现存储卷</li>
-<li>声明FC类型的Volume，其中需要填写 targetWWNs （WWPN） 和 lun 字段，值从 /dev/disk/by-path 路径下获取 官方示例： <a target="_blank" rel="noopener" href="https://github.com/kubernetes/examples/tree/master/staging/volumes/fibre_channel">https://github.com/kubernetes/examples/tree/master/staging/volumes/fibre_channel</a> </li>
-</ol>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/%E5%AE%B9%E5%99%A8%E4%BA%91%E5%AF%B9%E6%8E%A5FC-SAN%E5%9D%97%E5%AD%98%E5%82%A8%E5%A4%8D%E7%9B%98%E8%AE%B0%E5%BD%95/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E5%AD%98%E5%82%A8%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/%E5%AD%98%E5%82%A8%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/" itemprop="url">存储知识点总结</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-07-07T09:35:03+08:00">
-                2021-07-07
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
-                    <span itemprop="name">知识点总结</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/storage/" itemprop="url" rel="index">
-                    <span itemprop="name">storage</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/%E5%AD%98%E5%82%A8%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/存储知识点笔记/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h1 id="存储知识点总结"><a href="#存储知识点总结" class="headerlink" title="存储知识点总结"></a>存储知识点总结</h1><h2 id="1-数据存储的载体——硬盘"><a href="#1-数据存储的载体——硬盘" class="headerlink" title="1 数据存储的载体——硬盘"></a>1 数据存储的载体——硬盘</h2><p>硬盘之所以叫硬盘，是因为它的核心部分是一块或多块由坚硬金属材料制成的盘片。盘片上面涂抹了磁性介质，两面都可以记录信息。在盘面上读/写数据的，是磁头。</p>
-<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/UjAJnW.jpg" alt="UjAJnW"></p>
-<p>现在主流的硬盘，扇区密度是一致的，也就是说，越靠外侧，扇区数越多。每个扇区的大小是4K字节，用一个逻辑块编号寻址（LBA，Logical Block Addressing）。以扇区为基础，一个或多个连续的扇区组成一个块，叫做物理块。所以，硬盘往往又叫块设备（Block Device）。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/%E5%AD%98%E5%82%A8%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/Pod-%E5%86%85%E5%AD%98%E6%8E%A7%E5%88%B6%E7%BB%84%E6%B3%84%E6%BC%8F%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/Pod-%E5%86%85%E5%AD%98%E6%8E%A7%E5%88%B6%E7%BB%84%E6%B3%84%E6%BC%8F%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A/" itemprop="url">Pod 内存控制组泄漏研究报告</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-03-22T19:56:34+08:00">
-                2021-03-22
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index">
-                    <span itemprop="name">踩坑记录</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/Pod-%E5%86%85%E5%AD%98%E6%8E%A7%E5%88%B6%E7%BB%84%E6%B3%84%E6%BC%8F%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/Pod-内存控制组泄漏研究报告/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h1 id="Pod-内存控制组泄漏研究报告"><a href="#Pod-内存控制组泄漏研究报告" class="headerlink" title="Pod 内存控制组泄漏研究报告"></a>Pod 内存控制组泄漏研究报告</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">VERSION: v0.1.0</span><br></pre></td></tr></table></figure>
-
-<h2 id="1-现象"><a href="#1-现象" class="headerlink" title="1. 现象"></a>1. 现象</h2><p>容器不断因为 cgroup oom 重启，同时系统日志显示，每一次内核 kill 容器进程时，都会出现上千条 <code>Memory cgroup stats for /kubepods/burstable/pod&lt;%pod_id%&gt;/&lt;%container_id%&gt;</code> 日志，如下图所示：<br><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/GZcozH.png" alt="GZcozH"></p>
-<h2 id="2-研究背景"><a href="#2-研究背景" class="headerlink" title="2. 研究背景"></a>2. 研究背景</h2><p>数场基础系统出现根分区只读的情况。查看现场系统日志，发现如上所述现象，推测是导致根分区只读的部分原因。</p>
-<h2 id="3-查找问题"><a href="#3-查找问题" class="headerlink" title="3. 查找问题"></a>3. 查找问题</h2>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/Pod-%E5%86%85%E5%AD%98%E6%8E%A7%E5%88%B6%E7%BB%84%E6%B3%84%E6%BC%8F%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1k8s-rbd%E5%8D%B7%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1k8s-rbd%E5%8D%B7%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" itemprop="url">记一次k8s/rbd卷故障排查</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-02-01T16:22:44+08:00">
-                2021-02-01
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index">
-                    <span itemprop="name">踩坑记录</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/RBD/" itemprop="url" rel="index">
-                    <span itemprop="name">RBD</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1k8s-rbd%E5%8D%B7%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/记一次k8s-rbd卷故障排查/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h1 id="Ceph-RBD-挂载问题总结"><a href="#Ceph-RBD-挂载问题总结" class="headerlink" title="Ceph RBD 挂载问题总结"></a>Ceph RBD 挂载问题总结</h1><h2 id="1-现象"><a href="#1-现象" class="headerlink" title="1. 现象"></a>1. 现象</h2><p>挂载rbd类型数据单元的服务启动时报错：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Warning  FailedMount  0s    kubelet  MountVolume.WaitForAttach failed <span class="keyword">for</span> volume <span class="string">&quot;test-rbd&quot;</span> : rbd image rbd/23a3c06e-21df-434b-8ea2-bd9e36b6a013 is still being used</span><br></pre></td></tr></table></figure>
-
-<h2 id="2-研究背景"><a href="#2-研究背景" class="headerlink" title="2. 研究背景"></a>2. 研究背景</h2><p>大部分类型的数据单元都是在pod启动前，在webhook中通过解析annotation中数据单元的信息，为其添加相应的volume和volumeMount的方式实现。volume属于pod的一部分，与pod的生命周期保持同步。</p>
-<p>这对于文件系统、数据库、对象存储等类型的数据单元来说是很好的方式，而使用 <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/storage/volumes/#rbd">Ceph RBD</a> 类型的volume时，创建第一个pod不会有任何问题，但创建第二个pod时就有几率报上面的错。</p>
-<p>原因是rbd类型的volume不支持多节点同时挂载（还不清楚是k8s的限制还是rbd自身的缺陷），这带来了两个问题：</p>
-<ol>
-<li>当多个服务使用同一个rbd类型的数据单元或一个服务有多副本，如果这些pod分布在多个节点上，后启动的pod就会因为这个rbd卷正在被使用而被阻塞住。</li>
-<li>在服务升级时（helm upgrade），新起的pod发现rbd卷正在被其他pod使用起不来，旧的pod又在等待新pod起来后再停止，造成一个互相等待的<code>dead lock</code>。</li>
-</ol>
-<h2 id="3-查找问题"><a href="#3-查找问题" class="headerlink" title="3. 查找问题"></a>3. 查找问题</h2>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1k8s-rbd%E5%8D%B7%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2066,7 +2026,7 @@
               
                 <a href="">
               
-                  <span class="site-state-item-count">83</span>
+                  <span class="site-state-item-count">89</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

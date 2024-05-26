@@ -270,6 +270,1049 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/Golang%E7%BD%91%E7%BB%9C%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93%E5%AE%9E%E6%88%98%E5%88%86%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/Golang%E7%BD%91%E7%BB%9C%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93%E5%AE%9E%E6%88%98%E5%88%86%E6%9E%90/" itemprop="url">Golang多种文件传输方式实验对比</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-07-24T15:50:38+08:00">
+                2021-07-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index">
+                    <span itemprop="name">踩坑记录</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/Golang%E7%BD%91%E7%BB%9C%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93%E5%AE%9E%E6%88%98%E5%88%86%E6%9E%90/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/Golang网络文件传输实战分析/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h1 id="Golang多种文件传输方式实验对比"><a href="#Golang多种文件传输方式实验对比" class="headerlink" title="Golang多种文件传输方式实验对比"></a>Golang多种文件传输方式实验对比</h1><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>最近工作中遇到一个在节点间进行文件传输的场景，旧的实现是通过GRPC流的方式进行传输，接口定义是这个样子：</p>
+<figure class="highlight protobuf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">message</span> <span class="title">PullPackageRequest</span></span>&#123;</span><br><span class="line">  <span class="built_in">string</span> name = <span class="number">1</span>;</span><br><span class="line">  <span class="built_in">string</span> version = <span class="number">2</span>;</span><br><span class="line">  <span class="built_in">string</span> path = <span class="number">3</span>;</span><br><span class="line">  <span class="built_in">int32</span> idx = <span class="number">4</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">message</span> <span class="title">PullPackageResponse</span></span>&#123;</span><br><span class="line">  <span class="built_in">bytes</span> data = <span class="number">1</span>;</span><br><span class="line">  <span class="built_in">int32</span>  idx = <span class="number">2</span>;</span><br><span class="line">  <span class="built_in">int32</span> total = <span class="number">3</span>;</span><br><span class="line">  <span class="built_in">int32</span> offset = <span class="number">4</span>;</span><br><span class="line">  <span class="built_in">string</span> path = <span class="number">5</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">service</span> <span class="title">DataCatalogRpc</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">rpc</span> PullPackage(stream PullPackageRequest)<span class="keyword">returns</span>(stream PullPackageResponse)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以想到以这种方式传输文件，会有大量的时间浪费在HTTP的报文解析与GRPC的协议解析上，性能非常低下，于是想办法进行优化。</p>
+<h2 id="I-O的几种方式"><a href="#I-O的几种方式" class="headerlink" title="I/O的几种方式"></a>I/O的几种方式</h2><h3 id="read-write"><a href="#read-write" class="headerlink" title="read() + write()"></a>read() + write()</h3><p>首先想到的是平时写http server时的方式实现，最简单的版本大概是这个样子：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line">    n, _ := file.Read(buf)</span><br><span class="line">    <span class="keyword">if</span> n &gt; <span class="number">0</span> &#123;</span><br><span class="line">				w.Write(buf[:n])</span><br><span class="line">		&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">				<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对于一般的程序来说是没有问题的，但是如果需要频繁地传输大文件，那么这种办法效率不够高。因为这里不断地调用两个系统调用，<code>read()</code> 和 <code>write()</code>。对操作系统稍微熟悉的都会知道系统调用是在<strong>内核态</strong>执行而用户程序是跑在<strong>用户态</strong>。</p>
+<p>读取文件就会先从磁盘文件读到内核缓冲区然后再拷贝到用户空间缓冲区，写操作也要先写到内核缓冲区然后再发送。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/4sVkqf.png" alt="4sVkqf"></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/Golang%E7%BD%91%E7%BB%9C%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93%E5%AE%9E%E6%88%98%E5%88%86%E6%9E%90/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E9%9B%B6%E6%8B%B7%E8%B4%9D%EF%BC%88Zero-copy%EF%BC%89%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/%E9%9B%B6%E6%8B%B7%E8%B4%9D%EF%BC%88Zero-copy%EF%BC%89%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/" itemprop="url">零拷贝（Zero-copy）知识点总结</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-07-24T15:47:41+08:00">
+                2021-07-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
+                    <span itemprop="name">知识点总结</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/Linux/" itemprop="url" rel="index">
+                    <span itemprop="name">Linux</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E9%9B%B6%E6%8B%B7%E8%B4%9D%EF%BC%88Zero-copy%EF%BC%89%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/零拷贝（Zero-copy）知识点笔记/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h1 id="零拷贝（Zero-copy）知识点总结"><a href="#零拷贝（Zero-copy）知识点总结" class="headerlink" title="零拷贝（Zero-copy）知识点总结"></a>零拷贝（Zero-copy）知识点总结</h1><blockquote>
+<p>本文参考了下列文章：<br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/rickiyang/p/13265043.html">https://www.cnblogs.com/rickiyang/p/13265043.html</a><br><a target="_blank" rel="noopener" href="https://strikefreedom.top/linux-io-and-zero-copy">https://strikefreedom.top/linux-io-and-zero-copy</a></p>
+</blockquote>
+<p>相信大家都有过面试经历，如果跟面试官聊到了操作系统，聊到了文件操作，可能会问你普通的文件读写流程，它有什么缺点，你知道有什么改进的措施。我们经常听说 零拷贝，每次可能只是背诵一些面试要点就过去了，今天我们就从文件读写说起一步一步深入零拷贝。</p>
+<h2 id="Linux-文件系统简介"><a href="#Linux-文件系统简介" class="headerlink" title="Linux 文件系统简介"></a>Linux 文件系统简介</h2><p>说到文件读写，为了增强代入感我们还是先回顾或者说是了解一下基本的 Linux 内核相关知识。</p>
+<h3 id="系统调用"><a href="#系统调用" class="headerlink" title="系统调用"></a>系统调用</h3><p>操作系统的主要功能是为管理硬件资源和为应用程序开发人员提供良好的环境，但是计算机系统的各种硬件资源是有限的，因此为了保证每一个进程都能安全的执行。处理器设有两种模式：用户模式 与 内核模式。一些容易发生安全问题的操作都被限制在只有内核模式下才可以执行，例如 I/O 操作，修改基址寄存器内容等。</p>
+<p>当我们处在用户态但是却不得不调用内核态下一些操作的时候这时候可以利用Linux提供的一些转换接口唤起操作，而连接用户模式和内核模式的接口称之为 系统调用。</p>
+<p>应用程序代码运行在用户模式下，当应用程序需要实现内核模式下的指令时，先向操作系统发送调用请求。操作系统收到请求后，执行系统调用接口，使处理器进入内核模式。当处理器处理完系统调用操作后，操作系统会让处理器返回用户模式，继续执行用户代码。</p>
+<p>进程的虚拟地址空间可分为两部分，内核空间 和 用户空间。内核空间中存放的是内核代码和数据，而进程的用户空间中存放的是用户程序的代码和数据。不管是内核空间还是用户空间，它们都处于虚拟空间中，都是对物理地址的映射。</p>
+<h3 id="虚拟文件系统"><a href="#虚拟文件系统" class="headerlink" title="虚拟文件系统"></a>虚拟文件系统</h3><p>一个操作系统可以支持多种底层不同的文件系统(比如 NTFS, FAT, ext3, ext4)，为了给内核和用户进程提供统一的文件系统视图，Linux 在用户进程和底层文件系统之间加入了一个抽象层，即虚拟文件系统( Virtual File System, VFS )，进程所有的文件操作都通过 VFS，由 VFS 来适配各种底层不同的文件系统，完成实际的文件操作。</p>
+<p>通俗的说，VFS 就是定义了一个通用文件系统的接口层和适配层，一方面为用户进程提供了一组统一的访问文件，目录和其他对象的统一方法，另一方面又要和不同的底层文件系统进行适配。如图所示：</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/ZHTKAs.jpg" alt="ZHTKAs"></p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/%E9%9B%B6%E6%8B%B7%E8%B4%9D%EF%BC%88Zero-copy%EF%BC%89%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E5%AE%B9%E5%99%A8%E4%BA%91%E5%AF%B9%E6%8E%A5FC-SAN%E5%9D%97%E5%AD%98%E5%82%A8%E5%A4%8D%E7%9B%98%E8%AE%B0%E5%BD%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/%E5%AE%B9%E5%99%A8%E4%BA%91%E5%AF%B9%E6%8E%A5FC-SAN%E5%9D%97%E5%AD%98%E5%82%A8%E5%A4%8D%E7%9B%98%E8%AE%B0%E5%BD%95/" itemprop="url">容器云对接FC SAN块存储复盘记录</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-07-09T16:23:37+08:00">
+                2021-07-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index">
+                    <span itemprop="name">踩坑记录</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/FCSAN/" itemprop="url" rel="index">
+                    <span itemprop="name">FCSAN</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E5%AE%B9%E5%99%A8%E4%BA%91%E5%AF%B9%E6%8E%A5FC-SAN%E5%9D%97%E5%AD%98%E5%82%A8%E5%A4%8D%E7%9B%98%E8%AE%B0%E5%BD%95/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/容器云对接FC-SAN块存储复盘记录/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h1 id="容器云对接FC-SAN块存储复盘记录"><a href="#容器云对接FC-SAN块存储复盘记录" class="headerlink" title="容器云对接FC SAN块存储复盘记录"></a>容器云对接FC SAN块存储复盘记录</h1><h2 id="1-需求背景"><a href="#1-需求背景" class="headerlink" title="1. 需求背景"></a>1. 需求背景</h2><p>用户现场买了一套FC SAN的块设备，与之进行对接。需要不影响已上云的业务，并要支持多副本，保证服务可用性（服务漂移，块设备自动挂载）以及数据完整性（漂移时数据及时罗盘）。</p>
+<h2 id="2-方案分析"><a href="#2-方案分析" class="headerlink" title="2. 方案分析"></a>2. 方案分析</h2><p>一开始对厂商的块设备不了解，不确定能否拆分，能否多节点挂载，需要从两方面考虑。如果都不支持，那所有用块的服务都需要集中到一个节点上，那就会造成两个问题，需要提前说清楚：</p>
+<ol>
+<li>存储失去隔离性，所有业务都能访问整个块设备</li>
+<li>所有业务都调度到一个节点上，不管上64核还是128核的cpu都不够用，计算资源成为瓶颈。</li>
+</ol>
+<p>如果能拆分，则需要对以下逻辑进行验证：</p>
+<ol>
+<li>一个卷能否支持多节点挂载</li>
+<li>如果支持，挂载需要的信息是否一致，能否实现自动化</li>
+<li>如果支持，多节点写入会有什么问题，如何处理冲突</li>
+<li>一个节点挂掉时，是否需要与对应的卷进行解绑</li>
+<li>pod调度时是否有flush或sync机制，保证数据完整性。</li>
+</ol>
+<h2 id="3-逻辑验证"><a href="#3-逻辑验证" class="headerlink" title="3. 逻辑验证"></a>3. 逻辑验证</h2><h3 id="3-1-多节点挂载可行性"><a href="#3-1-多节点挂载可行性" class="headerlink" title="3.1 多节点挂载可行性"></a>3.1 多节点挂载可行性</h3><p><strong>双实例</strong>：服务器A上的pod写入数据后，重启服务器B上的pod即可看到A写入的内入 <br><strong>三实例</strong>：服务器A和B上的pod都写入数据，重启服务器C上的pod后只能看到前两者中后写入的数据</p>
+<h3 id="3-2-服务漂移可行性"><a href="#3-2-服务漂移可行性" class="headerlink" title="3.2 服务漂移可行性"></a>3.2 服务漂移可行性</h3><h4 id="3-2-1-验证环境："><a href="#3-2-1-验证环境：" class="headerlink" title="3.2.1 验证环境："></a>3.2.1 验证环境：</h4><p>三台arm64架构银河麒麟4.0.2SP系统的服务器组成的集群，每台服务器通过一根光纤直连到同有的FCSAN存储，型号为A1600</p>
+<h4 id="3-2-2-验证步骤："><a href="#3-2-2-验证步骤：" class="headerlink" title="3.2.2 验证步骤："></a>3.2.2 验证步骤：</h4><ol>
+<li>在厂商的web平台上创建存储池、存储卷、主机</li>
+<li>在平台上将每个主机与存储卷进行映射，建立绑定关系</li>
+<li>在每台服务器上执行一些命令使服务器能够发现存储卷</li>
+<li>声明FC类型的Volume，其中需要填写 targetWWNs （WWPN） 和 lun 字段，值从 /dev/disk/by-path 路径下获取 官方示例： <a target="_blank" rel="noopener" href="https://github.com/kubernetes/examples/tree/master/staging/volumes/fibre_channel">https://github.com/kubernetes/examples/tree/master/staging/volumes/fibre_channel</a> </li>
+</ol>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/%E5%AE%B9%E5%99%A8%E4%BA%91%E5%AF%B9%E6%8E%A5FC-SAN%E5%9D%97%E5%AD%98%E5%82%A8%E5%A4%8D%E7%9B%98%E8%AE%B0%E5%BD%95/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E5%AD%98%E5%82%A8%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/%E5%AD%98%E5%82%A8%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/" itemprop="url">存储知识点总结</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-07-07T09:35:03+08:00">
+                2021-07-07
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
+                    <span itemprop="name">知识点总结</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/storage/" itemprop="url" rel="index">
+                    <span itemprop="name">storage</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E5%AD%98%E5%82%A8%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/存储知识点笔记/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h1 id="存储知识点总结"><a href="#存储知识点总结" class="headerlink" title="存储知识点总结"></a>存储知识点总结</h1><h2 id="1-数据存储的载体——硬盘"><a href="#1-数据存储的载体——硬盘" class="headerlink" title="1 数据存储的载体——硬盘"></a>1 数据存储的载体——硬盘</h2><p>硬盘之所以叫硬盘，是因为它的核心部分是一块或多块由坚硬金属材料制成的盘片。盘片上面涂抹了磁性介质，两面都可以记录信息。在盘面上读/写数据的，是磁头。</p>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/UjAJnW.jpg" alt="UjAJnW"></p>
+<p>现在主流的硬盘，扇区密度是一致的，也就是说，越靠外侧，扇区数越多。每个扇区的大小是4K字节，用一个逻辑块编号寻址（LBA，Logical Block Addressing）。以扇区为基础，一个或多个连续的扇区组成一个块，叫做物理块。所以，硬盘往往又叫块设备（Block Device）。</p>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/%E5%AD%98%E5%82%A8%E7%9F%A5%E8%AF%86%E7%82%B9%E7%AC%94%E8%AE%B0/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/Pod-%E5%86%85%E5%AD%98%E6%8E%A7%E5%88%B6%E7%BB%84%E6%B3%84%E6%BC%8F%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/Pod-%E5%86%85%E5%AD%98%E6%8E%A7%E5%88%B6%E7%BB%84%E6%B3%84%E6%BC%8F%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A/" itemprop="url">Pod 内存控制组泄漏研究报告</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-03-22T19:56:34+08:00">
+                2021-03-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index">
+                    <span itemprop="name">踩坑记录</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/Pod-%E5%86%85%E5%AD%98%E6%8E%A7%E5%88%B6%E7%BB%84%E6%B3%84%E6%BC%8F%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/Pod-内存控制组泄漏研究报告/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h1 id="Pod-内存控制组泄漏研究报告"><a href="#Pod-内存控制组泄漏研究报告" class="headerlink" title="Pod 内存控制组泄漏研究报告"></a>Pod 内存控制组泄漏研究报告</h1><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">VERSION: v0.1.0</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-现象"><a href="#1-现象" class="headerlink" title="1. 现象"></a>1. 现象</h2><p>容器不断因为 cgroup oom 重启，同时系统日志显示，每一次内核 kill 容器进程时，都会出现上千条 <code>Memory cgroup stats for /kubepods/burstable/pod&lt;%pod_id%&gt;/&lt;%container_id%&gt;</code> 日志，如下图所示：<br><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/GZcozH.png" alt="GZcozH"></p>
+<h2 id="2-研究背景"><a href="#2-研究背景" class="headerlink" title="2. 研究背景"></a>2. 研究背景</h2><p>数场基础系统出现根分区只读的情况。查看现场系统日志，发现如上所述现象，推测是导致根分区只读的部分原因。</p>
+<h2 id="3-查找问题"><a href="#3-查找问题" class="headerlink" title="3. 查找问题"></a>3. 查找问题</h2>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/Pod-%E5%86%85%E5%AD%98%E6%8E%A7%E5%88%B6%E7%BB%84%E6%B3%84%E6%BC%8F%E7%A0%94%E7%A9%B6%E6%8A%A5%E5%91%8A/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1k8s-rbd%E5%8D%B7%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1k8s-rbd%E5%8D%B7%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" itemprop="url">记一次k8s/rbd卷故障排查</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2021-02-01T16:22:44+08:00">
+                2021-02-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/" itemprop="url" rel="index">
+                    <span itemprop="name">踩坑记录</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95/RBD/" itemprop="url" rel="index">
+                    <span itemprop="name">RBD</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1k8s-rbd%E5%8D%B7%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/记一次k8s-rbd卷故障排查/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h1 id="Ceph-RBD-挂载问题总结"><a href="#Ceph-RBD-挂载问题总结" class="headerlink" title="Ceph RBD 挂载问题总结"></a>Ceph RBD 挂载问题总结</h1><h2 id="1-现象"><a href="#1-现象" class="headerlink" title="1. 现象"></a>1. 现象</h2><p>挂载rbd类型数据单元的服务启动时报错：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Warning  FailedMount  0s    kubelet  MountVolume.WaitForAttach failed <span class="keyword">for</span> volume <span class="string">&quot;test-rbd&quot;</span> : rbd image rbd/23a3c06e-21df-434b-8ea2-bd9e36b6a013 is still being used</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-研究背景"><a href="#2-研究背景" class="headerlink" title="2. 研究背景"></a>2. 研究背景</h2><p>大部分类型的数据单元都是在pod启动前，在webhook中通过解析annotation中数据单元的信息，为其添加相应的volume和volumeMount的方式实现。volume属于pod的一部分，与pod的生命周期保持同步。</p>
+<p>这对于文件系统、数据库、对象存储等类型的数据单元来说是很好的方式，而使用 <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/storage/volumes/#rbd">Ceph RBD</a> 类型的volume时，创建第一个pod不会有任何问题，但创建第二个pod时就有几率报上面的错。</p>
+<p>原因是rbd类型的volume不支持多节点同时挂载（还不清楚是k8s的限制还是rbd自身的缺陷），这带来了两个问题：</p>
+<ol>
+<li>当多个服务使用同一个rbd类型的数据单元或一个服务有多副本，如果这些pod分布在多个节点上，后启动的pod就会因为这个rbd卷正在被使用而被阻塞住。</li>
+<li>在服务升级时（helm upgrade），新起的pod发现rbd卷正在被其他pod使用起不来，旧的pod又在等待新pod起来后再停止，造成一个互相等待的<code>dead lock</code>。</li>
+</ol>
+<h2 id="3-查找问题"><a href="#3-查找问题" class="headerlink" title="3. 查找问题"></a>3. 查找问题</h2>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1k8s-rbd%E5%8D%B7%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95%E2%80%94%E2%80%94Go%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -966,1085 +2009,6 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89/" itemprop="url">《计算机网络——自顶向下》学习笔记（三）</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-09-05T23:14:35+08:00">
-                2020-09-05
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index">
-                    <span itemprop="name">读书笔记</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/%E3%80%8A%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E2%80%94%E2%80%94%E8%87%AA%E9%A1%B6%E5%90%91%E4%B8%8B%E3%80%8B/" itemprop="url" rel="index">
-                    <span itemprop="name">《计算机网络——自顶向下》</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/计算机网络学习笔记（三）/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h1 id="运输层"><a href="#运输层" class="headerlink" title="运输层"></a><strong>运输层</strong></h1><h2 id="TCP"><a href="#TCP" class="headerlink" title="TCP"></a>TCP</h2><h3 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h3><ul>
-<li><p>面向连接的全双工服务</p>
-</li>
-<li><p>MTU</p>
-<ul>
-<li><p>最大传输单元</p>
-<ul>
-<li>默认1500字节</li>
-</ul>
-</li>
-</ul>
-</li>
-<li><p>MSS</p>
-<ul>
-<li><p>最大报文段长度</p>
-<ul>
-<li>默认1460字节</li>
-</ul>
-</li>
-</ul>
-</li>
-<li><p>发送缓存与接收缓存</p>
-</li>
-<li><p>RTT</p>
-<ul>
-<li>往返时间</li>
-</ul>
-</li>
-</ul>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%89%EF%BC%89/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89/" itemprop="url">《计算机网络——自顶向下》学习笔记（二）</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-29T23:13:12+08:00">
-                2020-08-29
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index">
-                    <span itemprop="name">读书笔记</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/%E3%80%8A%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E2%80%94%E2%80%94%E8%87%AA%E9%A1%B6%E5%90%91%E4%B8%8B%E3%80%8B/" itemprop="url" rel="index">
-                    <span itemprop="name">《计算机网络——自顶向下》</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/计算机网络学习笔记（二）/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h1 id="应用层"><a href="#应用层" class="headerlink" title="应用层"></a><strong>应用层</strong></h1><h2 id="体系结构"><a href="#体系结构" class="headerlink" title="体系结构"></a>体系结构</h2><h3 id="CS"><a href="#CS" class="headerlink" title="CS"></a>CS</h3><h3 id="P2P"><a href="#P2P" class="headerlink" title="P2P"></a>P2P</h3><h2 id="使用的运输服务"><a href="#使用的运输服务" class="headerlink" title="使用的运输服务"></a>使用的运输服务</h2><h3 id="TCP"><a href="#TCP" class="headerlink" title="TCP"></a>TCP</h3><ul>
-<li><p>面向连接的服务</p>
-</li>
-<li><p>可靠的数据传送服务</p>
-</li>
-</ul>
-<h3 id="UDP"><a href="#UDP" class="headerlink" title="UDP"></a>UDP</h3><ul>
-<li>不提供不必要服务的轻量级运输</li>
-</ul>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%BA%8C%EF%BC%89/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/Docker%E7%BD%91%E7%BB%9C/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/Docker%E7%BD%91%E7%BB%9C/" itemprop="url">Docker网络</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-29T10:42:24+08:00">
-                2020-08-29
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
-                    <span itemprop="name">知识点总结</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C/" itemprop="url" rel="index">
-                    <span itemprop="name">容器网络</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/Docker%E7%BD%91%E7%BB%9C/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/Docker网络/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <h2 id="网络驱动"><a href="#网络驱动" class="headerlink" title="网络驱动"></a>网络驱动</h2><ul>
-<li><code>bridge</code>：默认的网络驱动。当应用程序需要在容器中独立运行时通常使用<code>Bridge</code>网络。</li>
-<li><code>host</code>：对于独立容器，删除容器和主机之间的网络隔离，让容器直接使用主机的网络。</li>
-<li><code>overlay</code>：覆盖网络将多个Docker守护进程连接在一起，使集群服务能够相互通信。</li>
-<li><code>macvlan</code>：允许为容器分配MAC地址，让它在网络中像一台物理设备。</li>
-<li><code>none</code>：禁用所有网络。</li>
-</ul>
-
-          
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E5%8A%A8%E6%80%81%E5%8D%B7%E4%BE%9B%E5%BA%94/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/%E5%8A%A8%E6%80%81%E5%8D%B7%E4%BE%9B%E5%BA%94/" itemprop="url">动态卷供应</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-27T19:05:40+08:00">
-                2020-08-27
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/" itemprop="url" rel="index">
-                    <span itemprop="name">知识点总结</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%80%BB%E7%BB%93/Kubernetes/" itemprop="url" rel="index">
-                    <span itemprop="name">Kubernetes</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/%E5%8A%A8%E6%80%81%E5%8D%B7%E4%BE%9B%E5%BA%94/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/动态卷供应/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>我们目前使用的存储服务是<code>MooseFS</code>，部署工具会在启动k8s前为每个节点挂载好共享路径<code>/mnt/shareroot</code>。<br>当应用有存储需求时，需要手动在Pod中声明类型为<code>hostpath</code>的<code>volume</code>，并在<code>.containers.volumeMounts</code>中进行映射。</p>
-<p>这种方案有以下弊端：</p>
-<ul>
-<li>需要为每个应用手动的在yaml中声明PV</li>
-<li>无法对卷的访问模式和容量进行限制及扩展</li>
-</ul>
-<p>为此，我们引入 Kubernetes 中的<code>PVC</code>和<code>StorageClass</code>两个重要的资源对象来实现对存储的管理。</p>
-<h2 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h2><h3 id="PVC"><a href="#PVC" class="headerlink" title="PVC"></a>PVC</h3><p><code>PVC</code>的全称是：PersistentVolumeClaim（持久化卷声明），PVC 是用户存储的一种声明，PVC 和 Pod 比较类似，Pod 消耗的是节点，PVC 消耗的是 PV 资源，Pod 可以请求 CPU 和内存，而 PVC 可以请求特定的存储空间和访问模式。</p>
-<p>对于真正使用存储的用户不需要关心底层的存储实现细节，只需要直接使用 PVC 即可。但是通过 PVC 请求到一定的存储空间也很有可能不足以满足应用对于存储设备的各种需求，而且不同的应用程序对于存储性能的要求可能也不尽相同，比如读写速度、并发性能等。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/%E5%8A%A8%E6%80%81%E5%8D%B7%E4%BE%9B%E5%BA%94/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/" itemprop="url">《计算机网络——自顶向下》学习笔记（一）</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-08-22T23:06:13+08:00">
-                2020-08-22
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index">
-                    <span itemprop="name">读书笔记</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/%E3%80%8A%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E2%80%94%E2%80%94%E8%87%AA%E9%A1%B6%E5%90%91%E4%B8%8B%E3%80%8B/" itemprop="url" rel="index">
-                    <span itemprop="name">《计算机网络——自顶向下》</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/计算机网络学习笔记（一）/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <h1 id="计算机网络"><a href="#计算机网络" class="headerlink" title="计算机网络"></a><strong>计算机网络</strong></h1><h2 id="网络体系结构"><a href="#网络体系结构" class="headerlink" title="网络体系结构"></a>网络体系结构</h2><h3 id="协议层次"><a href="#协议层次" class="headerlink" title="协议层次"></a>协议层次</h3><ul>
-<li><p>协议</p>
-<ul>
-<li>同一层上对等实体之间所交换的数据包或报文的格式和含义</li>
-</ul>
-</li>
-<li><p>服务</p>
-<ul>
-<li>某一层向它上一层提供的一组原语（操作）</li>
-</ul>
-</li>
-<li><p>设计要点</p>
-<ul>
-<li><p>可靠性</p>
-</li>
-<li><p>可扩展性</p>
-</li>
-<li><p>资源分配</p>
-</li>
-<li><p>安全性</p>
-</li>
-</ul>
-</li>
-</ul>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E4%B8%80%EF%BC%89/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/k8s%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-5-API%E7%BA%A6%E5%AE%9A/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Code Your Ambition">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/articles/k8s%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-5-API%E7%BA%A6%E5%AE%9A/" itemprop="url">k8s学习笔记-5 API约定</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-07-11T10:38:05+08:00">
-                2020-07-11
-              </time>
-            
-
-            
-
-            
-          </span>
-
-          
-            <span class="post-category" >
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index">
-                    <span itemprop="name">学习笔记</span>
-                  </a>
-                </span>
-
-                
-                
-                  ， 
-                
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Kubernetes/" itemprop="url" rel="index">
-                    <span itemprop="name">Kubernetes</span>
-                  </a>
-                </span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/articles/k8s%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-5-API%E7%BA%A6%E5%AE%9A/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count disqus-comment-count"
-                        data-disqus-identifier="articles/k8s学习笔记-5-API约定/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          <p><em>本文翻译自<a target="_blank" rel="noopener" href="https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md">API Conventions</a>，面向想要深入理解k8s结构和用户以及想要扩展k8s API的开发者。在<a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/overview/working-with-objects/object-management/">对象管理概述</a>中可以找到将资源与kubectl一起使用的介绍。</em></p>
-<p>K8S API的约定旨在简化客户端的开发，确保可以实施能够在各种用例中保持一致的配置机制。</p>
-<p>K8S API通用的方式是RESTful——客户端通过标准的HTTP动词（POST、PUT、DELETE和GET）创建，更新，删除或检索一个对象的描述——并且这些API优先接受并返回JSON。k8s也为非标准动词开房了其他端点，并允许使用其他内容类型。所有服务器接受和返回的JSON都有一个结构，用“kind”和“apiVersion”字段标识。如果HTTP header头里有这样的字段，则应该在JSON里镜像一份内容，而不是只在header头里。</p>
-          <!--noindex-->
-          <div class="post-button text-center">
-            <a class="btn" href="/articles/k8s%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-5-API%E7%BA%A6%E5%AE%9A/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-          <!--/noindex-->
-        
-      
-    </div>
-    
-    
-    
-
-    
-
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
@@ -2095,7 +2059,7 @@
               
                 <a href="">
               
-                  <span class="site-state-item-count">83</span>
+                  <span class="site-state-item-count">89</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>

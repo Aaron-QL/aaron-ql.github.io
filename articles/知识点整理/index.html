@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="虚拟化虚拟化是指通过软件创建一个虚拟版本的计算资源，而非物理资源。它可以应用于硬件平台、操作系统、存储设备等，常见的虚拟化技术有以下几种：  硬件虚拟化：通过虚拟机管理程序（Hypervisor）在单一物理硬件上运行多个操作系统实例。常见的虚拟机管理程序包括VMware ESXi、Microsoft Hyper-V和KVM。 操作系统级虚拟化：通过容器技术在单一操作系统内核上运行多个隔离的用户空间">
+<meta property="og:type" content="article">
+<meta property="og:title" content="知识点整理">
+<meta property="og:url" content="https://aaron-ql.github.io/articles/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/index.html">
+<meta property="og:site_name" content="Code Your Ambition">
+<meta property="og:description" content="虚拟化虚拟化是指通过软件创建一个虚拟版本的计算资源，而非物理资源。它可以应用于硬件平台、操作系统、存储设备等，常见的虚拟化技术有以下几种：  硬件虚拟化：通过虚拟机管理程序（Hypervisor）在单一物理硬件上运行多个操作系统实例。常见的虚拟机管理程序包括VMware ESXi、Microsoft Hyper-V和KVM。 操作系统级虚拟化：通过容器技术在单一操作系统内核上运行多个隔离的用户空间">
+<meta property="og:locale">
+<meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/640.png">
+<meta property="article:published_time" content="2024-05-22T02:55:20.000Z">
+<meta property="article:modified_time" content="2024-05-23T09:56:36.229Z">
+<meta property="article:author" content="Aaron Qin">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/640.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://aaron-ql.github.io/articles/知识点整理/"/>
+
+
+
+
+
+  <title>知识点整理 | Code Your Ambition</title>
+  
+
+
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZV2QP61MNB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-ZV2QP61MNB');
+</script>
+
+
+
+
+
+
+<meta name="generator" content="Hexo 5.4.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Code Your Ambition</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-commonweal">
+          <a href="/404/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-heartbeat"></i> <br />
+            
+            公益404
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://aaron-ql.github.io/articles/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Code Your Ambition">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">知识点整理</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2024-05-22T10:55:20+08:00">
+                2024-05-22
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/articles/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="articles/知识点整理/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="虚拟化"><a href="#虚拟化" class="headerlink" title="虚拟化"></a>虚拟化</h3><p>虚拟化是指通过软件创建一个虚拟版本的计算资源，而非物理资源。它可以应用于硬件平台、操作系统、存储设备等，常见的虚拟化技术有以下几种：</p>
+<ul>
+<li><strong>硬件虚拟化</strong>：通过虚拟机管理程序（Hypervisor）在单一物理硬件上运行多个操作系统实例。常见的虚拟机管理程序包括VMware ESXi、Microsoft Hyper-V和KVM。</li>
+<li><strong>操作系统级虚拟化</strong>：通过容器技术在单一操作系统内核上运行多个隔离的用户空间实例。Docker和LXC是常见的实现。</li>
+<li><strong>存储虚拟化</strong>：将多个物理存储设备虚拟化为单一存储池，供用户或应用程序使用。</li>
+<li><strong>网络虚拟化</strong>：将网络资源（如带宽、延迟）抽象化，使得不同的网络应用或服务可以独立管理和运行。</li>
+</ul>
+<h3 id="云原生"><a href="#云原生" class="headerlink" title="云原生"></a>云原生</h3><p>云原生是一种构建和运行应用程序的方法，充分利用云计算模式的弹性和分布式特性。其关键要素包括：</p>
+<ul>
+<li><strong>容器</strong>：容器化应用允许一致的开发、测试和部署环境。Docker是最流行的容器化工具。</li>
+<li><strong>微服务</strong>：将应用拆分为小的、独立的服务，每个服务独立开发、部署和扩展。</li>
+<li><strong>动态编排</strong>：自动化管理容器的部署、扩展和操作。Kubernetes是最广泛使用的容器编排工具。</li>
+<li><strong>声明性API</strong>：使用高层次的描述语言（如YAML或JSON）定义基础设施和应用状态，便于管理和自动化。</li>
+</ul>
+<h3 id="容器运行时"><a href="#容器运行时" class="headerlink" title="容器运行时"></a>容器运行时</h3><p>容器运行时是负责管理容器生命周期的底层软件组件。它负责拉取容器镜像、创建容器、启动和停止容器。主要的容器运行时包括：</p>
+<ul>
+<li><strong>Docker</strong>：最早流行的容器运行时，提供完整的容器管理解决方案。</li>
+<li><strong>containerd</strong>：一个专注于运行容器的高效运行时，由Docker项目拆分出来并成为CNCF项目。</li>
+<li><strong>CRI-O</strong>：一个专为Kubernetes设计的轻量级容器运行时，实现了Kubernetes的容器运行时接口（CRI）。</li>
+</ul>
+<h3 id="Kubernetes-K8s"><a href="#Kubernetes-K8s" class="headerlink" title="Kubernetes (K8s)"></a>Kubernetes (K8s)</h3><p>Kubernetes是一个开源的容器编排平台，用于自动化部署、扩展和管理容器化应用。它的核心组件包括：</p>
+<ul>
+<li><strong>节点</strong>：运行容器的计算机，分为主节点和工作节点。</li>
+<li><strong>Pod</strong>：Kubernetes中最小的部署单元，一个Pod可以包含一个或多个容器。</li>
+<li><strong>控制器</strong>：负责管理Pod的副本数和状态，确保应用按照定义的状态运行。</li>
+<li><strong>服务</strong>：定义了一组Pod的访问策略，支持负载均衡和服务发现。</li>
+<li><strong>配置和存储管理</strong>：通过ConfigMap和Secret管理配置，通过PersistentVolume和PersistentVolumeClaim管理存储。</li>
+</ul>
+<h3 id="容器运行时接口-CRI"><a href="#容器运行时接口-CRI" class="headerlink" title="容器运行时接口 (CRI)"></a>容器运行时接口 (CRI)</h3><p>CRI（Container Runtime Interface）是Kubernetes定义的一组标准，用于与不同的容器运行时进行交互。CRI抽象了容器的创建、删除和管理操作，允许Kubernetes与多种容器运行时兼容，如containerd和CRI-O。</p>
+<h3 id="容器网络接口-CNI"><a href="#容器网络接口-CNI" class="headerlink" title="容器网络接口 (CNI)"></a>容器网络接口 (CNI)</h3><p>CNI（Container Network Interface）是用于配置容器网络的标准接口，定义了容器网络插件的开发和使用规范。CNI插件负责在容器创建时设置网络，并在容器删除时清理网络。常见的CNI插件有Flannel、Calico和Weave。</p>
+<h3 id="容器存储接口-CSI"><a href="#容器存储接口-CSI" class="headerlink" title="容器存储接口 (CSI)"></a>容器存储接口 (CSI)</h3><p>CSI（Container Storage Interface）是用于配置和管理容器存储的标准接口，定义了存储插件的开发和使用规范。CSI插件允许Kubernetes等编排系统与各种存储系统（如本地存储、云存储、网络存储）集成。常见的CSI插件有Amazon EBS CSI Driver、Ceph CSI和NFS CSI。</p>
+<h3 id="微服务"><a href="#微服务" class="headerlink" title="微服务"></a>微服务</h3><p>微服务架构是一种软件架构风格，将应用程序分解为多个独立的、可独立部署的小服务，每个服务都有自己的业务逻辑和数据库。微服务的特点包括：</p>
+<ul>
+<li><strong>独立部署</strong>：每个微服务可以独立开发、测试和部署，减少了部署和升级的复杂性。</li>
+<li><strong>技术多样性</strong>：不同的微服务可以使用不同的技术栈和编程语言，选择最合适的工具。</li>
+<li><strong>故障隔离</strong>：一个微服务的故障不会影响整个系统，提高了系统的可靠性。</li>
+</ul>
+<h3 id="DevOps"><a href="#DevOps" class="headerlink" title="DevOps"></a>DevOps</h3><p>DevOps是一种结合开发（Development）和运维（Operations）的方法，旨在通过自动化和持续交付来加速软件开发和发布流程。DevOps的关键实践包括：</p>
+<ul>
+<li><strong>持续集成（CI）</strong>：频繁将代码集成到主干，进行自动化测试和构建，确保代码的高质量和稳定性。</li>
+<li><strong>持续交付（CD）</strong>：自动化整个软件交付流程，从代码提交到生产环境部署，使软件能够随时发布。</li>
+<li><strong>基础设施即代码（IaC）</strong>：使用代码来管理和配置基础设施，实现自动化和版本控制。</li>
+<li><strong>监控和日志</strong>：实时监控应用和基础设施的状态，收集日志以快速发现和解决问题。</li>
+</ul>
+<p>以上就是这些技术的简要介绍，它们共同构成了现代软件开发和运维的基础，为构建高效、灵活和可扩展的应用提供了强大的支持。</p>
+<h2 id="Client-go"><a href="#Client-go" class="headerlink" title="Client-go"></a>Client-go</h2><p><code>client-go</code>是一个强大的Kubernetes客户端库，广泛用于编写与Kubernetes API交互的应用程序，如自定义控制器和Operator。理解<code>client-go</code>的内部构造和工作原理对有效使用它非常重要。以下是<code>client-go</code>的内部构造和工作原理的详细介绍：</p>
+<h3 id="核心组件"><a href="#核心组件" class="headerlink" title="核心组件"></a>核心组件</h3><ol>
+<li><strong>RestClient</strong></li>
+<li><strong>ClientSet</strong></li>
+<li><strong>Informer</strong></li>
+<li><strong>Indexer</strong></li>
+<li><strong>Lister</strong></li>
+<li><strong>WorkQueue</strong></li>
+<li><strong>Reflector</strong></li>
+</ol>
+<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/640.png"></p>
+<h4 id="1-RestClient"><a href="#1-RestClient" class="headerlink" title="1. RestClient"></a>1. RestClient</h4><p><code>RestClient</code>是<code>client-go</code>的基础组件，用于直接与Kubernetes API服务器通信。它封装了HTTP请求，并提供了对Kubernetes资源的基本CRUD（创建、读取、更新、删除）操作。</p>
+<p>主要功能：</p>
+<ul>
+<li>构建和发送HTTP请求。</li>
+<li>处理API响应。</li>
+<li>支持多种认证机制（如Bearer Token、TLS证书等）。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> RESTClient <span class="keyword">struct</span> &#123;</span><br><span class="line">    base     *url.URL</span><br><span class="line">    versionedAPIPath <span class="keyword">string</span></span><br><span class="line">    contentConfig ContentConfig</span><br><span class="line">    serializers <span class="keyword">map</span>[contentTypeSerializer]runtime.NegotiatedSerializer</span><br><span class="line">    createBackoffFunc <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">backoffManager</span></span></span><br><span class="line">    throttle flowcontrol.RateLimiter</span><br><span class="line">    rateLimiter flowcontrol.RateLimiter</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-ClientSet"><a href="#2-ClientSet" class="headerlink" title="2. ClientSet"></a>2. ClientSet</h4><p><code>ClientSet</code>是对<code>RestClient</code>的进一步封装，提供了对Kubernetes内置资源（如Pods、Services、Deployments等）的高级操作接口。每种资源都有一个对应的客户端，如<code>CoreV1Client</code>、<code>AppsV1Client</code>等。</p>
+<p>主要功能：</p>
+<ul>
+<li>提供简化的资源操作方法。</li>
+<li>管理多个版本的API组。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Clientset <span class="keyword">struct</span> &#123;</span><br><span class="line">    *discovery.DiscoveryClient</span><br><span class="line">    coreV1      *corev1.CoreV1Client</span><br><span class="line">    appsV1      *appsv1.AppsV1Client</span><br><span class="line">    <span class="comment">// Other API clients...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-Informer"><a href="#3-Informer" class="headerlink" title="3. Informer"></a>3. Informer</h4><p>Informer是<code>client-go</code>的核心组件之一，用于缓存和分发资源的变化事件。它提供了高效的资源监控机制，避免了频繁的API调用。</p>
+<p>主要功能：</p>
+<ul>
+<li>监听资源变化事件（增、删、改）。</li>
+<li>将事件分发给注册的事件处理器。</li>
+<li>缓存资源对象，提高查询性能。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> SharedInformer <span class="keyword">interface</span> &#123;</span><br><span class="line">    AddEventHandler(handler ResourceEventHandler)</span><br><span class="line">    AddEventHandlerWithResyncPeriod(handler ResourceEventHandler, resyncPeriod time.Duration)</span><br><span class="line">    GetStore() Store</span><br><span class="line">    GetController() Controller</span><br><span class="line">    Run(stopCh &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">    HasSynced() <span class="keyword">bool</span></span><br><span class="line">    LastSyncResourceVersion() <span class="keyword">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-Indexer"><a href="#4-Indexer" class="headerlink" title="4. Indexer"></a>4. Indexer</h4><p>Indexer是Informer的一个核心部分，负责存储和索引资源对象。它允许根据不同的索引函数高效查询资源对象。</p>
+<p>主要功能：</p>
+<ul>
+<li>存储资源对象。</li>
+<li>提供多种索引机制。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Indexer <span class="keyword">interface</span> &#123;</span><br><span class="line">    Store</span><br><span class="line">    AddIndexers(indexers Indexers) error</span><br><span class="line">    GetByIndex(indexName, indexKey <span class="keyword">string</span>) ([]<span class="keyword">interface</span>&#123;&#125;, error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="5-Lister"><a href="#5-Lister" class="headerlink" title="5. Lister"></a>5. Lister</h4><p>Lister是基于Indexer的一个高层封装，用于高效地查询缓存中的资源对象。它通常由代码生成工具自动生成，提供类型安全的资源查询接口。</p>
+<p>主要功能：</p>
+<ul>
+<li>提供便捷的资源查询接口。</li>
+<li>支持多种查询条件。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> PodLister <span class="keyword">interface</span> &#123;</span><br><span class="line">    List(selector labels.Selector) (ret []*v1.Pod, err error)</span><br><span class="line">    Pods(namespace <span class="keyword">string</span>) PodNamespaceLister</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="6-WorkQueue"><a href="#6-WorkQueue" class="headerlink" title="6. WorkQueue"></a>6. WorkQueue</h4><p>WorkQueue是<code>client-go</code>中的任务队列，用于管理和调度资源变化事件。它提供了多种队列实现，如有界队列、速率限制队列等。</p>
+<p>主要功能：</p>
+<ul>
+<li>支持并发处理。</li>
+<li>支持任务去重和重试机制。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> RateLimitingInterface <span class="keyword">interface</span> &#123;</span><br><span class="line">    Add(item <span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">    AddRateLimited(item <span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">    Forget(item <span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">    NumRequeues(item <span class="keyword">interface</span>&#123;&#125;) <span class="keyword">int</span></span><br><span class="line">    Get() (item <span class="keyword">interface</span>&#123;&#125;, shutdown <span class="keyword">bool</span>)</span><br><span class="line">    Done(item <span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="7-Reflector"><a href="#7-Reflector" class="headerlink" title="7. Reflector"></a>7. Reflector</h4><p>Reflector是Informer内部使用的组件，用于从API服务器获取资源对象并将其同步到本地缓存。它通过List和Watch操作实现资源对象的增量同步。</p>
+<p>主要功能：</p>
+<ul>
+<li>同步资源对象到本地缓存。</li>
+<li>处理资源对象的增量变化。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Reflector <span class="keyword">struct</span> &#123;</span><br><span class="line">    store Store</span><br><span class="line">    listerWatcher ListerWatcher</span><br><span class="line">    period time.Duration</span><br><span class="line">    resyncPeriod time.Duration</span><br><span class="line">    clock clock.Clock</span><br><span class="line">    backoffManager wait.BackoffManager</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h3><h4 id="1-初始化"><a href="#1-初始化" class="headerlink" title="1. 初始化"></a>1. 初始化</h4><p>在初始化阶段，创建<code>ClientSet</code>和对应的<code>Informer</code>。<code>Informer</code>会启动一个<code>Reflector</code>，负责从API服务器获取资源对象并将其同步到本地缓存。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">clientset, err := kubernetes.NewForConfig(config)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    log.Fatalf(<span class="string">&quot;Error building kubernetes clientset: %s&quot;</span>, err.Error())</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">informerFactory := informers.NewSharedInformerFactory(clientset, time.Second*<span class="number">30</span>)</span><br><span class="line">podInformer := informerFactory.Core().V1().Pods().Informer()</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-事件处理"><a href="#2-事件处理" class="headerlink" title="2. 事件处理"></a>2. 事件处理</h4><p><code>Informer</code>会监听资源对象的变化事件，并将事件添加到<code>WorkQueue</code>中进行处理。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs&#123;</span><br><span class="line">    AddFunc: <span class="function"><span class="keyword">func</span><span class="params">(obj <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">        queue.Add(obj)</span><br><span class="line">    &#125;,</span><br><span class="line">    UpdateFunc: <span class="function"><span class="keyword">func</span><span class="params">(oldObj, newObj <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">        queue.Add(newObj)</span><br><span class="line">    &#125;,</span><br><span class="line">    DeleteFunc: <span class="function"><span class="keyword">func</span><span class="params">(obj <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">        queue.Add(obj)</span><br><span class="line">    &#125;,</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>同步机制</li>
+</ol>
+<p><code>Reflector</code>使用<code>List</code>和<code>Watch</code>操作从API服务器获取资源对象，并将对象同步到本地缓存中。<code>List</code>操作用于全量同步，<code>Watch</code>操作用于增量更新。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *Reflector)</span> <span class="title">Run</span><span class="params">(stopCh &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">    <span class="keyword">go</span> wait.Until(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        r.listAndWatch(stopCh)</span><br><span class="line">    &#125;, r.period, stopCh)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-处理任务"><a href="#4-处理任务" class="headerlink" title="4. 处理任务"></a>4. 处理任务</h4><p>工作线程从<code>WorkQueue</code>中取出任务，处理资源对象的变化。处理完成后，将任务标记为已完成。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> c.processNextItem() &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Controller)</span> <span class="title">processNextItem</span><span class="params">()</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    obj, shutdown := c.workqueue.Get()</span><br><span class="line">    <span class="keyword">if</span> shutdown &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">defer</span> c.workqueue.Done(obj)</span><br><span class="line"></span><br><span class="line">    err := c.syncHandler(obj.(*unstructured.Unstructured))</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        log.Printf(<span class="string">&quot;Error syncing &#x27;%s&#x27;: %s&quot;</span>, obj, err.Error())</span><br><span class="line">    &#125;</span><br><span class="line">    c.workqueue.Forget(obj)</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p><code>client-go</code>提供了强大的工具和模式来简化与Kubernetes API的交互。其核心组件包括<code>RestClient</code>、<code>ClientSet</code>、<code>Informer</code>、<code>Indexer</code>、<code>Lister</code>、<code>WorkQueue</code>和<code>Reflector</code>。通过这些组件，开发者可以高效地实现资源监控、事件处理和缓存同步，适用于编写自定义控制器和Operator。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.png" alt=" 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/articles/NFS%E5%88%A0%E9%99%A4%E9%97%AE%E9%A2%98%E5%BD%92%E9%9B%B6%E8%AE%B0%E5%BD%95/" rel="next" title="NFS删除问题归零记录">
+                <i class="fa fa-chevron-left"></i> NFS删除问题归零记录
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/articles/Golang%E9%9D%A2%E8%AF%95%E9%A2%98%E6%95%B4%E7%90%86/" rel="prev" title="Golang面试题整理">
+                Golang面试题整理 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a target="_blank" rel="noopener" href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="">
+              
+                  <span class="site-state-item-count">89</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index%202.html">
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index%202.html">
+                  <span class="site-state-item-count">37</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/Aaron-QL" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:aka.qin@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://coolshell.cn/" title="coolshell" target="_blank">coolshell</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://draveness.me/" title="draveness" target="_blank">draveness</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://morven.life/" title="Morven" target="_blank">Morven</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://strikefreedom.top/" title="潘少" target="_blank">潘少</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://colobu.com/" title="鸟窝" target="_blank">鸟窝</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://ctimbai.github.io/" title="猿大白" target="_blank">猿大白</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://eddycjy.com/" title="煎鱼" target="_blank">煎鱼</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://lessisbetter.site/" title="大彬" target="_blank">大彬</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/" title="深入解析GO" target="_blank">深入解析GO</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%99%9A%E6%8B%9F%E5%8C%96"><span class="nav-number">1.</span> <span class="nav-text">虚拟化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%91%E5%8E%9F%E7%94%9F"><span class="nav-number">2.</span> <span class="nav-text">云原生</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8%E8%BF%90%E8%A1%8C%E6%97%B6"><span class="nav-number">3.</span> <span class="nav-text">容器运行时</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Kubernetes-K8s"><span class="nav-number">4.</span> <span class="nav-text">Kubernetes (K8s)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8%E8%BF%90%E8%A1%8C%E6%97%B6%E6%8E%A5%E5%8F%A3-CRI"><span class="nav-number">5.</span> <span class="nav-text">容器运行时接口 (CRI)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C%E6%8E%A5%E5%8F%A3-CNI"><span class="nav-number">6.</span> <span class="nav-text">容器网络接口 (CNI)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8%E5%AD%98%E5%82%A8%E6%8E%A5%E5%8F%A3-CSI"><span class="nav-number">7.</span> <span class="nav-text">容器存储接口 (CSI)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BE%AE%E6%9C%8D%E5%8A%A1"><span class="nav-number">8.</span> <span class="nav-text">微服务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DevOps"><span class="nav-number">9.</span> <span class="nav-text">DevOps</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Client-go"><span class="nav-number"></span> <span class="nav-text">Client-go</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E7%BB%84%E4%BB%B6"><span class="nav-number">1.</span> <span class="nav-text">核心组件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-RestClient"><span class="nav-number">1.1.</span> <span class="nav-text">1. RestClient</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-ClientSet"><span class="nav-number">1.2.</span> <span class="nav-text">2. ClientSet</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-Informer"><span class="nav-number">1.3.</span> <span class="nav-text">3. Informer</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-Indexer"><span class="nav-number">1.4.</span> <span class="nav-text">4. Indexer</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-Lister"><span class="nav-number">1.5.</span> <span class="nav-text">5. Lister</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-WorkQueue"><span class="nav-number">1.6.</span> <span class="nav-text">6. WorkQueue</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#7-Reflector"><span class="nav-number">1.7.</span> <span class="nav-text">7. Reflector</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">工作原理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-number">2.1.</span> <span class="nav-text">1. 初始化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E4%BA%8B%E4%BB%B6%E5%A4%84%E7%90%86"><span class="nav-number">2.2.</span> <span class="nav-text">2. 事件处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1"><span class="nav-number">2.3.</span> <span class="nav-text">4. 处理任务</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Aaron Qin</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'https://aaron-ql.github.io/articles/%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/';
+          this.page.identifier = 'articles/知识点整理/';
+          this.page.title = '知识点整理';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
