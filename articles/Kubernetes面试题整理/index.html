@@ -79,13 +79,15 @@
 
 
 
+<meta name="description" content="ListWatch是什么在Kubernetes中，client-go是一个用于与Kubernetes API服务器交互的官方Go客户端库。ListWatch是client-go中的一个重要概念，它主要用于列出和监视Kubernetes资源对象的变化。它在实现控制器和操作集群资源时非常有用。   ListWatch 的定义和作用ListWatch 是一个结构体，通常用于配置如何列出（List）和">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Kubernetes面试题整理">
 <meta property="og:url" content="https://aaron-ql.github.io/articles/Kubernetes%E9%9D%A2%E8%AF%95%E9%A2%98%E6%95%B4%E7%90%86/index.html">
 <meta property="og:site_name" content="Code Your Ambition">
+<meta property="og:description" content="ListWatch是什么在Kubernetes中，client-go是一个用于与Kubernetes API服务器交互的官方Go客户端库。ListWatch是client-go中的一个重要概念，它主要用于列出和监视Kubernetes资源对象的变化。它在实现控制器和操作集群资源时非常有用。   ListWatch 的定义和作用ListWatch 是一个结构体，通常用于配置如何列出（List）和">
 <meta property="og:locale">
 <meta property="article:published_time" content="2024-05-26T10:01:44.000Z">
-<meta property="article:modified_time" content="2024-05-26T12:08:05.407Z">
+<meta property="article:modified_time" content="2025-02-26T05:30:02.745Z">
 <meta property="article:author" content="Aaron Qin">
 <meta name="twitter:card" content="summary">
 
@@ -351,6 +353,318 @@
       
         <span id="more"></span>
 
+<h2 id="ListWatch是什么"><a href="#ListWatch是什么" class="headerlink" title="ListWatch是什么"></a>ListWatch是什么</h2><p>在Kubernetes中，<code>client-go</code>是一个用于与Kubernetes API服务器交互的官方Go客户端库。<code>ListWatch</code>是<code>client-go</code>中的一个重要概念，它主要用于列出和监视Kubernetes资源对象的变化。它在实现控制器和操作集群资源时非常有用。</p>
+<!--more-->
+
+<h3 id="ListWatch-的定义和作用"><a href="#ListWatch-的定义和作用" class="headerlink" title="ListWatch 的定义和作用"></a>ListWatch 的定义和作用</h3><p><code>ListWatch</code> 是一个结构体，通常用于配置如何列出（List）和监视（Watch）Kubernetes API资源。它提供了一种机制，可以高效地获取资源的当前状态并跟踪资源的变化。</p>
+<h3 id="ListWatch-的工作原理"><a href="#ListWatch-的工作原理" class="headerlink" title="ListWatch 的工作原理"></a>ListWatch 的工作原理</h3><ol>
+<li><p>List</p>
+<p>：</p>
+<ul>
+<li>执行一次完整的资源列表操作，获取当前所有资源对象的状态。这通常会通过调用 Kubernetes API 的 <code>list</code> 方法实现。</li>
+</ul>
+</li>
+<li><p>Watch</p>
+<p>：</p>
+<ul>
+<li>监视资源对象的变化事件（添加、更新、删除），并实时获取这些事件。这通常会通过调用 Kubernetes API 的 <code>watch</code> 方法实现。</li>
+</ul>
+</li>
+</ol>
+<p>通过结合 <code>List</code> 和 <code>Watch</code> 操作，<code>ListWatch</code> 可以在启动时获取资源的当前状态，然后持续监视这些资源的变化，保持数据的实时更新。</p>
+<h2 id="Informer是什么"><a href="#Informer是什么" class="headerlink" title="Informer是什么"></a>Informer是什么</h2><p>在 Kubernetes 的 <code>client-go</code> 库中，<code>Informer</code> 是一个非常重要的组件，用于高效地获取和监视 Kubernetes 集群中的资源对象。<code>Informer</code> 提供了一种机制，通过缓存和监听资源对象的变化，来构建对资源变化做出响应的控制器。</p>
+<h3 id="Informer-的作用"><a href="#Informer-的作用" class="headerlink" title="Informer 的作用"></a>Informer 的作用</h3><p><code>Informer</code> 的主要作用包括：</p>
+<ol>
+<li><strong>缓存资源对象</strong>：<ul>
+<li><code>Informer</code> 从 Kubernetes API 服务器获取资源对象，并将这些对象缓存起来。通过缓存可以减少直接访问 API 服务器的次数，提高性能和效率。</li>
+</ul>
+</li>
+<li><strong>监视资源变化</strong>：<ul>
+<li><code>Informer</code> 持续监视资源对象的变化事件（如添加、更新、删除），并触发相应的回调函数，从而实现对资源变化的实时响应。</li>
+</ul>
+</li>
+<li><strong>事件处理机制</strong>：<ul>
+<li><code>Informer</code> 提供了事件处理机制，可以让开发者定义回调函数来处理资源对象的增、删、改事件。</li>
+</ul>
+</li>
+</ol>
+<h3 id="Informer-的工作原理"><a href="#Informer-的工作原理" class="headerlink" title="Informer 的工作原理"></a>Informer 的工作原理</h3><p><code>Informer</code> 的工作原理包括以下几个步骤：</p>
+<ol>
+<li><strong>List 和 Watch</strong>：<ul>
+<li><strong>List</strong>：在启动时，<code>Informer</code> 会通过 Kubernetes API 的 <code>List</code> 操作获取所有目标资源对象的当前状态，并缓存这些对象。</li>
+<li><strong>Watch</strong>：随后，<code>Informer</code> 通过 Kubernetes API 的 <code>Watch</code> 操作持续监视这些资源对象的变化事件（如添加、更新、删除）。</li>
+</ul>
+</li>
+<li><strong>事件处理</strong>：<ul>
+<li>当资源对象发生变化时（例如新增一个 Pod 或者删除一个 Service），<code>Informer</code> 会将这些变化事件传递给相应的事件处理函数。</li>
+</ul>
+</li>
+<li><strong>本地缓存</strong>：<ul>
+<li><code>Informer</code> 将资源对象的状态保存在本地缓存中，以便在需要时快速访问，而不必每次都查询 API 服务器。</li>
+</ul>
+</li>
+</ol>
+<!--more-->
+
+<h2 id="headless-service-是什么"><a href="#headless-service-是什么" class="headerlink" title="headless service 是什么"></a>headless service 是什么</h2><p>在 Kubernetes 中，Headless Service 是一种特殊类型的 Service，它不分配 Cluster IP，也不通过负载均衡器进行流量分发。相反，Headless Service 允许客户端直接与后端 Pod 通信，并且通常用于实现自定义的服务发现和负载均衡机制。</p>
+<h3 id="Headless-Service-的特点"><a href="#Headless-Service-的特点" class="headerlink" title="Headless Service 的特点"></a>Headless Service 的特点</h3><ol>
+<li><strong>没有 Cluster IP</strong>：<ul>
+<li>与普通的 ClusterIP Service 不同，Headless Service 没有分配一个 Cluster IP（通过将 <code>spec.clusterIP</code> 设置为 <code>&quot;None&quot;</code> 实现）。这意味着客户端不能通过单个 IP 地址访问服务。</li>
+</ul>
+</li>
+<li><strong>DNS 解析</strong>：<ul>
+<li>Kubernetes 的 DNS 系统会为 Headless Service 的每个 Pod 创建一个 DNS 记录。当你查询 Headless Service 的 DNS 名称时，会返回所有匹配 Pod 的 IP 地址列表，而不是一个单一的虚拟 IP 地址。</li>
+</ul>
+</li>
+<li><strong>服务发现</strong>：<ul>
+<li>通过 DNS SRV 记录，Headless Service 可以提供服务发现机制，让客户端能够直接访问所有的后端 Pod。</li>
+</ul>
+</li>
+</ol>
+<h3 id="Headless-Service-的用途"><a href="#Headless-Service-的用途" class="headerlink" title="Headless Service 的用途"></a>Headless Service 的用途</h3><ol>
+<li><strong>StatefulSet</strong>：<ul>
+<li>Headless Service 常用于 StatefulSet，以提供稳定的网络标识符。StatefulSet 中的每个 Pod 都有一个稳定的 DNS 名称，可以通过 Headless Service 进行访问。</li>
+</ul>
+</li>
+<li><strong>自定义负载均衡</strong>：<ul>
+<li>可以使用自定义的负载均衡机制，而不是 Kubernetes 内部的负载均衡。客户端可以通过解析 Headless Service 的 DNS 名称获取所有 Pod 的 IP 地址列表，然后选择适当的 Pod 进行通信。</li>
+</ul>
+</li>
+<li><strong>服务发现</strong>：<ul>
+<li>对于需要服务发现的分布式系统（如数据库集群或消息队列集群），Headless Service 提供了一种简单的方式来获取集群中所有节点的 IP 地址。</li>
+</ul>
+</li>
+</ol>
+<h2 id="nodeport-service-和-clusterip-什么区别，流量链路有什么不同"><a href="#nodeport-service-和-clusterip-什么区别，流量链路有什么不同" class="headerlink" title="nodeport service 和 clusterip 什么区别，流量链路有什么不同"></a>nodeport service 和 clusterip 什么区别，流量链路有什么不同</h2><p>在 Kubernetes 中，<code>NodePort</code> 服务和 <code>ClusterIP</code> 服务是两种不同类型的服务，用于不同的网络访问场景。它们的主要区别在于服务的访问方式和暴露范围。以下是它们的详细比较以及流量链路的不同之处。</p>
+<h3 id="ClusterIP-服务"><a href="#ClusterIP-服务" class="headerlink" title="ClusterIP 服务"></a>ClusterIP 服务</h3><p><code>ClusterIP</code> 服务是 Kubernetes 中的默认服务类型。它仅在集群内部暴露服务，使得服务只能通过集群内部的 IP 地址访问。</p>
+<h4 id="特点"><a href="#特点" class="headerlink" title="特点"></a>特点</h4><ol>
+<li><strong>内部访问</strong>：<ul>
+<li><code>ClusterIP</code> 服务只能从集群内部访问，无法从集群外部直接访问。</li>
+</ul>
+</li>
+<li><strong>自动分配 IP</strong>：<ul>
+<li>Kubernetes 会自动为 <code>ClusterIP</code> 服务分配一个虚拟 IP 地址（Cluster IP），并使用这个 IP 地址作为服务的入口点。</li>
+</ul>
+</li>
+<li><strong>负载均衡</strong>：<ul>
+<li>Kubernetes 会将发送到 <code>ClusterIP</code> 地址的流量负载均衡到服务后端的 Pod 上。</li>
+</ul>
+</li>
+</ol>
+<h4 id="流量链路"><a href="#流量链路" class="headerlink" title="流量链路"></a>流量链路</h4><ol>
+<li>客户端 Pod 通过服务的 Cluster IP 地址和端口访问服务。</li>
+<li>请求被 Kubernetes 服务代理（如 kube-proxy）拦截，并通过负载均衡转发到其中一个后端 Pod。</li>
+</ol>
+<h3 id="NodePort-服务"><a href="#NodePort-服务" class="headerlink" title="NodePort 服务"></a>NodePort 服务</h3><p><code>NodePort</code> 服务是将服务暴露到每个节点上的特定端口，使得可以从集群外部通过节点的 IP 地址和特定端口访问服务。</p>
+<h4 id="特点-1"><a href="#特点-1" class="headerlink" title="特点"></a>特点</h4><ol>
+<li><strong>外部访问</strong>：<ul>
+<li><code>NodePort</code> 服务可以从集群外部访问，通过集群节点的 IP 地址和特定的端口进行访问。</li>
+</ul>
+</li>
+<li><strong>固定端口</strong>：<ul>
+<li>Kubernetes 会为 <code>NodePort</code> 服务分配一个范围内的固定端口（默认范围是 30000-32767），或者你可以手动指定一个端口。</li>
+</ul>
+</li>
+<li><strong>负载均衡</strong>：<ul>
+<li>外部流量通过节点的 <code>NodePort</code> 端口进入，然后被转发到相应的服务，再通过负载均衡转发到后端 Pod。</li>
+</ul>
+</li>
+</ol>
+<h4 id="流量链路-1"><a href="#流量链路-1" class="headerlink" title="流量链路"></a>流量链路</h4><ol>
+<li>客户端从集群外部通过节点的 IP 地址和 NodePort 端口访问服务。</li>
+<li>请求进入 Kubernetes 节点的指定端口。</li>
+<li>kube-proxy 拦截请求并转发到相应的 <code>ClusterIP</code> 服务。</li>
+<li><code>ClusterIP</code> 服务再将流量负载均衡转发到后端 Pod。</li>
+</ol>
+<h3 id="流量链路的不同"><a href="#流量链路的不同" class="headerlink" title="流量链路的不同"></a>流量链路的不同</h3><ul>
+<li><p><strong>ClusterIP 服务</strong>：</p>
+<ul>
+<li>只能从集群内部访问，流量路径较短。所有请求通过虚拟的 Cluster IP 进行内部负载均衡。</li>
+<li>流量路径：客户端 Pod -&gt; ClusterIP -&gt; kube-proxy -&gt; 后端 Pod</li>
+</ul>
+</li>
+<li><p><strong>NodePort 服务</strong>：</p>
+<ul>
+<li><p>可以从集群外部访问，流量路径相对较长。外部请求首先进入节点的 NodePort，然后转发到 ClusterIP，再由 ClusterIP 负载均衡到后端 Pod。</p>
+</li>
+<li><p>流量路径（外部访问）：外部客户端 -&gt; 节点 IP</p>
+<p>-&gt; kube-proxy -&gt; ClusterIP -&gt; 后端 Pod</p>
+</li>
+<li><p>流量路径（内部访问）：客户端 Pod -&gt; Node IP</p>
+<p>-&gt; kube-proxy -&gt; ClusterIP -&gt; 后端 Pod</p>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="容器网络模型"><a href="#容器网络模型" class="headerlink" title="容器网络模型"></a>容器网络模型</h2><p>容器网络模型（Container Network Model）是描述容器如何在集群中进行网络通信的模型。这个模型需要解决的问题包括：容器之间的网络连接、跨主机的网络通信、网络隔离、安全性以及服务发现等。Kubernetes 提供了一个灵活且强大的容器网络模型，通过 CNI 插件来实现。</p>
+<h3 id="容器网络模型的基本原则"><a href="#容器网络模型的基本原则" class="headerlink" title="容器网络模型的基本原则"></a>容器网络模型的基本原则</h3><p>Kubernetes 的容器网络模型基于以下几个基本原则：</p>
+<ol>
+<li><strong>每个 Pod 都有一个唯一的 IP 地址</strong>：<ul>
+<li>每个 Pod 被分配一个唯一的 IP 地址，Pod 内的所有容器共享这个 IP 地址。这简化了容器间通信的模型，使得容器不需要考虑端口映射。</li>
+</ul>
+</li>
+<li><strong>Pod 间可以直接通过 IP 地址进行通信</strong>：<ul>
+<li>在同一个节点或者不同节点上的 Pod，可以直接通过 IP 地址进行通信，不需要通过 NAT。</li>
+</ul>
+</li>
+<li><strong>宿主机可以与 Pod 通信</strong>：<ul>
+<li>集群中的任意节点都可以直接通过 Pod 的 IP 地址与其通信。</li>
+</ul>
+</li>
+<li><strong>Pod 可以与外部网络通信</strong>：<ul>
+<li>Pod 可以通过网络插件和宿主机的网络设置，与外部网络进行通信。</li>
+</ul>
+</li>
+</ol>
+<h3 id="容器网络模型的实现"><a href="#容器网络模型的实现" class="headerlink" title="容器网络模型的实现"></a>容器网络模型的实现</h3><p>Kubernetes 的容器网络模型通过以下几个关键组件来实现：</p>
+<ol>
+<li><strong>网络插件（CNI 插件）</strong>：<ul>
+<li>Kubernetes 使用 CNI（Container Network Interface）来配置和管理容器的网络连接。CNI 提供了一组标准接口，允许各种网络插件实现这些接口。常见的 CNI 插件包括 Flannel、Calico、Weave、Cilium 等。</li>
+</ul>
+</li>
+<li><strong>Pod 网络</strong>：<ul>
+<li>Pod 网络是指所有 Pod 所在的虚拟网络。每个 Pod 都被分配一个在 Pod 网络中的唯一 IP 地址。</li>
+</ul>
+</li>
+<li><strong>服务网络</strong>：<ul>
+<li>服务网络是指 Kubernetes 中所有服务的虚拟 IP 地址范围。服务网络中的每个服务都有一个 Cluster IP 地址，通过这个地址可以访问服务的后端 Pod。</li>
+</ul>
+</li>
+<li><strong>网络策略（Network Policies）</strong>：<ul>
+<li>网络策略定义了 Pod 之间以及 Pod 与外部网络之间的流量控制规则。这些策略可以用于实现网络隔离和安全性控制。</li>
+</ul>
+</li>
+</ol>
+<h3 id="容器网络模型的工作流程"><a href="#容器网络模型的工作流程" class="headerlink" title="容器网络模型的工作流程"></a>容器网络模型的工作流程</h3><h4 id="1-Pod-创建和网络配置"><a href="#1-Pod-创建和网络配置" class="headerlink" title="1. Pod 创建和网络配置"></a>1. Pod 创建和网络配置</h4><p>当 Kubernetes 调度器将一个 Pod 安排到某个节点时，以下步骤将会发生：</p>
+<ul>
+<li><strong>分配 IP 地址</strong>：<ul>
+<li>CNI 插件负责为新创建的 Pod 分配一个 IP 地址。这个 IP 地址在整个集群中是唯一的。</li>
+</ul>
+</li>
+<li><strong>配置网络接口</strong>：<ul>
+<li>CNI 插件在 Pod 的宿主机上创建网络接口，并将其连接到 Pod 的网络命名空间（Network Namespace）。</li>
+</ul>
+</li>
+<li><strong>更新路由规则</strong>：<ul>
+<li>CNI 插件更新主机的路由表，使得流向 Pod 的流量能够正确路由到 Pod 的网络接口。</li>
+</ul>
+</li>
+</ul>
+<h4 id="2-Pod-间通信"><a href="#2-Pod-间通信" class="headerlink" title="2. Pod 间通信"></a>2. Pod 间通信</h4><ul>
+<li><strong>同节点 Pod 通信</strong>：<ul>
+<li>在同一节点上的 Pod 可以通过直接访问彼此的 IP 地址进行通信。由于它们共享同一个网络命名空间，通信可以通过虚拟以太网对（veth pair）实现。</li>
+</ul>
+</li>
+<li><strong>跨节点 Pod 通信</strong>：<ul>
+<li>不同节点上的 Pod 之间的通信需要跨越宿主机的网络。CNI 插件通常会配置一个覆盖网络（Overlay Network），如 Flannel、Calico 等，通过 VXLAN、IP-in-IP 或 BGP 等技术来实现跨节点的透明通信。</li>
+</ul>
+</li>
+</ul>
+<h4 id="3-宿主机与-Pod-通信"><a href="#3-宿主机与-Pod-通信" class="headerlink" title="3. 宿主机与 Pod 通信"></a>3. 宿主机与 Pod 通信</h4><ul>
+<li>宿主机访问 Pod：<ul>
+<li>宿主机可以直接通过 Pod 的 IP 地址访问 Pod。为了实现这一点，CNI 插件会配置相应的路由和防火墙规则。</li>
+</ul>
+</li>
+</ul>
+<h4 id="4-Pod-与外部网络通信"><a href="#4-Pod-与外部网络通信" class="headerlink" title="4. Pod 与外部网络通信"></a>4. Pod 与外部网络通信</h4><ul>
+<li>NAT 和 SNAT：<ul>
+<li>当 Pod 访问外部网络时，通常需要进行源网络地址转换（SNAT），以使用宿主机的 IP 地址进行通信。这通常由宿主机上的 kube-proxy 或其他网络代理来实现。</li>
+</ul>
+</li>
+</ul>
+<h2 id="写一个CRD的步骤"><a href="#写一个CRD的步骤" class="headerlink" title="写一个CRD的步骤"></a>写一个CRD的步骤</h2><h3 id="步骤-1：编写-CRD-定义-YAML-文件"><a href="#步骤-1：编写-CRD-定义-YAML-文件" class="headerlink" title="步骤 1：编写 CRD 定义 YAML 文件"></a>步骤 1：编写 CRD 定义 YAML 文件</h3><p>CRD 定义文件描述了你的自定义资源的 schema。一个基本的 CRD 定义 YAML 文件如下：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apiextensions.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">CustomResourceDefinition</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">&lt;crd-name&gt;.&lt;group&gt;</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">group:</span> <span class="string">&lt;group&gt;</span></span><br><span class="line">  <span class="attr">versions:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">&lt;version&gt;</span></span><br><span class="line">      <span class="attr">served:</span> <span class="literal">true</span></span><br><span class="line">      <span class="attr">storage:</span> <span class="literal">true</span></span><br><span class="line">      <span class="attr">schema:</span></span><br><span class="line">        <span class="attr">openAPIV3Schema:</span></span><br><span class="line">          <span class="attr">type:</span> <span class="string">object</span></span><br><span class="line">          <span class="attr">properties:</span></span><br><span class="line">            <span class="attr">spec:</span></span><br><span class="line">              <span class="attr">type:</span> <span class="string">object</span></span><br><span class="line">              <span class="attr">properties:</span></span><br><span class="line">                <span class="comment"># 在这里定义你的自定义资源的字段</span></span><br><span class="line">  <span class="attr">scope:</span> <span class="string">Namespaced</span> <span class="comment"># 或 Cluster</span></span><br><span class="line">  <span class="attr">names:</span></span><br><span class="line">    <span class="attr">plural:</span> <span class="string">&lt;plural-name&gt;</span></span><br><span class="line">    <span class="attr">singular:</span> <span class="string">&lt;singular-name&gt;</span></span><br><span class="line">    <span class="attr">kind:</span> <span class="string">&lt;Kind&gt;</span></span><br><span class="line">    <span class="attr">shortNames:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&lt;shortname&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>示例：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apiextensions.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">CustomResourceDefinition</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">crontabs.stable.example.com</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">group:</span> <span class="string">stable.example.com</span></span><br><span class="line">  <span class="attr">versions:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">v1</span></span><br><span class="line">      <span class="attr">served:</span> <span class="literal">true</span></span><br><span class="line">      <span class="attr">storage:</span> <span class="literal">true</span></span><br><span class="line">      <span class="attr">schema:</span></span><br><span class="line">        <span class="attr">openAPIV3Schema:</span></span><br><span class="line">          <span class="attr">type:</span> <span class="string">object</span></span><br><span class="line">          <span class="attr">properties:</span></span><br><span class="line">            <span class="attr">spec:</span></span><br><span class="line">              <span class="attr">type:</span> <span class="string">object</span></span><br><span class="line">              <span class="attr">properties:</span></span><br><span class="line">                <span class="attr">cronSpec:</span></span><br><span class="line">                  <span class="attr">type:</span> <span class="string">string</span></span><br><span class="line">                <span class="attr">image:</span></span><br><span class="line">                  <span class="attr">type:</span> <span class="string">string</span></span><br><span class="line">                <span class="attr">replicas:</span></span><br><span class="line">                  <span class="attr">type:</span> <span class="string">integer</span></span><br><span class="line">  <span class="attr">scope:</span> <span class="string">Namespaced</span></span><br><span class="line">  <span class="attr">names:</span></span><br><span class="line">    <span class="attr">plural:</span> <span class="string">crontabs</span></span><br><span class="line">    <span class="attr">singular:</span> <span class="string">crontab</span></span><br><span class="line">    <span class="attr">kind:</span> <span class="string">CronTab</span></span><br><span class="line">    <span class="attr">shortNames:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">ct</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="步骤-2：应用-CRD-定义文件"><a href="#步骤-2：应用-CRD-定义文件" class="headerlink" title="步骤 2：应用 CRD 定义文件"></a>步骤 2：应用 CRD 定义文件</h3><p>使用 <code>kubectl apply</code> 命令将 CRD 定义应用到 Kubernetes 集群：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f &lt;crd-definition.yaml&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="步骤-3：创建自定义资源实例"><a href="#步骤-3：创建自定义资源实例" class="headerlink" title="步骤 3：创建自定义资源实例"></a>步骤 3：创建自定义资源实例</h3><p>一旦 CRD 被创建后，你可以创建自定义资源实例。编写一个 YAML 文件来定义自定义资源实例：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">&lt;group&gt;/&lt;version&gt;</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">&lt;Kind&gt;</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">&lt;resource-name&gt;</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="comment"># 在这里定义实例的 spec 字段</span></span><br><span class="line">  <span class="string">...</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>示例：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">stable.example.com/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">CronTab</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-crontab</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">cronSpec:</span> <span class="string">&quot;* * * * */5&quot;</span></span><br><span class="line">  <span class="attr">image:</span> <span class="string">my-cron-image</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span></span><br></pre></td></tr></table></figure>
+
+<p>应用自定义资源实例：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f &lt;custom-resource.yaml&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="步骤-4：验证自定义资源"><a href="#步骤-4：验证自定义资源" class="headerlink" title="步骤 4：验证自定义资源"></a>步骤 4：验证自定义资源</h3><p>你可以使用 <code>kubectl</code> 命令查看和验证自定义资源：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">kubectl get &lt;plural-name&gt; <span class="comment"># 获取所有实例</span></span><br><span class="line">kubectl get &lt;plural-name&gt; &lt;resource-name&gt; -o yaml <span class="comment"># 获取特定实例的详细信息</span></span><br></pre></td></tr></table></figure>
+
+<p>示例：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">kubectl get &lt;plural-name&gt; <span class="comment"># 获取所有实例</span></span><br><span class="line">kubectl get &lt;plural-name&gt; &lt;resource-name&gt; -o yaml <span class="comment"># 获取特定实例的详细信息</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>编写和应用 CRD 的基本步骤如下：</p>
+<ol>
+<li><strong>编写 CRD 定义 YAML 文件</strong>：描述你的自定义资源的 schema 和元数据。</li>
+<li><strong>应用 CRD 定义文件</strong>：使用 <code>kubectl apply</code> 命令将 CRD 定义应用到集群。</li>
+<li><strong>创建自定义资源实例</strong>：编写和应用自定义资源实例 YAML 文件。</li>
+<li><strong>验证自定义资源</strong>：使用 <code>kubectl</code> 命令查看和管理自定义资源。</li>
+</ol>
+<p>通过以上步骤，你可以在 Kubernetes 中创建和管理自定义资源，以扩展 Kubernetes API 的功能。</p>
+<h2 id="CRI，Containerd，Runc之间的关系"><a href="#CRI，Containerd，Runc之间的关系" class="headerlink" title="CRI，Containerd，Runc之间的关系"></a>CRI，Containerd，Runc之间的关系</h2><ol>
+<li>**CRI (Container Runtime Interface)**：<ul>
+<li>CRI 是 Kubernetes 定义的接口，允许 Kubernetes 与各种容器运行时（如 Docker、containerd、CRI-O）交互。</li>
+<li>它定义了一组标准的 API，使得 Kubernetes 可以通过这个接口与不同的容器运行时进行通信。</li>
+</ul>
+</li>
+<li><strong>containerd</strong>：<ul>
+<li>containerd 是一个容器运行时，它最初是 Docker 的一部分，后来独立成为 CNCF 的项目。</li>
+<li>containerd 实现了 CRI，使其能够与 Kubernetes 直接集成。</li>
+<li>它负责容器的管理任务，包括镜像管理、容器执行、存储、网络接口等。</li>
+</ul>
+</li>
+<li><strong>runc</strong>：<ul>
+<li>runc 是一个 CLI 工具，用于根据 Open Container Initiative (OCI) 规范创建和运行容器。</li>
+<li>它是 containerd 和 Docker 用来实际启动和运行容器的底层工具。</li>
+<li>runc 负责容器的低级别操作，如创建容器的命名空间、cgroups 等。</li>
+</ul>
+</li>
+</ol>
+<h2 id="docker-run-xxx命令执行过程"><a href="#docker-run-xxx命令执行过程" class="headerlink" title="docker run xxx命令执行过程"></a><code>docker run xxx</code>命令执行过程</h2><p>当你执行 <code>docker run xxx</code> 命令时，以下是底层经过的详细步骤：</p>
+<ol>
+<li><strong>CLI 解析</strong>：<ul>
+<li>Docker CLI 接收到 <code>docker run xxx</code> 命令，并将其解析为 API 请求。</li>
+</ul>
+</li>
+<li><strong>Docker 客户端与守护进程通信</strong>：<ul>
+<li>Docker CLI 将请求发送到 Docker 守护进程（dockerd）。通信方式通常是通过 Unix socket 或 TCP/IP。</li>
+</ul>
+</li>
+<li><strong>守护进程处理请求</strong>：<ul>
+<li>Docker 守护进程接收到请求后，首先会解析命令参数，如镜像名称、容器配置等。</li>
+</ul>
+</li>
+<li><strong>镜像处理</strong>：<ul>
+<li><strong>镜像拉取</strong>：如果指定的镜像不存在于本地存储，Docker 会从注册表（如 Docker Hub）拉取镜像。</li>
+<li><strong>解压和存储</strong>：拉取的镜像会被解压缩并存储在本地镜像存储中。</li>
+</ul>
+</li>
+<li><strong>容器创建</strong>：<ul>
+<li><strong>调用 containerd</strong>：Docker 守护进程通过 containerd API 创建一个新的容器。</li>
+<li><strong>containerd 管理任务</strong>：containerd 接收到创建容器的请求，处理镜像、配置和存储等任务。</li>
+</ul>
+</li>
+<li><strong>使用 runc 启动容器</strong>：<ul>
+<li><strong>调用 runc</strong>：containerd 使用 runc 来实际创建和启动容器。runc 使用 OCI 规范来配置和运行容器。</li>
+<li><strong>配置命名空间和 cgroups</strong>：runc 负责设置容器的 Linux 命名空间（如 PID、Network、Mount 等）和 cgroups（控制资源限制）。</li>
+<li><strong>执行容器进程</strong>：runc 启动容器内的初始进程（通常是 <code>sh</code> 或 <code>bash</code>）。</li>
+</ul>
+</li>
+<li><strong>网络和存储配置</strong>：<ul>
+<li><strong>网络配置</strong>：Docker 配置容器的网络接口，如桥接网络、端口映射等。</li>
+<li><strong>卷挂载</strong>：如果命令中指定了卷挂载，Docker 会在容器启动前完成卷的挂载操作。</li>
+</ul>
+</li>
+<li><strong>运行时监控和管理</strong>：<ul>
+<li><strong>日志和监控</strong>：Docker 监控容器的运行状态，并收集日志。</li>
+<li><strong>生命周期管理</strong>：Docker 处理容器的停止、重启、销毁等生命周期管理任务。</li>
+</ul>
+</li>
+</ol>
+
       
     </div>
     
@@ -472,8 +786,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -596,6 +919,22 @@
       </section>
 
       
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#ListWatch%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">1.</span> <span class="nav-text">ListWatch是什么</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ListWatch-%E7%9A%84%E5%AE%9A%E4%B9%89%E5%92%8C%E4%BD%9C%E7%94%A8"><span class="nav-number">1.1.</span> <span class="nav-text">ListWatch 的定义和作用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ListWatch-%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="nav-number">1.2.</span> <span class="nav-text">ListWatch 的工作原理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Informer%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">2.</span> <span class="nav-text">Informer是什么</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Informer-%E7%9A%84%E4%BD%9C%E7%94%A8"><span class="nav-number">2.1.</span> <span class="nav-text">Informer 的作用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Informer-%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="nav-number">2.2.</span> <span class="nav-text">Informer 的工作原理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#headless-service-%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">3.</span> <span class="nav-text">headless service 是什么</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Headless-Service-%E7%9A%84%E7%89%B9%E7%82%B9"><span class="nav-number">3.1.</span> <span class="nav-text">Headless Service 的特点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Headless-Service-%E7%9A%84%E7%94%A8%E9%80%94"><span class="nav-number">3.2.</span> <span class="nav-text">Headless Service 的用途</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#nodeport-service-%E5%92%8C-clusterip-%E4%BB%80%E4%B9%88%E5%8C%BA%E5%88%AB%EF%BC%8C%E6%B5%81%E9%87%8F%E9%93%BE%E8%B7%AF%E6%9C%89%E4%BB%80%E4%B9%88%E4%B8%8D%E5%90%8C"><span class="nav-number">4.</span> <span class="nav-text">nodeport service 和 clusterip 什么区别，流量链路有什么不同</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ClusterIP-%E6%9C%8D%E5%8A%A1"><span class="nav-number">4.1.</span> <span class="nav-text">ClusterIP 服务</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9"><span class="nav-number">4.1.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B5%81%E9%87%8F%E9%93%BE%E8%B7%AF"><span class="nav-number">4.1.2.</span> <span class="nav-text">流量链路</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#NodePort-%E6%9C%8D%E5%8A%A1"><span class="nav-number">4.2.</span> <span class="nav-text">NodePort 服务</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%89%B9%E7%82%B9-1"><span class="nav-number">4.2.1.</span> <span class="nav-text">特点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B5%81%E9%87%8F%E9%93%BE%E8%B7%AF-1"><span class="nav-number">4.2.2.</span> <span class="nav-text">流量链路</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%81%E9%87%8F%E9%93%BE%E8%B7%AF%E7%9A%84%E4%B8%8D%E5%90%8C"><span class="nav-number">4.3.</span> <span class="nav-text">流量链路的不同</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B"><span class="nav-number">5.</span> <span class="nav-text">容器网络模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%9F%BA%E6%9C%AC%E5%8E%9F%E5%88%99"><span class="nav-number">5.1.</span> <span class="nav-text">容器网络模型的基本原则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">5.2.</span> <span class="nav-text">容器网络模型的实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B"><span class="nav-number">5.3.</span> <span class="nav-text">容器网络模型的工作流程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-Pod-%E5%88%9B%E5%BB%BA%E5%92%8C%E7%BD%91%E7%BB%9C%E9%85%8D%E7%BD%AE"><span class="nav-number">5.3.1.</span> <span class="nav-text">1. Pod 创建和网络配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-Pod-%E9%97%B4%E9%80%9A%E4%BF%A1"><span class="nav-number">5.3.2.</span> <span class="nav-text">2. Pod 间通信</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E5%AE%BF%E4%B8%BB%E6%9C%BA%E4%B8%8E-Pod-%E9%80%9A%E4%BF%A1"><span class="nav-number">5.3.3.</span> <span class="nav-text">3. 宿主机与 Pod 通信</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-Pod-%E4%B8%8E%E5%A4%96%E9%83%A8%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1"><span class="nav-number">5.3.4.</span> <span class="nav-text">4. Pod 与外部网络通信</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%99%E4%B8%80%E4%B8%AACRD%E7%9A%84%E6%AD%A5%E9%AA%A4"><span class="nav-number">6.</span> <span class="nav-text">写一个CRD的步骤</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AD%A5%E9%AA%A4-1%EF%BC%9A%E7%BC%96%E5%86%99-CRD-%E5%AE%9A%E4%B9%89-YAML-%E6%96%87%E4%BB%B6"><span class="nav-number">6.1.</span> <span class="nav-text">步骤 1：编写 CRD 定义 YAML 文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AD%A5%E9%AA%A4-2%EF%BC%9A%E5%BA%94%E7%94%A8-CRD-%E5%AE%9A%E4%B9%89%E6%96%87%E4%BB%B6"><span class="nav-number">6.2.</span> <span class="nav-text">步骤 2：应用 CRD 定义文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AD%A5%E9%AA%A4-3%EF%BC%9A%E5%88%9B%E5%BB%BA%E8%87%AA%E5%AE%9A%E4%B9%89%E8%B5%84%E6%BA%90%E5%AE%9E%E4%BE%8B"><span class="nav-number">6.3.</span> <span class="nav-text">步骤 3：创建自定义资源实例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%AD%A5%E9%AA%A4-4%EF%BC%9A%E9%AA%8C%E8%AF%81%E8%87%AA%E5%AE%9A%E4%B9%89%E8%B5%84%E6%BA%90"><span class="nav-number">6.4.</span> <span class="nav-text">步骤 4：验证自定义资源</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">6.5.</span> <span class="nav-text">总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CRI%EF%BC%8CContainerd%EF%BC%8CRunc%E4%B9%8B%E9%97%B4%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="nav-number">7.</span> <span class="nav-text">CRI，Containerd，Runc之间的关系</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#docker-run-xxx%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B"><span class="nav-number">8.</span> <span class="nav-text">docker run xxx命令执行过程</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
 
       
 
@@ -609,7 +948,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2024</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2025</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
