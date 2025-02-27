@@ -79,15 +79,15 @@
 
 
 
-<meta name="description" content="ListWatch是什么在Kubernetes中，client-go是一个用于与Kubernetes API服务器交互的官方Go客户端库。ListWatch是client-go中的一个重要概念，它主要用于列出和监视Kubernetes资源对象的变化。它在实现控制器和操作集群资源时非常有用。   ListWatch 的定义和作用ListWatch 是一个结构体，通常用于配置如何列出（List）和">
+<meta name="description" content="ListWatch是什么在Kubernetes中，client-go是一个用于与Kubernetes API服务器交互的官方Go客户端库。ListWatch是client-go中的一个重要概念，它主要用于列出和监视Kubernetes资源对象的变化。它在实现控制器和操作集群资源时非常有用。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Kubernetes面试题整理">
 <meta property="og:url" content="https://aaron-ql.github.io/articles/Kubernetes%E9%9D%A2%E8%AF%95%E9%A2%98%E6%95%B4%E7%90%86/index.html">
 <meta property="og:site_name" content="Code Your Ambition">
-<meta property="og:description" content="ListWatch是什么在Kubernetes中，client-go是一个用于与Kubernetes API服务器交互的官方Go客户端库。ListWatch是client-go中的一个重要概念，它主要用于列出和监视Kubernetes资源对象的变化。它在实现控制器和操作集群资源时非常有用。   ListWatch 的定义和作用ListWatch 是一个结构体，通常用于配置如何列出（List）和">
+<meta property="og:description" content="ListWatch是什么在Kubernetes中，client-go是一个用于与Kubernetes API服务器交互的官方Go客户端库。ListWatch是client-go中的一个重要概念，它主要用于列出和监视Kubernetes资源对象的变化。它在实现控制器和操作集群资源时非常有用。">
 <meta property="og:locale">
 <meta property="article:published_time" content="2024-05-26T10:01:44.000Z">
-<meta property="article:modified_time" content="2025-02-26T05:30:02.745Z">
+<meta property="article:modified_time" content="2025-02-27T06:44:55.185Z">
 <meta property="article:author" content="Aaron Qin">
 <meta name="twitter:card" content="summary">
 
@@ -351,10 +351,8 @@
       
 
       
-        <span id="more"></span>
-
-<h2 id="ListWatch是什么"><a href="#ListWatch是什么" class="headerlink" title="ListWatch是什么"></a>ListWatch是什么</h2><p>在Kubernetes中，<code>client-go</code>是一个用于与Kubernetes API服务器交互的官方Go客户端库。<code>ListWatch</code>是<code>client-go</code>中的一个重要概念，它主要用于列出和监视Kubernetes资源对象的变化。它在实现控制器和操作集群资源时非常有用。</p>
-<!--more-->
+        <h2 id="ListWatch是什么"><a href="#ListWatch是什么" class="headerlink" title="ListWatch是什么"></a>ListWatch是什么</h2><p>在Kubernetes中，<code>client-go</code>是一个用于与Kubernetes API服务器交互的官方Go客户端库。<code>ListWatch</code>是<code>client-go</code>中的一个重要概念，它主要用于列出和监视Kubernetes资源对象的变化。它在实现控制器和操作集群资源时非常有用。</p>
+<span id="more"></span>
 
 <h3 id="ListWatch-的定义和作用"><a href="#ListWatch-的定义和作用" class="headerlink" title="ListWatch 的定义和作用"></a>ListWatch 的定义和作用</h3><p><code>ListWatch</code> 是一个结构体，通常用于配置如何列出（List）和监视（Watch）Kubernetes API资源。它提供了一种机制，可以高效地获取资源的当前状态并跟踪资源的变化。</p>
 <h3 id="ListWatch-的工作原理"><a href="#ListWatch-的工作原理" class="headerlink" title="ListWatch 的工作原理"></a>ListWatch 的工作原理</h3><ol>

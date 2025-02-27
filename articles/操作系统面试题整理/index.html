@@ -79,15 +79,15 @@
 
 
 
-<meta name="description" content="查看日志文件中访问量前10的接口在 Linux 系统中，你可以使用组合命令来分析日志文件，尤其是诸如 Nginx 或 Apache 这类 web 服务器的日志文件，以找出访问量前十的接口。这通常涉及到使用 awk、sort、uniq 和 head 等工具。以下是一个基本的步骤和示例命令，用于处理一个典型的 web 服务器日志文件，如 Nginx 的 access.log。 假设日志文件格式如下">
+<meta name="description" content="查看日志文件中访问量前10的接口">
 <meta property="og:type" content="article">
 <meta property="og:title" content="操作系统面试题整理">
 <meta property="og:url" content="https://aaron-ql.github.io/articles/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E9%9D%A2%E8%AF%95%E9%A2%98%E6%95%B4%E7%90%86/index.html">
 <meta property="og:site_name" content="Code Your Ambition">
-<meta property="og:description" content="查看日志文件中访问量前10的接口在 Linux 系统中，你可以使用组合命令来分析日志文件，尤其是诸如 Nginx 或 Apache 这类 web 服务器的日志文件，以找出访问量前十的接口。这通常涉及到使用 awk、sort、uniq 和 head 等工具。以下是一个基本的步骤和示例命令，用于处理一个典型的 web 服务器日志文件，如 Nginx 的 access.log。 假设日志文件格式如下">
+<meta property="og:description" content="查看日志文件中访问量前10的接口">
 <meta property="og:locale">
 <meta property="article:published_time" content="2024-05-26T12:05:38.000Z">
-<meta property="article:modified_time" content="2025-02-26T05:29:47.990Z">
+<meta property="article:modified_time" content="2025-02-27T06:44:38.490Z">
 <meta property="article:author" content="Aaron Qin">
 <meta name="twitter:card" content="summary">
 
@@ -351,9 +351,9 @@
       
 
       
-        <span id="more"></span>
+        <h3 id="查看日志文件中访问量前10的接口"><a href="#查看日志文件中访问量前10的接口" class="headerlink" title="查看日志文件中访问量前10的接口"></a>查看日志文件中访问量前10的接口</h3><span id="more"></span>
 
-<h3 id="查看日志文件中访问量前10的接口"><a href="#查看日志文件中访问量前10的接口" class="headerlink" title="查看日志文件中访问量前10的接口"></a>查看日志文件中访问量前10的接口</h3><p>在 Linux 系统中，你可以使用组合命令来分析日志文件，尤其是诸如 Nginx 或 Apache 这类 web 服务器的日志文件，以找出访问量前十的接口。这通常涉及到使用 <code>awk</code>、<code>sort</code>、<code>uniq</code> 和 <code>head</code> 等工具。以下是一个基本的步骤和示例命令，用于处理一个典型的 web 服务器日志文件，如 Nginx 的 access.log。</p>
+<p>在 Linux 系统中，你可以使用组合命令来分析日志文件，尤其是诸如 Nginx 或 Apache 这类 web 服务器的日志文件，以找出访问量前十的接口。这通常涉及到使用 <code>awk</code>、<code>sort</code>、<code>uniq</code> 和 <code>head</code> 等工具。以下是一个基本的步骤和示例命令，用于处理一个典型的 web 服务器日志文件，如 Nginx 的 access.log。</p>
 <h4 id="假设日志文件格式如下："><a href="#假设日志文件格式如下：" class="headerlink" title="假设日志文件格式如下："></a>假设日志文件格式如下：</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1 - - [14/Apr/2024:10:45:12 +0000] &quot;GET /api/data HTTP/1.1&quot; 200 532 &quot;-&quot; &quot;Mozilla/5.0&quot;</span><br></pre></td></tr></table></figure>
 
 <p>在这个示例中，接口（URL）是日志行中的 <code>/api/data</code>。</p>

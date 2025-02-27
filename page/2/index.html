@@ -543,8 +543,6 @@
       
         
           <p>最近把《TCP/IP详解》看完了，对网络有了更深的理解，是一本难得的好书，这里总结一下书中TCP相关的核心知识点。</p>
-<h2 id="TCP头部与封装"><a href="#TCP头部与封装" class="headerlink" title="TCP头部与封装"></a>TCP头部与封装</h2><p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/onlRfY.png" alt="onlRfY"></p>
-<p>TCP头部通常是20字节（不带TCP选项），带选项的话可达60字节，但不管多少一定是32比特（4字节）的倍数。</p>
           <!--noindex-->
           <div class="post-button text-center">
             <a class="btn" href="/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86%202/#more" rel="contents">
@@ -713,8 +711,6 @@
       
         
           <p>最近把《TCP/IP详解》看完了，对网络有了更深的理解，是一本难得的好书，这里总结一下书中TCP相关的核心知识点。</p>
-<h2 id="TCP头部与封装"><a href="#TCP头部与封装" class="headerlink" title="TCP头部与封装"></a>TCP头部与封装</h2><p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/onlRfY.png" alt="onlRfY"></p>
-<p>TCP头部通常是20字节（不带TCP选项），带选项的话可达60字节，但不管多少一定是32比特（4字节）的倍数。</p>
           <!--noindex-->
           <div class="post-button text-center">
             <a class="btn" href="/articles/TCP%E7%9F%A5%E8%AF%86%E7%82%B9%E6%95%B4%E7%90%86/#more" rel="contents">
@@ -882,8 +878,7 @@
 
       
         
-          <h2 id="创建独立的网络环境"><a href="#创建独立的网络环境" class="headerlink" title="创建独立的网络环境"></a>创建独立的网络环境</h2><p>首先创建一个独立的网络命名空间</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns add ns1</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip -n ns1 a</span></span><br><span class="line">1: lo: &lt;LOOPBACK&gt; mtu 65536 qdisc noop state DOWN group default qlen 1000</span><br><span class="line">    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00</span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip -n ns1 link set dev lo up</span></span><br><span class="line">[root@192-168-252-97 ~]<span class="comment"># ip netns exec ns1 ping 127.0.0.1</span></span><br><span class="line">PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.</span><br><span class="line">64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.074 ms</span><br><span class="line">64 bytes from 127.0.0.1: icmp_seq=2 ttl=64 time=0.114 ms</span><br><span class="line">^C</span><br><span class="line">--- 127.0.0.1 ping statistics ---</span><br><span class="line">2 packets transmitted, 2 received, 0% packet loss, time 1005ms</span><br><span class="line">rtt min/avg/max/mdev = 0.074/0.094/0.114/0.020 ms</span><br></pre></td></tr></table></figure>
+          <h2 id="创建独立的网络环境"><a href="#创建独立的网络环境" class="headerlink" title="创建独立的网络环境"></a>创建独立的网络环境</h2>
           <!--noindex-->
           <div class="post-button text-center">
             <a class="btn" href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E5%AE%9E%E6%88%98%E7%AF%87/#more" rel="contents">
@@ -1052,16 +1047,6 @@
       
         
           <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>这篇文章源自最近工作内容的一个总结——设计了一个透明代理，把其中跟流量劫持相关的知识点记录下来。</p>
-<p>要想让一个代理程序代理网络流量，最直接的办法就是让客户端以代理程序为目的地址，直接把流量打给他。比如我们在操作系统中配置了代理地址的环境变量，浏览器（或其他原本就支持代理的程序）就会以该地址进行网络请求，使用的应用层协议通常是<code>HTTP/1.1</code>、<code>Socks5</code>，这些协议中有字段声明了原始的目的地址。但这种方式有两个弊端：一是对业务逻辑有入侵；二是支持的协议有限，像<code>TCP</code>、<code>gRPC</code>、<code>HTTP/2</code>这些协议就没法被代理，因为代理程序没办法找到原始的目标地址。</p>
-<p>而我们需要的代理方式是<strong>透明代理</strong>——客户端根本不需要知道代理服务器的存在，它是一种匿名代理，不用手动的配置代理信息，它会自动的监听拦截并改写报文，传送真实IP进行NAT转发。常见的透明代理有三种实现方式：</p>
-<ul>
-<li><p><strong>iptables</strong>：通过配置iptables的nat规则实现数据包的转发，<code>Istio Service Mesh</code>的<code>Envoy</code>代理就是以这种方式实现</p>
-</li>
-<li><p><strong>TProxy</strong>：这是一个自Linux 2.2发布的特性，允许程序给socket绑定不属于自己的IP地址以达到IP伪装的效果，同时还需要配置iptables的mangle表规则对流量进行标记。<code>Envoy</code>也支持这种代理方式</p>
-</li>
-<li><p><strong>eBPF</strong>：<code>Extended Berkeley Packet Filter (eBPF)</code>是一项最近很火的革命性的技术，它是Linux内核新特性（4.X），可以在操作系统内核中运行沙盒程序。用于安全有效地扩展内核的功能，而无需更改内核源代码或加载内核模块。你可以将其视为 Linux 内核中的轻量级沙盒虚拟机 (VM)，程序员可以在其中运行利用特定内核资源的 BPF 字节码。</p>
-</li>
-</ul>
           <!--noindex-->
           <div class="post-button text-center">
             <a class="btn" href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E9%80%8F%E6%98%8E%E4%BB%A3%E7%90%86%E2%80%94%E2%80%94%E6%A6%82%E5%BF%B5%E7%AF%87/#more" rel="contents">
@@ -1219,7 +1204,6 @@
       
         
           <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>最近发现项目中某个组件在执行任务时内存占用达到了17G，cpu占用也达到了1000+m，简直离谱。通过<code>kubectl top po</code>看到的效果如下：</p>
-<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/EzVW0M.png" alt="EzVW0M"></p>
           <!--noindex-->
           <div class="post-button text-center">
             <a class="btn" href="/articles/%E8%AE%B0%E4%B8%80%E6%AC%A1Golang%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E7%9A%84%E6%8E%92%E6%9F%A5/#more" rel="contents">
