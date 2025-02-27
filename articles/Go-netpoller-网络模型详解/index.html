@@ -79,19 +79,19 @@
 
 
 
-<meta name="description" content="本文节选自潘少的文章，写的非常好，理解golang的网络模型非常有意义，建议Gopher都花时间仔细研究下 潘建锋&#96;Go netpoller&#96; 原生网络模型之源码全面揭秘  导言Go 基于 I&#x2F;O multiplexing 和 goroutine scheduler 构建了一个简洁而高性能的原生网络模型(基于 Go 的 I&#x2F;O 多路复用 netpoller )，提供了 goroutine-per-">
+<meta name="description" content="本文节选自潘少的文章，写的非常好，理解golang的网络模型非常有意义，建议Gopher都花时间仔细研究下 潘建锋&#96;Go netpoller&#96; 原生网络模型之源码全面揭秘    导言">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Go netpoller 网络模型详解">
 <meta property="og:url" content="https://aaron-ql.github.io/articles/Go-netpoller-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E8%AF%A6%E8%A7%A3/index.html">
 <meta property="og:site_name" content="Code Your Ambition">
-<meta property="og:description" content="本文节选自潘少的文章，写的非常好，理解golang的网络模型非常有意义，建议Gopher都花时间仔细研究下 潘建锋&#96;Go netpoller&#96; 原生网络模型之源码全面揭秘  导言Go 基于 I&#x2F;O multiplexing 和 goroutine scheduler 构建了一个简洁而高性能的原生网络模型(基于 Go 的 I&#x2F;O 多路复用 netpoller )，提供了 goroutine-per-">
+<meta property="og:description" content="本文节选自潘少的文章，写的非常好，理解golang的网络模型非常有意义，建议Gopher都花时间仔细研究下 潘建锋&#96;Go netpoller&#96; 原生网络模型之源码全面揭秘    导言">
 <meta property="og:locale">
 <meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/7X8PDd.png">
 <meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/bgTq0J.png">
 <meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/4aBmVn.png">
 <meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/drotur.png">
 <meta property="article:published_time" content="2021-09-25T12:41:09.000Z">
-<meta property="article:modified_time" content="2022-03-01T11:45:12.000Z">
+<meta property="article:modified_time" content="2025-02-27T06:51:15.383Z">
 <meta property="article:author" content="Aaron Qin">
 <meta property="article:tag" content="I&#x2F;O">
 <meta property="article:tag" content="Golang">
@@ -394,13 +394,17 @@
         <blockquote><p>本文节选自<code>潘少</code>的文章，写的非常好，理解golang的网络模型非常有意义，建议Gopher都花时间仔细研究下</p>
 <footer><strong>潘建锋</strong><cite><a target="_blank" rel="noopener" href="https://strikefreedom.top/go-netpoll-io-multiplexing-reactor">`Go netpoller` 原生网络模型之源码全面揭秘</a></cite></footer></blockquote>
 
-<h2 id="导言"><a href="#导言" class="headerlink" title="导言"></a>导言</h2><p>Go 基于 I/O multiplexing 和 goroutine scheduler 构建了一个简洁而高性能的原生网络模型(基于 Go 的 <code>I/O</code> 多路复用 <code>netpoller</code> )，提供了 <code>goroutine-per-connection</code> 这样简单的网络编程模式。在这种模式下，开发者<strong>使用的是同步的模式去编写异步</strong>的逻辑，极大地降低了开发者编写网络应用时的心智负担，且借助于 Go runtime scheduler 对 goroutines 的高效调度，这个原生网络模型不论从适用性还是性能上都足以满足绝大部分的应用场景。</p>
+
+
+<h2 id="导言"><a href="#导言" class="headerlink" title="导言"></a>导言</h2><span id="more"></span>
+
+<p>Go 基于 I/O multiplexing 和 goroutine scheduler 构建了一个简洁而高性能的原生网络模型(基于 Go 的 <code>I/O</code> 多路复用 <code>netpoller</code> )，提供了 <code>goroutine-per-connection</code> 这样简单的网络编程模式。在这种模式下，开发者<strong>使用的是同步的模式去编写异步</strong>的逻辑，极大地降低了开发者编写网络应用时的心智负担，且借助于 Go runtime scheduler 对 goroutines 的高效调度，这个原生网络模型不论从适用性还是性能上都足以满足绝大部分的应用场景。</p>
 <p>然而，在工程性上能做到如此高的普适性和兼容性，最终暴露给开发者提供接口/模式如此简洁，其底层必然是基于非常复杂的封装，做了很多取舍，也有可能放弃了一些追求极致性能的设计和理念。事实上 <code>Go netpoller</code> 底层就是基于 epoll/kqueue/iocp 这些 <code>I/O</code> 多路复用技术来做封装的，最终暴露出 <code>goroutine-per-connection</code> 这样的极简的开发模式给使用者。</p>
 <p><code>Go netpoller</code> 在不同的操作系统，其底层使用的 <code>I/O</code> 多路复用技术也不一样，可以从 Go 源码目录结构和对应代码文件了解 Go 在不同平台下的网络 <code>I/O</code> 模式的实现。比如，在 Linux 系统下基于 epoll，freeBSD 系统下基于 kqueue，以及 Windows 系统下基于 iocp。</p>
 <p>本文将基于 Linux 平台来解析 <code>Go netpoller</code> 之 <code>I/O</code> 多路复用的底层是如何基于 epoll 封装实现的，从源码层层推进，全面而深度地解析 <code>Go netpoller</code> 的设计理念和实现原理，以及 Go 是如何利用 <code>netpoller</code> 来构建它的原生网络模型的。主要涉及到的一些概念：I/O 模型、用户/内核空间、epoll、Linux 源码、goroutine scheduler 等等，我会尽量简单地讲解，如果有对相关概念不熟悉的同学，还是希望能提前熟悉一下。</p>
 <h2 id="Go-netpoller-核心"><a href="#Go-netpoller-核心" class="headerlink" title="Go netpoller 核心"></a><code>Go netpoller</code> 核心</h2><p><strong><code>Go netpoller</code> 基本原理</strong></p>
 <p><strong><code>Go netpoller</code> 通过在底层对 epoll/kqueue/iocp 的封装，从而实现了使用同步编程模式达到异步执行的效果。总结来说，所有的网络操作都以网络描述符 <code>netFD</code> 为中心实现。<code>netFD</code> 与底层 <code>PollDesc</code> 结构绑定，当在一个 <code>netFD</code> 上读写遇到 EAGAIN 错误时，就将当前 goroutine 存储到这个 <code>netFD</code> 对应的 <code>PollDesc</code> 中，同时调用 gopark 把当前 goroutine 给 park 住，直到这个 <code>netFD</code> 上再次发生读写事件，才将此 goroutine 给 ready 激活重新运行。显然，在底层通知 goroutine 再次发生读写等事件的方式就是 epoll/kqueue/iocp 等事件驱动机制。</strong></p>
-<span id="more"></span>
+<!--more-->
 
 <p>总所周知，Go 是一门跨平台的编程语言，而不同平台针对特定的功能有不用的实现，这当然也包括了 <code>I/O</code> 多路复用技术，比如 Linux 里的 <code>I/O</code> 多路复用有 <code>select</code>、poll 和 epoll，而 freeBSD 或者 MacOS 里则是 kqueue，而 Windows 里则是基于异步 <code>I/O</code> 实现的 iocp，等等；因此，Go 为了实现底层 <code>I/O</code> 多路复用的跨平台，分别基于上述的这些不同平台的系统调用实现了多版本的 netpollers，具体的源码路径如下：</p>
 <ul>

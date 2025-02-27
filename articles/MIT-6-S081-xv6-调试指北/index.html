@@ -79,15 +79,15 @@
 
 
 
-<meta name="description" content="还是从直接用gdb调试说起刚开始码lab时，我想很多人第一反应和我是一样的：我的程序是在程序上跑的，那我该如何调试我的程序？ google之可以找到答案：https:&#x2F;&#x2F;stackoverflow.com&#x2F;questions&#x2F;10534798&#x2F;debugging-user-code-on-xv6-with-gdb 但实际执行过程有点不同，拿我个人写的sleep.c来说吧，代码如下： 1234567">
+<meta name="description" content="还是从直接用gdb调试说起刚开始码lab时，我想很多人第一反应和我是一样的：我的程序是在程序上跑的，那我该如何调试我的程序？">
 <meta property="og:type" content="article">
 <meta property="og:title" content="MIT 6.S081 xv6 调试指北">
 <meta property="og:url" content="https://aaron-ql.github.io/articles/MIT-6-S081-xv6-%E8%B0%83%E8%AF%95%E6%8C%87%E5%8C%97/index.html">
 <meta property="og:site_name" content="Code Your Ambition">
-<meta property="og:description" content="还是从直接用gdb调试说起刚开始码lab时，我想很多人第一反应和我是一样的：我的程序是在程序上跑的，那我该如何调试我的程序？ google之可以找到答案：https:&#x2F;&#x2F;stackoverflow.com&#x2F;questions&#x2F;10534798&#x2F;debugging-user-code-on-xv6-with-gdb 但实际执行过程有点不同，拿我个人写的sleep.c来说吧，代码如下： 1234567">
+<meta property="og:description" content="还是从直接用gdb调试说起刚开始码lab时，我想很多人第一反应和我是一样的：我的程序是在程序上跑的，那我该如何调试我的程序？">
 <meta property="og:locale">
 <meta property="article:published_time" content="2022-07-02T07:47:51.000Z">
-<meta property="article:modified_time" content="2022-07-08T06:58:23.000Z">
+<meta property="article:modified_time" content="2025-02-27T06:50:14.442Z">
 <meta property="article:author" content="Aaron Qin">
 <meta property="article:tag" content="C">
 <meta property="article:tag" content="gdb">
@@ -376,11 +376,13 @@
 
       
         <h1 id="还是从直接用gdb调试说起"><a href="#还是从直接用gdb调试说起" class="headerlink" title="还是从直接用gdb调试说起"></a>还是从直接用gdb调试说起</h1><p>刚开始码lab时，我想很多人第一反应和我是一样的：我的程序是在程序上跑的，那我该如何调试我的程序？</p>
+<span id="more"></span>
+
 <p>google之可以找到答案：<a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/10534798/debugging-user-code-on-xv6-with-gdb">https://stackoverflow.com/questions/10534798/debugging-user-code-on-xv6-with-gdb</a></p>
 <p>但实际执行过程有点不同，拿我个人写的sleep.c来说吧，代码如下：</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;kernel/types.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;user.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">parse_int</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span>* arg)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span>* p = arg;</span><br><span class="line">    <span class="keyword">for</span> ( ; *p ; p++ ) &#123;</span><br><span class="line">        <span class="keyword">if</span> ( *p &lt; <span class="string">&#x27;0&#x27;</span> || *p &gt; <span class="string">&#x27;9&#x27;</span> ) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> atoi(arg);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc,<span class="keyword">char</span>** argv)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> time;</span><br><span class="line">    <span class="keyword">if</span> (argc != <span class="number">2</span>) &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;you must input one argument only\n&quot;</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">    &#125; </span><br><span class="line">    </span><br><span class="line">    time = parse_int(argv[<span class="number">1</span>]);</span><br><span class="line">    <span class="keyword">if</span> (time &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;error argument : %s\n&quot;</span>,argv[<span class="number">1</span>]);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    sleep(time);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<span id="more"></span>
+<!--more-->
 
 <p>函数parse_int的作用是检查我们输入的参数(睡眠的时间)是否包括除了数字以外的东西。编写好之后，在makefile中把我们写好的sleep.c加进去：</p>
 <figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">UPROGS=\</span><br><span class="line">	$U/_cat\</span><br><span class="line">    $U/_echo\</span><br><span class="line">    $U/_forktest\</span><br><span class="line">    ........  </span><br><span class="line">    $U/_kalloctest\  </span><br><span class="line">    $U/_bcachetest\  </span><br><span class="line">    $U/_alloctest\  </span><br><span class="line">    $U/_bigfile\  </span><br><span class="line">    $U/_sleep\</span><br></pre></td></tr></table></figure>

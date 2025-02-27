@@ -79,19 +79,19 @@
 
 
 
-<meta name="description" content="综述 I&#x2F;O 多路复用、信号驱动 I&#x2F;O 以及 epoll 都是用来实现同一个目标的技术— 同 时检查多个文件描述符，看它们是否准备好了执行 I&#x2F;O 操作(准确地说，是看 I&#x2F;O 系统调 用是否可以非阻塞地执行)。文件描述符就绪状态的转化是通过一些 I&#x2F;O 事件来触发的，比 如输入数据到达，套接字连接建立完成，或者是之前满载的套接字发送缓冲区在 TCP 将队 列中的数据传送到对端之后有了剩余空间。">
+<meta name="description" content="综述">
 <meta property="og:type" content="article">
 <meta property="og:title" content="多路复用：select、poll与epoll的比较">
 <meta property="og:url" content="https://aaron-ql.github.io/articles/%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%9Aselect%E3%80%81poll%E4%B8%8Eepoll%E7%9A%84%E6%AF%94%E8%BE%83/index.html">
 <meta property="og:site_name" content="Code Your Ambition">
-<meta property="og:description" content="综述 I&#x2F;O 多路复用、信号驱动 I&#x2F;O 以及 epoll 都是用来实现同一个目标的技术— 同 时检查多个文件描述符，看它们是否准备好了执行 I&#x2F;O 操作(准确地说，是看 I&#x2F;O 系统调 用是否可以非阻塞地执行)。文件描述符就绪状态的转化是通过一些 I&#x2F;O 事件来触发的，比 如输入数据到达，套接字连接建立完成，或者是之前满载的套接字发送缓冲区在 TCP 将队 列中的数据传送到对端之后有了剩余空间。">
+<meta property="og:description" content="综述">
 <meta property="og:locale">
 <meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/e8tMom.png">
 <meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/y2mUv2.png">
 <meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/QzIOqj.png">
 <meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/6H1lQ5.png">
 <meta property="article:published_time" content="2021-09-21T08:40:38.000Z">
-<meta property="article:modified_time" content="2022-03-01T11:45:12.000Z">
+<meta property="article:modified_time" content="2025-02-27T06:51:26.876Z">
 <meta property="article:author" content="Aaron Qin">
 <meta property="article:tag" content="Linux">
 <meta property="article:tag" content="I&#x2F;O">
@@ -391,7 +391,9 @@
       
 
       
-        <h2 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h2><p> I/O 多路复用、信号驱动 I/O 以及 epoll 都是用来实现同一个目标的技术— 同 时检查多个文件描述符，看它们是否准备好了执行 I/O 操作(准确地说，是看 I/O 系统调 用是否可以非阻塞地执行)。文件描述符就绪状态的转化是通过一些 I/O 事件来触发的，比 如输入数据到达，套接字连接建立完成，或者是之前满载的套接字发送缓冲区在 TCP 将队 列中的数据传送到对端之后有了剩余空间。同时检查多个文件描述符在类似网络服务器的应用中很有用处，或者是那些必须同时检查终端以及管道或套接字输入的应用程序。</p>
+        <h2 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h2><span id="more"></span>
+
+<p>I/O 多路复用、信号驱动 I/O 以及 epoll 都是用来实现同一个目标的技术— 同 时检查多个文件描述符，看它们是否准备好了执行 I/O 操作(准确地说，是看 I/O 系统调 用是否可以非阻塞地执行)。文件描述符就绪状态的转化是通过一些 I/O 事件来触发的，比 如输入数据到达，套接字连接建立完成，或者是之前满载的套接字发送缓冲区在 TCP 将队 列中的数据传送到对端之后有了剩余空间。同时检查多个文件描述符在类似网络服务器的应用中很有用处，或者是那些必须同时检查终端以及管道或套接字输入的应用程序。</p>
 <p> 需要注意的是这些技术都不会执行实际的 I/O 操作。它们只是告诉我们某个文件描述符已经处于就绪状态了。这时需要调用其他的系统调用来完成实际的 I/O 操作。</p>
 <h3 id="I-O方式的选择"><a href="#I-O方式的选择" class="headerlink" title="I/O方式的选择"></a>I/O方式的选择</h3><ul>
 <li>系统调用select()和poll()在UNIX系统中已经存在了很长的时间。同其他技术相比，它 们主要的优势在于可移植性，主要缺点在于当同时检查大量的(数百或数千个)文件 描述符时性能延展性不佳。</li>
@@ -410,7 +412,7 @@
 <li>边缘触发通知:如果文件描述符自上次状态检查以来有了新的 I/O 活动(比如新的输入)，此时需要触发通知。</li>
 </ul>
 <p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/e8tMom.png" alt="e8tMom"></p>
-<span id="more"></span>
+<!--more-->
 
 <p>当采用水平触发通知时，我们可以在任意时刻检查文件描述符的就绪状态。这表示当我 们确定了文件描述符处于就绪态时(比如存在有输入数据)，就可以对其执行一些 I/O 操作， 然后重复检查文件描述符，看看是否仍然处于就绪态(比如还有更多的输入数据)，此时我们 就能执行更多的 I/O，以此类准。<strong>换句话说，由于水平触发模式允许我们在任意时刻重复检 查 I/O 状态，没有必要每次当文件描述符就绪后需要尽可能多地执行 I/O(也就是尽可能多地读 取字节，亦或是根本不去执行任何 I/O)。</strong></p>
 <p>与之相反的是，当我们采用边缘触发时，只有当 I/O 事件发生时我们才会收到通知。在另 一个 I/O 事件到来前我们不会收到任何新的通知。另外，当文件描述符收到 I/O 事件通知时， 通常我们并不知道要处理多少 I/O(例如有多少字节可读)。因此，采用边缘触发通知的程序 通常要按照如下规则来设计。</p>

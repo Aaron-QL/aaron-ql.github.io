@@ -100,7 +100,7 @@
 <meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/3Hk4lU.jpg">
 <meta property="og:image" content="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/7rnFVN.jpg">
 <meta property="article:published_time" content="2021-07-24T07:47:41.000Z">
-<meta property="article:modified_time" content="2022-03-01T11:45:12.000Z">
+<meta property="article:modified_time" content="2025-02-27T06:52:39.427Z">
 <meta property="article:author" content="Aaron Qin">
 <meta property="article:tag" content="Linux">
 <meta property="article:tag" content="I&#x2F;O">
@@ -404,6 +404,8 @@
 <p>本文参考了下列文章：<br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/rickiyang/p/13265043.html">https://www.cnblogs.com/rickiyang/p/13265043.html</a><br><a target="_blank" rel="noopener" href="https://strikefreedom.top/linux-io-and-zero-copy">https://strikefreedom.top/linux-io-and-zero-copy</a></p>
 </blockquote>
 <p>相信大家都有过面试经历，如果跟面试官聊到了操作系统，聊到了文件操作，可能会问你普通的文件读写流程，它有什么缺点，你知道有什么改进的措施。我们经常听说 零拷贝，每次可能只是背诵一些面试要点就过去了，今天我们就从文件读写说起一步一步深入零拷贝。</p>
+<span id="more"></span>
+
 <h2 id="Linux-文件系统简介"><a href="#Linux-文件系统简介" class="headerlink" title="Linux 文件系统简介"></a>Linux 文件系统简介</h2><p>说到文件读写，为了增强代入感我们还是先回顾或者说是了解一下基本的 Linux 内核相关知识。</p>
 <h3 id="系统调用"><a href="#系统调用" class="headerlink" title="系统调用"></a>系统调用</h3><p>操作系统的主要功能是为管理硬件资源和为应用程序开发人员提供良好的环境，但是计算机系统的各种硬件资源是有限的，因此为了保证每一个进程都能安全的执行。处理器设有两种模式：用户模式 与 内核模式。一些容易发生安全问题的操作都被限制在只有内核模式下才可以执行，例如 I/O 操作，修改基址寄存器内容等。</p>
 <p>当我们处在用户态但是却不得不调用内核态下一些操作的时候这时候可以利用Linux提供的一些转换接口唤起操作，而连接用户模式和内核模式的接口称之为 系统调用。</p>
@@ -412,7 +414,7 @@
 <h3 id="虚拟文件系统"><a href="#虚拟文件系统" class="headerlink" title="虚拟文件系统"></a>虚拟文件系统</h3><p>一个操作系统可以支持多种底层不同的文件系统(比如 NTFS, FAT, ext3, ext4)，为了给内核和用户进程提供统一的文件系统视图，Linux 在用户进程和底层文件系统之间加入了一个抽象层，即虚拟文件系统( Virtual File System, VFS )，进程所有的文件操作都通过 VFS，由 VFS 来适配各种底层不同的文件系统，完成实际的文件操作。</p>
 <p>通俗的说，VFS 就是定义了一个通用文件系统的接口层和适配层，一方面为用户进程提供了一组统一的访问文件，目录和其他对象的统一方法，另一方面又要和不同的底层文件系统进行适配。如图所示：</p>
 <p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/ZHTKAs.jpg" alt="ZHTKAs"></p>
-<span id="more"></span>
+<!--more-->
 
 <h4 id="虚拟文件系统主要模块"><a href="#虚拟文件系统主要模块" class="headerlink" title="虚拟文件系统主要模块"></a>虚拟文件系统主要模块</h4><ol>
 <li>超级块(super_block)，用于保存一个文件系统的所有元数据，相当于这个文件系统的信息库，为其他的模块提供信息。因此一个超级块可代表一个文件系统。文件系统的任意元数据修改都要修改超级块。超级块对象是常驻内存并被缓存的。</li>

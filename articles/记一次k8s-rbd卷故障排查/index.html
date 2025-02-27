@@ -87,7 +87,7 @@
 <meta property="og:description" content="Ceph RBD 挂载问题总结1. 现象挂载rbd类型数据单元的服务启动时报错： 1Warning  FailedMount  0s    kubelet  MountVolume.WaitForAttach failed for volume &quot;test-rbd&quot; : rbd image rbd&#x2F;23a3c06e-21df-434b-8ea2-bd9e36b6a013 is">
 <meta property="og:locale">
 <meta property="article:published_time" content="2021-02-01T08:22:44.000Z">
-<meta property="article:modified_time" content="2022-03-01T11:45:12.000Z">
+<meta property="article:modified_time" content="2025-02-27T06:53:50.041Z">
 <meta property="article:author" content="Aaron Qin">
 <meta property="article:tag" content="Kubernetes">
 <meta name="twitter:card" content="summary">
@@ -388,6 +388,8 @@
         <h1 id="Ceph-RBD-挂载问题总结"><a href="#Ceph-RBD-挂载问题总结" class="headerlink" title="Ceph RBD 挂载问题总结"></a>Ceph RBD 挂载问题总结</h1><h2 id="1-现象"><a href="#1-现象" class="headerlink" title="1. 现象"></a>1. 现象</h2><p>挂载rbd类型数据单元的服务启动时报错：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Warning  FailedMount  0s    kubelet  MountVolume.WaitForAttach failed <span class="keyword">for</span> volume <span class="string">&quot;test-rbd&quot;</span> : rbd image rbd/23a3c06e-21df-434b-8ea2-bd9e36b6a013 is still being used</span><br></pre></td></tr></table></figure>
 
+<span id="more"></span>
+
 <h2 id="2-研究背景"><a href="#2-研究背景" class="headerlink" title="2. 研究背景"></a>2. 研究背景</h2><p>大部分类型的数据单元都是在pod启动前，在webhook中通过解析annotation中数据单元的信息，为其添加相应的volume和volumeMount的方式实现。volume属于pod的一部分，与pod的生命周期保持同步。</p>
 <p>这对于文件系统、数据库、对象存储等类型的数据单元来说是很好的方式，而使用 <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/storage/volumes/#rbd">Ceph RBD</a> 类型的volume时，创建第一个pod不会有任何问题，但创建第二个pod时就有几率报上面的错。</p>
 <p>原因是rbd类型的volume不支持多节点同时挂载（还不清楚是k8s的限制还是rbd自身的缺陷），这带来了两个问题：</p>
@@ -395,9 +397,7 @@
 <li>当多个服务使用同一个rbd类型的数据单元或一个服务有多副本，如果这些pod分布在多个节点上，后启动的pod就会因为这个rbd卷正在被使用而被阻塞住。</li>
 <li>在服务升级时（helm upgrade），新起的pod发现rbd卷正在被其他pod使用起不来，旧的pod又在等待新pod起来后再停止，造成一个互相等待的<code>dead lock</code>。</li>
 </ol>
-<h2 id="3-查找问题"><a href="#3-查找问题" class="headerlink" title="3. 查找问题"></a>3. 查找问题</h2><span id="more"></span>
-
-<h3 id="3-1-猜想"><a href="#3-1-猜想" class="headerlink" title="3.1 猜想"></a>3.1 猜想</h3><p>因为问题不是必现，猜测是块存储对多节点的支持有问题。</p>
+<h2 id="3-查找问题"><a href="#3-查找问题" class="headerlink" title="3. 查找问题"></a>3. 查找问题</h2><h3 id="3-1-猜想"><a href="#3-1-猜想" class="headerlink" title="3.1 猜想"></a>3.1 猜想</h3><p>因为问题不是必现，猜测是块存储对多节点的支持有问题。</p>
 <h3 id="3-2-复现"><a href="#3-2-复现" class="headerlink" title="3.2 复现"></a>3.2 复现</h3><p>于是手动创建pod尝试复现：</p>
 <ol>
 <li><p>先创建只读pod，再创建读写pod —— 失败</p>

@@ -374,7 +374,6 @@
       
         
           <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>最近写的代理服务在<code>Ctrl+C</code>时不能正常的停止，进一步排查，发现是<code>TCPListener.Close()</code>被阻塞住没有正常返回，于是整理一篇文章讲下如何安全的关闭一个服务器的所有连接，使其优雅的退出。</p>
-<h2 id="问题排查"><a href="#问题排查" class="headerlink" title="问题排查"></a>问题排查</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 启动一个tcp server</span></span><br><span class="line">    s, _ := net.ResolveTCPAddr(<span class="string">&quot;tcp&quot;</span>, <span class="string">&quot;0.0.0.0:15001&quot;</span>)</span><br><span class="line">    l, _ := net.ListenTCP(<span class="string">&quot;tcp&quot;</span>, s)</span><br><span class="line">    <span class="comment">// 因为用作代理，配置了 IP_TRANSPARENT 选项</span></span><br><span class="line">    f, _ := l.File()</span><br><span class="line">    syscall.SetsockoptInt(<span class="keyword">int</span>(f.Fd()), syscall.SOL_IP, syscall.IP_TRANSPARENT, <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        _, e := l.AcceptTCP() <span class="comment">// 调用Accept接收连接，此协程按预期阻塞在这里</span></span><br><span class="line">        fmt.Println(e)</span><br><span class="line">    &#125;()</span><br><span class="line"></span><br><span class="line">    time.Sleep(time.Second) <span class="comment">// 等待另一个协程阻塞在 Accept</span></span><br><span class="line">    ...</span><br><span class="line">    l.Close()               <span class="comment">// 程序接收到 Ctrl+C 的interrupt信号，主动关闭listener，期望能立即返回，但却被阻塞在了这里</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
           <!--noindex-->
           <div class="post-button text-center">
             <a class="btn" href="/articles/%E5%A6%82%E4%BD%95%E4%BC%98%E9%9B%85%E7%9A%84%E5%85%B3%E9%97%AD%E6%9C%8D%E5%8A%A1%E5%99%A8/#more" rel="contents">
@@ -1372,15 +1371,6 @@
       
         
           <h2 id="导言"><a href="#导言" class="headerlink" title="导言"></a>导言</h2><p>最近把<a target="_blank" rel="noopener" href="https://book.douban.com/subject/26997846/">《Kubernetes in Action》</a> 英文原版书又看了一遍，愈发觉得这是一本难得一遇的好书，抽丝剥茧，图文并茂。如果大家想系统的学习Kubernetes，强烈建议找来看一下。这里对书中的核心知识点进行一个整理，包含以下内容：</p>
-<ul>
-<li>Kubernetes集群由哪些组件构成</li>
-<li>每个组件做了什么，具体是怎样做的</li>
-<li>从创建一个Deployment到Pod运行，这之间发生了什么</li>
-<li>一个运行的Pod具体是什么</li>
-<li>Pod之间的网络是怎样的</li>
-<li>Service是怎样工作的</li>
-<li>高可用是怎样实现的</li>
-</ul>
           <!--noindex-->
           <div class="post-button text-center">
             <a class="btn" href="/articles/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Kubernetes/#more" rel="contents">
@@ -1551,12 +1541,9 @@
           <blockquote><p>本文节选自<code>潘少</code>的文章，写的非常好，理解golang的网络模型非常有意义，建议Gopher都花时间仔细研究下</p>
 <footer><strong>潘建锋</strong><cite><a target="_blank" rel="noopener" href="https://strikefreedom.top/go-netpoll-io-multiplexing-reactor">`Go netpoller` 原生网络模型之源码全面揭秘</a></cite></footer></blockquote>
 
-<h2 id="导言"><a href="#导言" class="headerlink" title="导言"></a>导言</h2><p>Go 基于 I/O multiplexing 和 goroutine scheduler 构建了一个简洁而高性能的原生网络模型(基于 Go 的 <code>I/O</code> 多路复用 <code>netpoller</code> )，提供了 <code>goroutine-per-connection</code> 这样简单的网络编程模式。在这种模式下，开发者<strong>使用的是同步的模式去编写异步</strong>的逻辑，极大地降低了开发者编写网络应用时的心智负担，且借助于 Go runtime scheduler 对 goroutines 的高效调度，这个原生网络模型不论从适用性还是性能上都足以满足绝大部分的应用场景。</p>
-<p>然而，在工程性上能做到如此高的普适性和兼容性，最终暴露给开发者提供接口/模式如此简洁，其底层必然是基于非常复杂的封装，做了很多取舍，也有可能放弃了一些追求极致性能的设计和理念。事实上 <code>Go netpoller</code> 底层就是基于 epoll/kqueue/iocp 这些 <code>I/O</code> 多路复用技术来做封装的，最终暴露出 <code>goroutine-per-connection</code> 这样的极简的开发模式给使用者。</p>
-<p><code>Go netpoller</code> 在不同的操作系统，其底层使用的 <code>I/O</code> 多路复用技术也不一样，可以从 Go 源码目录结构和对应代码文件了解 Go 在不同平台下的网络 <code>I/O</code> 模式的实现。比如，在 Linux 系统下基于 epoll，freeBSD 系统下基于 kqueue，以及 Windows 系统下基于 iocp。</p>
-<p>本文将基于 Linux 平台来解析 <code>Go netpoller</code> 之 <code>I/O</code> 多路复用的底层是如何基于 epoll 封装实现的，从源码层层推进，全面而深度地解析 <code>Go netpoller</code> 的设计理念和实现原理，以及 Go 是如何利用 <code>netpoller</code> 来构建它的原生网络模型的。主要涉及到的一些概念：I/O 模型、用户/内核空间、epoll、Linux 源码、goroutine scheduler 等等，我会尽量简单地讲解，如果有对相关概念不熟悉的同学，还是希望能提前熟悉一下。</p>
-<h2 id="Go-netpoller-核心"><a href="#Go-netpoller-核心" class="headerlink" title="Go netpoller 核心"></a><code>Go netpoller</code> 核心</h2><p><strong><code>Go netpoller</code> 基本原理</strong></p>
-<p><strong><code>Go netpoller</code> 通过在底层对 epoll/kqueue/iocp 的封装，从而实现了使用同步编程模式达到异步执行的效果。总结来说，所有的网络操作都以网络描述符 <code>netFD</code> 为中心实现。<code>netFD</code> 与底层 <code>PollDesc</code> 结构绑定，当在一个 <code>netFD</code> 上读写遇到 EAGAIN 错误时，就将当前 goroutine 存储到这个 <code>netFD</code> 对应的 <code>PollDesc</code> 中，同时调用 gopark 把当前 goroutine 给 park 住，直到这个 <code>netFD</code> 上再次发生读写事件，才将此 goroutine 给 ready 激活重新运行。显然，在底层通知 goroutine 再次发生读写等事件的方式就是 epoll/kqueue/iocp 等事件驱动机制。</strong></p>
+
+
+<h2 id="导言"><a href="#导言" class="headerlink" title="导言"></a>导言</h2>
           <!--noindex-->
           <div class="post-button text-center">
             <a class="btn" href="/articles/Go-netpoller-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E8%AF%A6%E8%A7%A3/#more" rel="contents">
@@ -1724,25 +1711,7 @@
 
       
         
-          <h2 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h2><p> I/O 多路复用、信号驱动 I/O 以及 epoll 都是用来实现同一个目标的技术— 同 时检查多个文件描述符，看它们是否准备好了执行 I/O 操作(准确地说，是看 I/O 系统调 用是否可以非阻塞地执行)。文件描述符就绪状态的转化是通过一些 I/O 事件来触发的，比 如输入数据到达，套接字连接建立完成，或者是之前满载的套接字发送缓冲区在 TCP 将队 列中的数据传送到对端之后有了剩余空间。同时检查多个文件描述符在类似网络服务器的应用中很有用处，或者是那些必须同时检查终端以及管道或套接字输入的应用程序。</p>
-<p> 需要注意的是这些技术都不会执行实际的 I/O 操作。它们只是告诉我们某个文件描述符已经处于就绪状态了。这时需要调用其他的系统调用来完成实际的 I/O 操作。</p>
-<h3 id="I-O方式的选择"><a href="#I-O方式的选择" class="headerlink" title="I/O方式的选择"></a>I/O方式的选择</h3><ul>
-<li>系统调用select()和poll()在UNIX系统中已经存在了很长的时间。同其他技术相比，它 们主要的优势在于可移植性，主要缺点在于当同时检查大量的(数百或数千个)文件 描述符时性能延展性不佳。</li>
-<li>epollAPI的关键优势在于它能让应用程序高效地检查大量的文件描述符。其主要缺点 在于它是专属于 Linux 系统的 API。</li>
-<li>同 epoll 一样，信号驱动 I/O 可以让应用程序高效地检查大量的文件描述符。但是 epoll 有一些信号驱动 I/O 所没有的优点。<ul>
-<li>避免了处理信号的复杂性。</li>
-<li>我们可以指定想要检查的事件类型(即，读就绪或者写就绪)。</li>
-<li>我们可以选择以水平触发或边缘触发的形式来通知进程。</li>
-</ul>
-</li>
-</ul>
-<p>另外，要完全利用信号 I/O 的优点需要用到不可移植的 Linux 专有的特性，而如果我们这么做了，那么信号驱动 I/O 的可移植性也不会比 epoll 更好。</p>
-<h3 id="水平触发和边缘触发"><a href="#水平触发和边缘触发" class="headerlink" title="水平触发和边缘触发"></a>水平触发和边缘触发</h3><p>在深入讨论多种可选的 I/O 机制之前，我们需要先区分两种文件描述符准备就绪的通知模式。</p>
-<ul>
-<li>水平触发通知:如果文件描述符上可以非阻塞地执行 I/O 系统调用，此时认为它已经就绪。</li>
-<li>边缘触发通知:如果文件描述符自上次状态检查以来有了新的 I/O 活动(比如新的输入)，此时需要触发通知。</li>
-</ul>
-<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/e8tMom.png" alt="e8tMom"></p>
+          <h2 id="综述"><a href="#综述" class="headerlink" title="综述"></a>综述</h2>
           <!--noindex-->
           <div class="post-button text-center">
             <a class="btn" href="/articles/%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%EF%BC%9Aselect%E3%80%81poll%E4%B8%8Eepoll%E7%9A%84%E6%AF%94%E8%BE%83/#more" rel="contents">
@@ -1910,16 +1879,7 @@
 
       
         
-          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在实现容器化的初期，计划使用 Ceph 作为容器的存储。都说存储是虚拟化之母，相对容器来说，存储也起到了至关重要的作用。</p>
-<p>选用 Ceph 作为容器化存储理由如下：</p>
-<p>方便后期横向扩展；<br>Ceph能够同时支持快存储、对象存储、文件存储，容器使用块存储，后期也会用到对象存储来取代 OSS 服务。<br>基于以上理由，采用 Ceph 分布式存储应该是个不错的选择。容器化第一步从 存储 开始。</p>
-<p><a target="_blank" rel="noopener" href="https://docs.ceph.com/docs/master/start/intro/">Ceph 官方文档（英文）</a></p>
-<p><a target="_blank" rel="noopener" href="http://docs.ceph.org.cn/start/intro/">Ceph 官方文档（中文）</a></p>
-<h2 id="Ceph-简介"><a href="#Ceph-简介" class="headerlink" title="Ceph 简介"></a>Ceph 简介</h2><p>不管你是想为 云平台 提供 Ceph 对象存储或块设备，还是想部署一个 Ceph 文件系统 ，所有 Ceph 存储集群的部署都始于一个个 Ceph节点、网络和 Ceph存储集群。</p>
-<p>创建Ceph 存储，至少需要以下服务：</p>
-<p>一个Ceph Monitor<br>两个OSD守护进程</p>
-<p>而运行 Ceph 文件系统客户端时，则必须要有元数据服务器（Metadata Server） ，使用 Ceph 作为文件系统这种需求场景应该不会很多，而本次的容器化项目也不会涉及到 文件系统存储，因此不深究。</p>
-<p><img src="https://picbed-1253674052.cos.ap-beijing.myqcloud.com/uPic/z9LES0.png" alt="z9LES0"></p>
+          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2>
           <!--noindex-->
           <div class="post-button text-center">
             <a class="btn" href="/articles/Ceph-%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5%E3%80%81%E5%8E%9F%E7%90%86%E5%8F%8A%E6%9E%B6%E6%9E%84/#more" rel="contents">
